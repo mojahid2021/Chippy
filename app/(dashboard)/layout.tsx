@@ -1,12 +1,39 @@
-export default async function DashboardLayout({
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useUserStore } from "@/lib/stores/userStore"
+import { Loader2 } from "lucide-react"
+
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // const session = await auth()
-  // if (!session) {
-  //   redirect("/auth/signin")
-  // }
+  const { user, token, initializeAuth } = useUserStore()
+  const router = useRouter()
+
+  useEffect(() => {
+    // Initialize auth state from cookies on mount
+    initializeAuth()
+
+    // Redirect to signin if not authenticated
+    if (!user && !token) {
+      router.push("/auth/signin")
+    }
+  }, [user, token, router, initializeAuth])
+
+  // Show loading while checking authentication
+  if (!user && !token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen">

@@ -38,8 +38,8 @@ export default function Home() {
 
             {/* CTA */}
             <div className="hidden md:flex items-center space-x-4">
-              <Link href="/dashboard" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">Sign In</Link>
-              <Link href="/dashboard">
+              <Link href="/auth/signin" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">Sign In</Link>
+              <Link href="/auth/signin">
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                   Get Started <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -58,7 +58,7 @@ export default function Home() {
               <a href="#features" className="block text-gray-600">Features</a>
               <a href="#how-it-works" className="block text-gray-600">How It Works</a>
               <a href="#testimonials" className="block text-gray-600">Testimonials</a>
-              <Link href="/dashboard"><Button className="w-full bg-blue-600 hover:bg-blue-700">Get Started</Button></Link>
+              <Link href="/auth/signin"><Button className="w-full bg-blue-600 hover:bg-blue-700">Get Started</Button></Link>
             </motion.div>
           )}
         </nav>
@@ -83,7 +83,7 @@ export default function Home() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Link href="/dashboard">
+                <Link href="/auth/signin">
                   <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8">
                     Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -285,7 +285,7 @@ export default function Home() {
               Join thousands of businesses automating their social media success. Start your free trial today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/dashboard">
+              <Link href="/auth/signin">
                 <Button size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100 px-8">
                   Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
