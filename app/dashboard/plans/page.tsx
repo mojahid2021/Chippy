@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -50,6 +51,7 @@ interface ApiError {
 }
 
 export default function PlansPage() {
+  const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -93,6 +95,10 @@ export default function PlansPage() {
   const handleBackToPlans = () => {
     setSelectedPlan(null)
     setViewingDetails(false)
+  }
+
+  const handlePurchase = (plan: Plan) => {
+    router.push(`/dashboard/plans/purchase/${plan.id}`)
   }
 
   const formatPrice = (price: number, currency: string = 'USD') => {
@@ -288,7 +294,7 @@ export default function PlansPage() {
             </Card>
 
             {/* Action Button */}
-            <Button className="w-full bg-blue-600 hover:bg-blue-700">
+            <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => handlePurchase(selectedPlan)}>
               <ShoppingCart className="h-4 w-4 mr-2" />
               Purchase Plan
             </Button>
@@ -399,7 +405,7 @@ export default function PlansPage() {
                     <Info className="h-4 w-4 mr-2" />
                     View Details
                   </Button>
-                  <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
+                  <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={() => handlePurchase(plan)}>
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     Purchase
                   </Button>
