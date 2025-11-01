@@ -148,8 +148,10 @@ export const useUserStore = create<AuthState>((set) => ({
     }
   },
 
-  initializeAuth: () => {
+  initializeAuth: async () => {
     if (typeof window !== 'undefined') {
+      set({ isLoading: true }) // Set loading state at the start
+
       // Get token from cookies
       const cookies = document.cookie.split(';')
       const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('auth_token='))
@@ -158,8 +160,48 @@ export const useUserStore = create<AuthState>((set) => ({
         const token = tokenCookie.split('=')[1]
         if (token) {
           set({ token })
-          // TODO: Optionally validate token with backend and fetch user data
+          // Validate the token and fetch user data
+          try {
+            const response = await fetch('/api/user/profile', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            })
+
+            const data = await response.json()
+
+            if (data.success) {
+              set({
+                user: data.data,
+                isLoading: false,
+                error: null
+              })
+            } else {
+              // Clear invalid token
+              document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+              set({
+                user: null,
+                token: null,
+                isLoading: false
+              })
+            }
+          } catch {
+            // Clear invalid token on network error
+            document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+            set({
+              user: null,
+              token: null,
+              isLoading: false
+            })
+          }
+        } else {
+          // No valid token found
+          set({ isLoading: false })
         }
+      } else {
+        // No token cookie found
+        set({ isLoading: false })
       }
     }
   },
