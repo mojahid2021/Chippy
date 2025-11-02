@@ -34,6 +34,8 @@ import {
   ChevronRight,
   User,
   CreditCard,
+  Receipt,
+  Calendar,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -41,6 +43,8 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
   { name: 'Plans', href: '/dashboard/plans', icon: CreditCard },
+  { name: 'My Subscription', href: '/dashboard/subscription', icon: Calendar },
+  { name: 'Transactions', href: '/dashboard/transactions', icon: Receipt },
   { name: 'Accounts', href: '/dashboard/accounts', icon: Users },
   { name: 'Content', href: '/dashboard/content', icon: FileText },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
