@@ -164,7 +164,29 @@ export default function FBPageSettingsPage() {
 
   const copyToClipboard = async (text: string, type: 'url' | 'token') => {
     try {
-      await navigator.clipboard.writeText(text)
+      // Try modern clipboard API first (works in HTTPS)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        // Fallback for HTTP environments
+        const textArea = document.createElement('textarea')
+        textArea.value = text
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        textArea.style.top = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+
+        const successful = document.execCommand('copy')
+        if (!successful) {
+          throw new Error('Fallback copy method failed')
+        }
+
+        document.body.removeChild(textArea)
+      }
+
+      // Show success feedback
       if (type === 'url') {
         setCopiedUrl(true)
         setTimeout(() => setCopiedUrl(false), 2000)
@@ -174,6 +196,8 @@ export default function FBPageSettingsPage() {
       }
     } catch (err) {
       console.error('Failed to copy to clipboard:', err)
+      // Fallback: show alert with the text
+      alert(`Copy failed. Please manually copy: ${text}`)
     }
   }
 
