@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowRight, Bot, Calendar, BarChart, MessageSquare, Link2, Zap, Shield, Star, Check, Menu, X, Twitter, Linkedin, Instagram, Facebook, Play, Quote, TrendingUp } from "lucide-react"
@@ -20,12 +21,16 @@ export default function Home() {
       >
         <nav className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            {/* Logo */}
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="h-10 w-10 rounded-lg bg-blue-600 flex items-center justify-center">
-                <Bot className="h-6 w-6 text-white" />
+            {/* Logo (image only) - cropped to fit navbar */}
+            <Link href="/" className="flex items-center">
+              <div className="relative h-10 w-36 overflow-hidden rounded">
+                <Image
+                  src="/bdchatpro.jpg"
+                  alt="BDChatPro"
+                  fill
+                  className="object-cover"
+                />
               </div>
-              <span className="text-2xl font-bold text-gray-900">SocialAI</span>
             </Link>
 
             {/* Desktop Menu */}
@@ -113,14 +118,11 @@ export default function Home() {
 
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="relative">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-200">
-                <div className="bg-white p-8 aspect-video flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Bot className="h-12 w-12 text-blue-600" />
+                  <div className="bg-white p-0 aspect-video">
+                    <div className="relative w-full h-full">
+                      <Image src="/banner.jpg" alt="Dashboard Preview" fill className="object-cover" />
                     </div>
-                    <p className="text-gray-500 font-medium">Dashboard Preview</p>
                   </div>
-                </div>
               </div>
               <div className="absolute -top-4 -right-4 w-72 h-72 bg-blue-100 rounded-full blur-3xl opacity-20 -z-10"></div>
               <div className="absolute -bottom-4 -left-4 w-72 h-72 bg-purple-100 rounded-full blur-3xl opacity-20 -z-10"></div>
