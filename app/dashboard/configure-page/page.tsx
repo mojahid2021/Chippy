@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { useUserStore } from "@/lib/stores/userStore"
 import {
-  Facebook,
   Save,
   RefreshCw,
   Link as LinkIcon,
@@ -35,27 +34,17 @@ interface WebhookResponse {
 }
 
 interface PageSettingsData {
-  appCredentials: {
-    appId: string
-    isActive: boolean
-    lastUsed: string
-    createdAt: string
-    updatedAt: string
-  }
-  pageTokens: Array<{
-    pageId: string
-    pageName: string
-    accessToken: string
-    isActive: boolean
-    lastUsed: string
-    createdAt: string
-    updatedAt: string
-  }>
+  pageName: string
+  appId: string
+  appSecret: string
+  accessToken: string
 }
 
 interface PageSettingsResponse {
   success: boolean
-  data?: PageSettingsData
+  data?: {
+    appCredentials: PageSettingsData | null
+  }
   error?: string
   message: string
   timestamp: string
@@ -74,6 +63,7 @@ export default function FBPageSettingsPage() {
   const [pageSettingsError, setPageSettingsError] = useState<string | null>(null)
   const [savingSettings, setSavingSettings] = useState(false)
   const [showCredentialForm, setShowCredentialForm] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   const [newCredentials, setNewCredentials] = useState({
     pageName: "",
@@ -148,8 +138,10 @@ export default function FBPageSettingsPage() {
           return
         }
 
-        if (data.success && data.data) {
-          setPageSettings(data.data)
+        if (data.success && data.data?.appCredentials) {
+          setPageSettings(data.data.appCredentials)
+        } else if (data.success && data.data?.appCredentials === null) {
+          setPageSettings(null)
         }
       } catch (err) {
         setPageSettingsError(err instanceof Error ? err.message : 'An error occurred while fetching page settings')
@@ -237,8 +229,10 @@ export default function FBPageSettingsPage() {
 
         if (fetchResponse.ok) {
           const fetchData: PageSettingsResponse = await fetchResponse.json()
-          if (fetchData.success && fetchData.data) {
-            setPageSettings(fetchData.data)
+          if (fetchData.success && fetchData.data?.appCredentials) {
+            setPageSettings(fetchData.data.appCredentials)
+          } else if (fetchData.success && fetchData.data?.appCredentials === null) {
+            setPageSettings(null)
           }
         }
 
@@ -263,18 +257,6 @@ export default function FBPageSettingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">FB Page Settings</h1>
-          <p className="text-gray-600 mt-1">Manage your Facebook page connections and automation settings</p>
-        </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Save className="h-4 w-4 mr-2" />
-          Save Changes
-        </Button>
-      </div>
-
       {/* Webhook Information */}
       <Card>
         <CardHeader>
@@ -385,7 +367,7 @@ export default function FBPageSettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <SettingsIcon className="h-5 w-5 text-green-600" />
-            <span>Page Credentials</span>
+            <span>Configure Page</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -396,21 +378,50 @@ export default function FBPageSettingsPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Add Credentials Button - Always Visible */}
+              {/* Add/Update Credentials Button */}
               <div className="flex justify-end">
                 {!showCredentialForm ? (
-                  <Button
-                    onClick={() => setShowCredentialForm(true)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <SettingsIcon className="h-4 w-4 mr-2" />
-                    Add Credentials
-                  </Button>
+                  pageSettings ? (
+                    <Button
+                      onClick={() => {
+                        setIsEditing(true)
+                        setShowCredentialForm(true)
+                        setNewCredentials({
+                          pageName: pageSettings.pageName,
+                          appId: pageSettings.appId,
+                          appSecret: pageSettings.appSecret,
+                          accessToken: pageSettings.accessToken,
+                        })
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <SettingsIcon className="h-4 w-4 mr-2" />
+                      Update Credentials
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        setIsEditing(false)
+                        setShowCredentialForm(true)
+                        setNewCredentials({
+                          pageName: "",
+                          appId: "",
+                          appSecret: "",
+                          accessToken: "",
+                        })
+                      }}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <SettingsIcon className="h-4 w-4 mr-2" />
+                      Add Credentials
+                    </Button>
+                  )
                 ) : (
                   <Button
                     variant="outline"
                     onClick={() => {
                       setShowCredentialForm(false)
+                      setIsEditing(false)
                       setNewCredentials({
                         pageName: "",
                         appId: "",
@@ -427,7 +438,9 @@ export default function FBPageSettingsPage() {
               {/* Configuration Form */}
               {showCredentialForm && (
                 <div className="border-t border-gray-200 pt-6">
-                  <h4 className="font-semibold text-gray-900 mb-4">Configure Facebook App Credentials</h4>
+                  <h4 className="font-semibold text-gray-900 mb-4">
+                    {isEditing ? 'Update Page Credentials' : 'Configure Page Credentials'}
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="pageName">Page Name *</Label>
@@ -476,17 +489,17 @@ export default function FBPageSettingsPage() {
                     <Button
                       onClick={handleSavePageSettings}
                       disabled={savingSettings || !newCredentials.pageName || !newCredentials.appId || !newCredentials.appSecret || !newCredentials.accessToken}
-                      className="bg-green-600 hover:bg-green-700"
+                      className={isEditing ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"}
                     >
                       {savingSettings ? (
                         <>
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Saving...
+                          {isEditing ? 'Updating...' : 'Saving...'}
                         </>
                       ) : (
                         <>
                           <Save className="h-4 w-4 mr-2" />
-                          Save Credentials
+                          {isEditing ? 'Update Credentials' : 'Save Credentials'}
                         </>
                       )}
                     </Button>
@@ -498,139 +511,55 @@ export default function FBPageSettingsPage() {
               {pageSettingsError ? (
                 <div className="text-center py-6">
                   <SettingsIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Facebook Page Credentials Configured</h3>
-                  <p className="text-gray-600">Configure your Facebook app credentials to enable page integration</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Page Credentials Configured</h3>
+                  <p className="text-gray-600">Configure your page credentials to enable page integration</p>
                 </div>
-              ) : pageSettings ? (
+              ) : (pageSettings && !showCredentialForm) ? (
                 <>
                   {/* App Credentials */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-4">Facebook App Credentials</h4>
+                    <h4 className="font-semibold text-gray-900 mb-4">Page Credentials</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">App ID</Label>
+                        <Label className="text-sm font-medium text-gray-700">Page Name</Label>
                         <Input
-                          value={pageSettings.appCredentials.appId}
+                          value={pageSettings.pageName}
                           readOnly
                           className="font-mono text-sm"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">Status</Label>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={pageSettings.appCredentials.isActive ? "default" : "secondary"}>
-                            {pageSettings.appCredentials.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
+                        <Label className="text-sm font-medium text-gray-700">App ID</Label>
+                        <Input
+                          value={pageSettings.appId}
+                          readOnly
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">App Secret</Label>
+                        <Input
+                          value={pageSettings.appSecret}
+                          readOnly
+                          type="password"
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">Access Token</Label>
+                        <Input
+                          value={pageSettings.accessToken}
+                          readOnly
+                          type="password"
+                          className="font-mono text-sm"
+                        />
                       </div>
                     </div>
                     <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-4">
                       <div className="text-sm text-gray-600">
-                        Created: {new Date(pageSettings.appCredentials.createdAt).toLocaleDateString()}
-                        {pageSettings.appCredentials.lastUsed && (
-                          <span className="ml-4">
-                            Last used: {new Date(pageSettings.appCredentials.lastUsed).toLocaleDateString()}
-                          </span>
-                        )}
+                        Credentials configured and ready to use
                       </div>
                     </div>
-                  </div>
-
-                  {/* Page Tokens */}
-                  {pageSettings.pageTokens.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-4">Connected Pages</h4>
-                      <div className="space-y-4">
-                        {pageSettings.pageTokens.map((pageToken, index) => (
-                          <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                            <div className="flex items-center space-x-4">
-                              <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                                <Facebook className="h-5 w-5 text-blue-600" />
-                              </div>
-                              <div>
-                                <h5 className="font-medium text-gray-900">{pageToken.pageName}</h5>
-                                <p className="text-sm text-gray-600">Page ID: {pageToken.pageId}</p>
-                                <div className="flex items-center space-x-4 mt-1">
-                                  <Badge variant={pageToken.isActive ? "default" : "secondary"}>
-                                    {pageToken.isActive ? "Active" : "Inactive"}
-                                  </Badge>
-                                  {pageToken.lastUsed && (
-                                    <span className="text-xs text-gray-500">
-                                      Last used: {new Date(pageToken.lastUsed).toLocaleDateString()}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Created: {new Date(pageToken.createdAt).toLocaleDateString()}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Update Credentials */}
-                  <div className="border-t border-gray-200 pt-6">
-                    <h4 className="font-semibold text-gray-900 mb-4">Update Credentials</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="updatePageName">Page Name</Label>
-                        <Input
-                          id="updatePageName"
-                          placeholder="Enter Facebook page name"
-                          value={newCredentials.pageName}
-                          onChange={(e) => setNewCredentials({ ...newCredentials, pageName: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="updateAppId">App ID</Label>
-                        <Input
-                          id="updateAppId"
-                          placeholder="Enter Facebook App ID"
-                          value={newCredentials.appId}
-                          onChange={(e) => setNewCredentials({ ...newCredentials, appId: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="updateAppSecret">App Secret</Label>
-                        <Input
-                          id="updateAppSecret"
-                          type="password"
-                          placeholder="Enter Facebook App Secret"
-                          value={newCredentials.appSecret}
-                          onChange={(e) => setNewCredentials({ ...newCredentials, appSecret: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="updateAccessToken">Access Token</Label>
-                        <Input
-                          id="updateAccessToken"
-                          type="password"
-                          placeholder="Enter Page Access Token"
-                          value={newCredentials.accessToken}
-                          onChange={(e) => setNewCredentials({ ...newCredentials, accessToken: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      onClick={handleSavePageSettings}
-                      disabled={savingSettings}
-                      className="mt-4 bg-green-600 hover:bg-green-700"
-                    >
-                      {savingSettings ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Updating...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-2" />
-                          Update Credentials
-                        </>
-                      )}
-                    </Button>
                   </div>
                 </>
               ) : null}

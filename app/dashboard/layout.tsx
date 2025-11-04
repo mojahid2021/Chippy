@@ -36,7 +36,6 @@ import {
   CreditCard,
   Receipt,
   Calendar,
-  Facebook,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -49,7 +48,7 @@ const navigation = [
   { name: 'Accounts', href: '/dashboard/accounts', icon: Users },
   { name: 'Content', href: '/dashboard/content', icon: FileText },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'FB Page Settings', href: '/dashboard/fb-page-settings', icon: Facebook },
+  { name: 'Configure AI', href: '/dashboard/configure-ai', icon: Bot },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 

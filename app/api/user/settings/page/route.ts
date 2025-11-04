@@ -48,26 +48,30 @@ export async function GET(request: NextRequest) {
         const data = await response.json()
         return NextResponse.json(data, { status: response.status })
       } else {
-        // If external API returns error, return mock data for development
+        // If external API returns error, return no credentials format
         return NextResponse.json(
           {
-            success: false,
-            error: 'Settings not configured',
-            message: 'No Facebook page settings found. Please configure your credentials.',
+            success: true,
+            data: {
+              appCredentials: null
+            },
+            message: "Settings retrieved successfully",
             timestamp: new Date().toISOString(),
           },
-          { status: 404 }
+          { status: 200 }
         )
       }
     } catch {
       // If backend is not available, simulate no settings for development
       console.warn('Backend not available, simulating no page settings')
       return NextResponse.json({
-        success: false,
-        error: 'Settings not configured',
-        message: 'No Facebook page settings found. Please configure your credentials.',
+        success: true,
+        data: {
+          appCredentials: null
+        },
+        message: 'Settings retrieved successfully',
         timestamp: new Date().toISOString(),
-      }, { status: 404 })
+      }, { status: 200 })
     }
   } catch (error) {
     console.error('Page settings GET API error:', error)
@@ -164,10 +168,6 @@ export async function POST(request: NextRequest) {
       console.warn('Backend not available, simulating page settings update')
       return NextResponse.json({
         success: true,
-        data: {
-          appCredentials: { success: true },
-          pageToken: { success: true }
-        },
         message: 'Settings updated successfully',
         timestamp: new Date().toISOString(),
       })
