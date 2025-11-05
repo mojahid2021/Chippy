@@ -1,26 +1,67 @@
-'use client'
+"use client"
 
-import { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { useState, useEffect, useCallback } from "react"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { 
+  Check, 
+  Crown, 
   Calendar,
   CreditCard,
-  DollarSign,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Loader2,
-  Crown,
+  Download,
+  TrendingUp,
+  Users,
   Zap,
   Shield,
+  ArrowRight,
+  FileText,
   Settings,
-  RefreshCw,
+  Star,
+  CheckCircle,
+  XCircle,
   Clock,
-} from 'lucide-react'
+  MoreHorizontal,
+  Eye,
+  Loader2,
+  AlertCircle
+} from "lucide-react"
 import { cn } from '@/lib/utils'
 import { useUserStore } from '@/lib/stores/userStore'
+
+// Transaction interface matching API response
+interface Transaction {
+  id: string
+  type: string
+  subscriptionId: string
+  accountNumber: string
+  transactionId: string
+  amount: number
+  currency: string
+  status: 'pending' | 'verifying' | 'completed' | 'failed'
+  submittedAt: string
+  verifiedAt: string | null
+  notes: string | null
+  subscription: {
+    id: string
+    plan: {
+      id: string
+      name: string
+      price: number
+      interval: string
+    }
+    startDate: string
+    endDate: string
+    isActive: boolean
+  }
+}
 
 // Subscription interface matching API response
 interface Subscription {
@@ -54,7 +95,22 @@ interface Subscription {
   }
 }
 
-// API Response interface
+// API Response interfaces
+interface TransactionsResponse {
+  success: boolean
+  data: {
+    transactions: Transaction[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      pages: number
+    }
+  }
+  message: string
+  timestamp: string
+}
+
 interface SubscriptionResponse {
   success: boolean
   data: {
@@ -67,27 +123,26 @@ interface SubscriptionResponse {
 }
 
 const statusConfig = {
-  pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-  completed: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-  failed: { color: 'bg-red-100 text-red-800', icon: XCircle },
-  cancelled: { color: 'bg-gray-100 text-gray-800', icon: XCircle },
+  completed: { color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
+  pending: { color: 'bg-yellow-100 text-yellow-700', icon: Clock },
+  verifying: { color: 'bg-blue-100 text-blue-700', icon: Clock },
+  failed: { color: 'bg-red-100 text-red-700', icon: XCircle },
 }
 
 export default function SubscriptionPage() {
   const { token } = useUserStore()
-  const [subscription, setSubscription] = useState<Subscription | null>(null)
-  const [hasSubscription, setHasSubscription] = useState<boolean>(false)
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
+  const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const [hasSubscription, setHasSubscription] = useState<boolean>(false)
+  
   // Fetch subscription from API
   const fetchSubscription = useCallback(async () => {
     if (!token) return
 
     try {
-      setLoading(true)
-      setError(null)
-
       const response = await fetch('/api/user/subscription', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -107,46 +162,71 @@ export default function SubscriptionPage() {
         throw new Error('Invalid response format')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching subscription')
       console.error('Error fetching subscription:', err)
+      // Don't set error here to avoid breaking the UI, just log it
+    }
+  }, [token])
+  
+  // Fetch transactions from API
+  const fetchTransactions = useCallback(async () => {
+    if (!token) return
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '10',
+        sortBy: 'submittedAt',
+        sortOrder: 'desc'
+      })
+
+      const response = await fetch(`/api/user/transactions?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      const data: TransactionsResponse = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch transactions')
+      }
+
+      if (data.success && data.data) {
+        setTransactions(data.data.transactions)
+      } else {
+        throw new Error('Invalid response format')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching transactions')
+      console.error('Error fetching transactions:', err)
     } finally {
       setLoading(false)
     }
   }, [token])
 
-  // Initial load
+  // Initial load - fetch both subscription and transactions
   useEffect(() => {
     fetchSubscription()
-  }, [fetchSubscription])
+    fetchTransactions()
+  }, [fetchSubscription, fetchTransactions])
 
-  const formatCurrency = (amount: number | undefined | null, currency?: string) => {
-    // Handle invalid or missing amount
-    if (amount === null || amount === undefined || isNaN(amount)) {
-      return '0.00'
-    }
-
-    // Handle invalid or missing currency codes
-    if (!currency || typeof currency !== 'string' || currency.trim() === '') {
-      return `${Number(amount).toFixed(2)}`
-    }
-
-    try {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency.toUpperCase(),
-      }).format(Number(amount))
-    } catch (error) {
-      // Fallback if currency code is invalid
-      console.warn(`Invalid currency code: ${currency}`, error)
-      return `${currency.toUpperCase()} ${Number(amount).toFixed(2)}`
-    }
+  const formatCurrency = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+    }).format(amount)
   }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     })
   }
 
@@ -157,286 +237,560 @@ export default function SubscriptionPage() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     return diffDays
   }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        <span className="ml-2 text-gray-600">Loading subscription details...</span>
-      </div>
-    )
+  
+  // Current subscription data - use real data if available, otherwise use mock data
+  const currentSubscription = subscription ? {
+    plan: subscription.plan.name,
+    status: subscription.isActive ? 'active' : 'inactive',
+    amount: subscription.plan.price,
+    currency: subscription.plan.currency,
+    billingDate: new Date(subscription.endDate).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    }),
+    daysLeft: getDaysUntilExpiry(subscription.endDate),
+    usage: {
+      orders: { current: 847, limit: 1000 },
+      conversations: { current: 3240, limit: 5000 },
+      aiMessages: { current: 12580, limit: 20000 },
+    }
+  } : {
+    plan: 'Professional',
+    status: 'active' as const,
+    amount: 49,
+    currency: 'USD',
+    billingDate: 'Dec 15, 2024',
+    daysLeft: 39,
+    usage: {
+      orders: { current: 847, limit: 1000 },
+      conversations: { current: 3240, limit: 5000 },
+      aiMessages: { current: 12580, limit: 20000 },
+    }
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <AlertCircle className="h-8 w-8 text-red-600" />
-        <div className="ml-2">
-          <p className="text-red-600 font-medium">Error loading subscription</p>
-          <p className="text-gray-600 text-sm">{error}</p>
-          <Button
-            onClick={fetchSubscription}
-            variant="outline"
-            size="sm"
-            className="mt-2"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
-        </div>
-      </div>
-    )
+  // Available plans
+  const plans = [
+    {
+      id: 'starter',
+      name: 'Starter',
+      description: 'Perfect for small businesses getting started',
+      monthlyPrice: 19,
+      yearlyPrice: 190,
+      yearlyDiscount: 17,
+      icon: Zap,
+      color: 'blue',
+      features: [
+        '500 Orders/month',
+        '2,000 Conversations',
+        '10,000 AI Messages',
+        '2 Team Members',
+        '10GB Storage',
+        'Email Support',
+        'Basic Analytics',
+        'Standard Templates'
+      ],
+      limits: {
+        orders: 500,
+        conversations: 2000,
+        aiMessages: 10000,
+        users: 2,
+        storage: 10
+      }
+    },
+    {
+      id: 'professional',
+      name: 'Professional',
+      description: 'Best for growing e-commerce businesses',
+      monthlyPrice: 49,
+      yearlyPrice: 490,
+      yearlyDiscount: 17,
+      icon: Crown,
+      color: 'violet',
+      popular: true,
+      features: [
+        '1,000 Orders/month',
+        '5,000 Conversations',
+        '20,000 AI Messages',
+        '5 Team Members',
+        '50GB Storage',
+        'Priority Support',
+        'Advanced Analytics',
+        'Custom Branding',
+        'API Access',
+        'Webhook Integration'
+      ],
+      limits: {
+        orders: 1000,
+        conversations: 5000,
+        aiMessages: 20000,
+        users: 5,
+        storage: 50
+      }
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise',
+      description: 'For large businesses with custom needs',
+      monthlyPrice: 149,
+      yearlyPrice: 1490,
+      yearlyDiscount: 17,
+      icon: Shield,
+      color: 'emerald',
+      features: [
+        'Unlimited Orders',
+        'Unlimited Conversations',
+        'Unlimited AI Messages',
+        'Unlimited Team Members',
+        'Unlimited Storage',
+        '24/7 Phone Support',
+        'Custom AI Training',
+        'Dedicated Account Manager',
+        'Advanced Security',
+        'SLA Guarantee',
+        'Custom Integration',
+        'White Label Option'
+      ],
+      limits: {
+        orders: -1,
+        conversations: -1,
+        aiMessages: -1,
+        users: -1,
+        storage: -1
+      }
+    }
+  ]
+
+  const getPrice = (plan: typeof plans[0]) => {
+    return billingCycle === 'monthly' ? plan.monthlyPrice : Math.floor(plan.yearlyPrice / 12)
   }
 
-  if (!hasSubscription) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <CreditCard className="h-8 w-8 text-gray-400" />
-        <div className="ml-2">
-          <p className="text-gray-600 font-medium">No active subscription</p>
-          <p className="text-gray-500 text-sm">Subscribe to a plan to get started</p>
-          <Button className="mt-2" onClick={() => window.location.href = '/dashboard/plans'}>
-            View Plans
-          </Button>
-        </div>
-      </div>
-    )
+  const getTotalPrice = (plan: typeof plans[0]) => {
+    return billingCycle === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice
   }
 
-  if (!subscription) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <AlertCircle className="h-8 w-8 text-red-600" />
-        <div className="ml-2">
-          <p className="text-red-600 font-medium">Invalid subscription data</p>
-          <p className="text-gray-600 text-sm">The subscription data received is incomplete.</p>
-          <Button
-            onClick={fetchSubscription}
-            variant="outline"
-            size="sm"
-            className="mt-2"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
-        </div>
-      </div>
-    )
+  const getColorClasses = (color: string, variant: 'bg' | 'text' | 'border' | 'hover') => {
+    const colors = {
+      blue: {
+        bg: 'bg-blue-50',
+        text: 'text-blue-600',
+        border: 'border-blue-500',
+        hover: 'hover:bg-blue-600'
+      },
+      violet: {
+        bg: 'bg-violet-50',
+        text: 'text-violet-600',
+        border: 'border-violet-500',
+        hover: 'hover:bg-violet-600'
+      },
+      emerald: {
+        bg: 'bg-emerald-50',
+        text: 'text-emerald-600',
+        border: 'border-emerald-500',
+        hover: 'hover:bg-emerald-600'
+      }
+    }
+    return colors[color as keyof typeof colors]?.[variant] || ''
   }
-
-  const statusInfo = statusConfig[subscription.paymentStatus] || statusConfig.pending
-  const StatusIcon = statusInfo.icon
-  const daysUntilExpiry = getDaysUntilExpiry(subscription.endDate)
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Subscription</h1>
-          <p className="text-gray-600 mt-1">Manage your subscription and billing details</p>
+          <h1 className="text-2xl font-bold text-slate-900">Subscription</h1>
+          <p className="text-sm text-slate-600 mt-0.5">Manage your plan and billing</p>
         </div>
-        <div className="flex space-x-3">
-          <Button variant="outline">
-            <Settings className="h-4 w-4 mr-2" />
-            Manage
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Renew
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" className="h-8">
+          <Settings className="h-3.5 w-3.5 mr-1.5" />
+          Manage Billing
+        </Button>
       </div>
 
-      {/* Status Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Crown className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Current Plan</p>
-                <p className="text-2xl font-bold text-gray-900">{subscription.plan.name}</p>
-              </div>
+      {/* Show message if no subscription */}
+      {!hasSubscription && subscription === null && (
+        <Card className="border-blue-200 bg-blue-50/50 shadow-sm">
+          <div className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+              <Crown className="h-5 w-5 text-blue-600" />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <StatusIcon className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Status</p>
-                <Badge className={cn('text-sm font-semibold', statusInfo.color)}>
-                  {subscription.paymentStatus}
-                </Badge>
-              </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-slate-900">No active subscription</p>
+              <p className="text-xs text-slate-600">Choose a plan below to get started with premium features</p>
             </div>
-          </CardContent>
+            <Button 
+              size="sm" 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+            >
+              View Plans
+              <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+            </Button>
+          </div>
         </Card>
+      )}
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Calendar className="h-6 w-6 text-purple-600" />
+      {/* Current Subscription Overview */}
+      <Card className="border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-linear-to-r from-violet-500 to-violet-600 p-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Crown className="h-6 w-6 text-white" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Next Billing</p>
-                <p className="text-2xl font-bold text-gray-900">{formatDate(subscription.endDate)}</p>
-                <p className="text-xs text-gray-500">
-                  {daysUntilExpiry > 0 ? `${daysUntilExpiry} days left` : 'Expired'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  {subscription.plan.interval === 'yearly' ? 'Yearly Cost' : 'Monthly Cost'}
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(subscription.plan.price, subscription.plan.currency)}
-                </p>
-                <p className="text-xs text-gray-500 capitalize">{subscription.plan.interval}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Plan Details */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <CreditCard className="h-5 w-5 mr-2" />
-                Plan Details
-              </CardTitle>
-              <CardDescription>
-                Your current subscription information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Plan Name</p>
-                  <p className="text-lg font-semibold text-gray-900">{subscription.plan.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Billing Cycle</p>
-                  <p className="text-lg font-semibold text-gray-900 capitalize">{subscription.plan.interval}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Start Date</p>
-                  <p className="text-lg font-semibold text-gray-900">{formatDate(subscription.startDate)}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">End Date</p>
-                  <p className="text-lg font-semibold text-gray-900">{formatDate(subscription.endDate)}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Payment Method</p>
-                  <p className="text-lg font-semibold text-gray-900 capitalize">{subscription.paymentMethod}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Duration</p>
-                  <p className="text-lg font-semibold text-gray-900">{subscription.plan.duration} days</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Auto Renew</p>
-                  <Badge variant={subscription.autoRenew ? "default" : "secondary"}>
-                    {subscription.autoRenew ? 'Enabled' : 'Disabled'}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Price</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {formatCurrency(subscription.plan.price, subscription.plan.currency)}
-                  </p>
-                </div>
-              </div>
-
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-2">Description</p>
-                <p className="text-gray-700">{subscription.plan.description}</p>
+                <Badge className="bg-white/20 text-white border-white/30 mb-1">Active</Badge>
+                <h2 className="text-xl font-bold text-white">{currentSubscription.plan} Plan</h2>
+                <p className="text-sm text-violet-100">Your subscription is active and running smoothly</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-violet-100">Next billing</p>
+              <p className="text-lg font-bold text-white">{currentSubscription.billingDate}</p>
+              <p className="text-xs text-violet-100">{currentSubscription.daysLeft} days left</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-4 bg-slate-50">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Orders Usage */}
+            <div className="bg-white p-3 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-slate-600">Orders</span>
+                <FileText className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-bold text-slate-900">{currentSubscription.usage.orders.current}</span>
+                <span className="text-xs text-slate-500">/ {currentSubscription.usage.orders.limit}</span>
+              </div>
+              <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500 rounded-full transition-all"
+                  style={{ width: `${(currentSubscription.usage.orders.current / currentSubscription.usage.orders.limit) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                {Math.round((currentSubscription.usage.orders.current / currentSubscription.usage.orders.limit) * 100)}% used
+              </p>
+            </div>
+
+            {/* Conversations Usage */}
+            <div className="bg-white p-3 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-slate-600">Conversations</span>
+                <Users className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-bold text-slate-900">{currentSubscription.usage.conversations.current}</span>
+                <span className="text-xs text-slate-500">/ {currentSubscription.usage.conversations.limit}</span>
+              </div>
+              <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-emerald-500 rounded-full transition-all"
+                  style={{ width: `${(currentSubscription.usage.conversations.current / currentSubscription.usage.conversations.limit) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                {Math.round((currentSubscription.usage.conversations.current / currentSubscription.usage.conversations.limit) * 100)}% used
+              </p>
+            </div>
+
+            {/* AI Messages Usage */}
+            <div className="bg-white p-3 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-slate-600">AI Messages</span>
+                <Zap className="h-4 w-4 text-amber-600" />
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-bold text-slate-900">{currentSubscription.usage.aiMessages.current}</span>
+                <span className="text-xs text-slate-500">/ {currentSubscription.usage.aiMessages.limit}</span>
+              </div>
+              <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-amber-500 rounded-full transition-all"
+                  style={{ width: `${(currentSubscription.usage.aiMessages.current / currentSubscription.usage.aiMessages.limit) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                {Math.round((currentSubscription.usage.aiMessages.current / currentSubscription.usage.aiMessages.limit) * 100)}% used
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Available Plans Section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Available Plans</h2>
+            <p className="text-sm text-slate-600">Choose the perfect plan for your business</p>
+          </div>
+          
+          {/* Billing Toggle */}
+          <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                billingCycle === 'monthly'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingCycle('yearly')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                billingCycle === 'yearly'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Yearly
+              <Badge className="ml-1.5 bg-emerald-100 text-emerald-700 text-[10px] px-1">Save 17%</Badge>
+            </button>
+          </div>
         </div>
 
-        {/* Plan Features */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Zap className="h-5 w-5 mr-2" />
-                Plan Features
-              </CardTitle>
-              <CardDescription>
-                What&apos;s included in your plan
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                {subscription.plan.features && Array.isArray(subscription.plan.features) ? (
-                  subscription.plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 shrink-0" />
-                      <span className="text-sm text-gray-700">{feature}</span>
-                    </li>
-                  ))
-                ) : (
-                  <li className="flex items-start">
-                    <XCircle className="h-5 w-5 text-gray-400 mr-3 mt-0.5 shrink-0" />
-                    <span className="text-sm text-gray-500">No features available</span>
-                  </li>
+        {/* Plans Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {plans.map((plan) => {
+            const Icon = plan.icon
+            const isCurrentPlan = plan.name === currentSubscription.plan
+            
+            return (
+              <Card 
+                key={plan.id}
+                className={`relative border-2 transition-all hover:shadow-lg ${
+                  isCurrentPlan 
+                    ? 'border-violet-500 bg-violet-50/30' 
+                    : plan.popular 
+                      ? 'border-violet-200 shadow-md' 
+                      : 'border-slate-200'
+                }`}
+              >
+                {plan.popular && !isCurrentPlan && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="bg-violet-600 text-white px-3 py-0.5 shadow-lg">
+                      <Star className="h-3 w-3 mr-1 fill-white" />
+                      Most Popular
+                    </Badge>
+                  </div>
                 )}
-              </ul>
-            </CardContent>
-          </Card>
+                
+                {isCurrentPlan && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="bg-emerald-600 text-white px-3 py-0.5 shadow-lg">
+                      <Check className="h-3 w-3 mr-1" />
+                      Current Plan
+                    </Badge>
+                  </div>
+                )}
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Settings className="h-5 w-5 mr-2" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
-                <CreditCard className="h-4 w-4 mr-2" />
+                <div className="p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`h-10 w-10 rounded-lg ${getColorClasses(plan.color, 'bg')} flex items-center justify-center`}>
+                      <Icon className={`h-5 w-5 ${getColorClasses(plan.color, 'text')}`} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900">{plan.name}</h3>
+                      <p className="text-xs text-slate-600">{plan.description}</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-bold text-slate-900">
+                        ${getPrice(plan)}
+                      </span>
+                      <span className="text-sm text-slate-600">/month</span>
+                    </div>
+                    {billingCycle === 'yearly' && (
+                      <p className="text-xs text-slate-600 mt-1">
+                        ${getTotalPrice(plan)} billed annually
+                      </p>
+                    )}
+                  </div>
+
+                  <Button 
+                    className={`w-full mb-4 ${
+                      isCurrentPlan
+                        ? 'bg-slate-600 hover:bg-slate-700'
+                        : `${getColorClasses(plan.color, 'border')} ${getColorClasses(plan.color, 'hover')} hover:text-white`
+                    }`}
+                    variant={isCurrentPlan ? 'default' : 'outline'}
+                    disabled={isCurrentPlan}
+                  >
+                    {isCurrentPlan ? (
+                      'Current Plan'
+                    ) : plan.name === 'Professional' ? (
+                      <>Upgrade Now <ArrowRight className="h-4 w-4 ml-1" /></>
+                    ) : plan.name === 'Starter' ? (
+                      'Downgrade'
+                    ) : (
+                      <>Upgrade <ArrowRight className="h-4 w-4 ml-1" /></>
+                    )}
+                  </Button>
+
+                  <div className="space-y-2">
+                    {plan.features.map((feature, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <Check className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                        <span className="text-xs text-slate-700">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Transaction History */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 border-slate-200 shadow-sm">
+          <div className="p-4 border-b border-slate-200">
+            <h3 className="font-semibold text-slate-900">Transaction History</h3>
+            <p className="text-xs text-slate-600">View all your payment transactions and invoices</p>
+          </div>
+          <div className="p-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <span className="ml-2 text-slate-600">Loading transactions...</span>
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <AlertCircle className="h-8 w-8 text-red-600" />
+                <div className="mt-2 text-center">
+                  <p className="text-red-600 font-medium">Error loading transactions</p>
+                  <p className="text-slate-600 text-sm">{error}</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3"
+                    onClick={fetchTransactions}
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <FileText className="h-8 w-8 text-slate-400" />
+                <div className="mt-2 text-center">
+                  <p className="text-slate-600 font-medium">No transactions found</p>
+                  <p className="text-slate-500 text-sm">Your payment history will appear here</p>
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {transactions.map((transaction) => {
+                  const statusInfo = statusConfig[transaction.status]
+                  const StatusIcon = statusInfo.icon
+
+                  return (
+                    <div key={transaction.id} className="py-3 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        {/* Left Side - Icon and Details */}
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className="h-9 w-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                            <FileText className="h-4 w-4 text-slate-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-sm font-semibold text-slate-900">
+                                {transaction.subscription.plan.name}
+                              </p>
+                              <Badge className={cn('text-[10px] flex items-center gap-1', statusInfo.color)}>
+                                <StatusIcon className="h-3 w-3" />
+                                <span className="capitalize">{transaction.status}</span>
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-slate-600 mb-0.5">
+                              TXN: {transaction.transactionId}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              Account: ****{transaction.accountNumber.slice(-4)} • {formatDate(transaction.submittedAt)}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {transaction.subscription.plan.interval} plan
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Right Side - Amount and Actions */}
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-slate-900">
+                              {formatCurrency(transaction.amount, transaction.currency)}
+                            </p>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download Receipt
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Payment Info */}
+        <Card className="border-slate-200 shadow-sm">
+          <div className="p-4 border-b border-slate-200">
+            <h3 className="font-semibold text-slate-900">Payment Method</h3>
+            <p className="text-xs text-slate-600">Manage your billing details</p>
+          </div>
+          <div className="p-4 space-y-4">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+              <div className="h-10 w-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center">
+                <CreditCard className="h-5 w-5 text-slate-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-slate-900">•••• 4242</p>
+                <p className="text-xs text-slate-600">Expires 12/2025</p>
+              </div>
+              <Badge className="text-[10px] bg-blue-100 text-blue-700">Default</Badge>
+            </div>
+
+            <div className="space-y-2">
+              <Button variant="outline" size="sm" className="w-full justify-start h-8">
+                <CreditCard className="h-3.5 w-3.5 mr-2" />
                 Update Payment Method
               </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Calendar className="h-4 w-4 mr-2" />
-                Change Billing Cycle
+              <Button variant="outline" size="sm" className="w-full justify-start h-8">
+                <Calendar className="h-3.5 w-3.5 mr-2" />
+                Billing History
               </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Shield className="h-4 w-4 mr-2" />
-                Download Invoice
+              <Button variant="outline" size="sm" className="w-full justify-start h-8">
+                <TrendingUp className="h-3.5 w-3.5 mr-2" />
+                Usage Reports
               </Button>
-              <Button variant="outline" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50">
-                <XCircle className="h-4 w-4 mr-2" />
-                Cancel Subscription
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   )

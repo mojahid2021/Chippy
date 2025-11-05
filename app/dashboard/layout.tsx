@@ -328,7 +328,7 @@ export default function DashboardLayout({
       )}>
         {/* Header */}
         <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm">
-          <div className="px-4 lg:px-6 py-2.5">
+          <div className="px-3 lg:px-4 py-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {/* Mobile menu button */}
@@ -464,7 +464,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="p-3 lg:p-5 max-w-[1600px] mx-auto">
+        <main className="p-2 lg:p-3 max-w-[1600px] mx-auto">
           {children}
         </main>
       </div>
