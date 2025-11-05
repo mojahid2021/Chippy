@@ -308,7 +308,7 @@ export default function FBPageSettingsPage() {
 
       {/* Webhook Information */}
       <Card className="border-blue-100 shadow-md hover:shadow-lg transition-shadow">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-blue-100/50 border-b border-blue-100">
+        <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-blue-600 p-2 rounded-lg">
@@ -437,7 +437,7 @@ export default function FBPageSettingsPage() {
 
       {/* Page Credentials */}
       <Card className="border-green-100 shadow-md hover:shadow-lg transition-shadow">
-        <CardHeader className="bg-linear-to-r from-green-50 to-green-100/50 border-b border-green-100">
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-green-600 p-2 rounded-lg">
@@ -447,6 +447,62 @@ export default function FBPageSettingsPage() {
                 <CardTitle className="text-green-900">Page Credentials</CardTitle>
                 <CardDescription className="text-green-700">Manage your Facebook page access credentials</CardDescription>
               </div>
+            </div>
+            <div className="shrink-0">
+              {!showCredentialForm ? (
+                pageSettings ? (
+                  <Button
+                    onClick={() => {
+                      setIsEditing(true)
+                      setShowCredentialForm(true)
+                      setNewCredentials({
+                        pageName: pageSettings.pageName,
+                        appId: pageSettings.appId,
+                        appSecret: pageSettings.appSecret,
+                        accessToken: pageSettings.accessToken,
+                      })
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 shadow-md"
+                  >
+                    <SettingsIcon className="h-4 w-4 mr-2" />
+                    Update Credentials
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      setIsEditing(false)
+                      setShowCredentialForm(true)
+                      setNewCredentials({
+                        pageName: "",
+                        appId: "",
+                        appSecret: "",
+                        accessToken: "",
+                      })
+                    }}
+                    className="bg-green-600 hover:bg-green-700 shadow-md"
+                  >
+                    <SettingsIcon className="h-4 w-4 mr-2" />
+                    Add Credentials
+                  </Button>
+                )
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowCredentialForm(false)
+                    setIsEditing(false)
+                    setNewCredentials({
+                      pageName: "",
+                      appId: "",
+                      appSecret: "",
+                      accessToken: "",
+                    })
+                  }}
+                  className="border-gray-300 hover:bg-gray-50"
+                >
+                  Cancel
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -459,64 +515,6 @@ export default function FBPageSettingsPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Add/Update Credentials Button */}
-              <div className="flex justify-end">
-                {!showCredentialForm ? (
-                  pageSettings ? (
-                    <Button
-                      onClick={() => {
-                        setIsEditing(true)
-                        setShowCredentialForm(true)
-                        setNewCredentials({
-                          pageName: pageSettings.pageName,
-                          appId: pageSettings.appId,
-                          appSecret: pageSettings.appSecret,
-                          accessToken: pageSettings.accessToken,
-                        })
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700 shadow-md"
-                    >
-                      <SettingsIcon className="h-4 w-4 mr-2" />
-                      Update Credentials
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => {
-                        setIsEditing(false)
-                        setShowCredentialForm(true)
-                        setNewCredentials({
-                          pageName: "",
-                          appId: "",
-                          appSecret: "",
-                          accessToken: "",
-                        })
-                      }}
-                      className="bg-green-600 hover:bg-green-700 shadow-md"
-                    >
-                      <SettingsIcon className="h-4 w-4 mr-2" />
-                      Add Credentials
-                    </Button>
-                  )
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowCredentialForm(false)
-                      setIsEditing(false)
-                      setNewCredentials({
-                        pageName: "",
-                        appId: "",
-                        appSecret: "",
-                        accessToken: "",
-                      })
-                    }}
-                    className="border-gray-300 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </Button>
-                )}
-              </div>
-
               {/* Configuration Form */}
               {showCredentialForm && (
                 <div className="bg-linear-to-br from-gray-50 to-gray-100/50 border-2 border-dashed border-gray-300 rounded-xl p-6">

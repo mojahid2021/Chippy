@@ -184,7 +184,7 @@ const Sidebar = ({ mobile = false, collapsed = false, pathname = '', user, onNav
                   )}
                   <div className={cn(
                     "flex items-center justify-center transition-transform duration-200",
-                    !collapsed && !mobile && "mr-2.5",
+                    (!collapsed || mobile) && "mr-2.5",
                     isActive && "scale-110"
                   )}>
                     <item.icon className={cn(
