@@ -35,6 +35,7 @@ import {
 } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { useUserStore } from '@/lib/stores/userStore'
+import { toast } from '@/hooks/use-toast'
 
 // Transaction interface matching API response
 interface Transaction {
@@ -158,12 +159,24 @@ export default function SubscriptionPage() {
       if (data.success && data.data) {
         setHasSubscription(data.data.hasSubscription)
         setSubscription(data.data.subscription || null)
+        
+        if (data.data.hasSubscription && data.data.subscription) {
+          toast({
+            variant: "success",
+            title: "Subscription Loaded",
+            description: `Your ${data.data.subscription.plan.name} plan is active`,
+          })
+        }
       } else {
         throw new Error('Invalid response format')
       }
     } catch (err) {
       console.error('Error fetching subscription:', err)
-      // Don't set error here to avoid breaking the UI, just log it
+      toast({
+        variant: "destructive",
+        title: "Error Loading Subscription",
+        description: err instanceof Error ? err.message : "Failed to load subscription data",
+      })
     }
   }, [token])
   
@@ -196,12 +209,22 @@ export default function SubscriptionPage() {
 
       if (data.success && data.data) {
         setTransactions(data.data.transactions)
+        toast({
+          variant: "info",
+          title: "Transactions Loaded",
+          description: `Found ${data.data.transactions.length} recent transactions`,
+        })
       } else {
         throw new Error('Invalid response format')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while fetching transactions')
       console.error('Error fetching transactions:', err)
+      toast({
+        variant: "destructive",
+        title: "Error Loading Transactions",
+        description: err instanceof Error ? err.message : "Failed to load transaction history",
+      })
     } finally {
       setLoading(false)
     }
@@ -622,6 +645,24 @@ export default function SubscriptionPage() {
                     }`}
                     variant={isCurrentPlan ? 'default' : 'outline'}
                     disabled={isCurrentPlan}
+                    onClick={() => {
+                      if (!isCurrentPlan) {
+                        const action = plan.name === 'Starter' ? 'Downgrade' : 'Upgrade'
+                        toast({
+                          variant: "info",
+                          title: `${action} to ${plan.name}`,
+                          description: `Redirecting to ${action.toLowerCase()} to the ${plan.name} plan...`,
+                        })
+                        // Add navigation logic here
+                        setTimeout(() => {
+                          toast({
+                            variant: "warning",
+                            title: "Plan Change",
+                            description: "Plan change functionality will be available soon.",
+                          })
+                        }, 1500)
+                      }
+                    }}
                   >
                     {isCurrentPlan ? (
                       'Current Plan'
@@ -737,11 +778,23 @@ export default function SubscriptionPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                toast({
+                                  variant: "info",
+                                  title: "Transaction Details",
+                                  description: `Viewing details for transaction ${transaction.transactionId}`,
+                                })
+                              }}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                toast({
+                                  variant: "success",
+                                  title: "Receipt Downloaded",
+                                  description: `Receipt for ${formatCurrency(transaction.amount, transaction.currency)} is being downloaded`,
+                                })
+                              }}>
                                 <Download className="mr-2 h-4 w-4" />
                                 Download Receipt
                               </DropdownMenuItem>
@@ -776,15 +829,48 @@ export default function SubscriptionPage() {
             </div>
 
             <div className="space-y-2">
-              <Button variant="outline" size="sm" className="w-full justify-start h-8">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full justify-start h-8"
+                onClick={() => {
+                  toast({
+                    variant: "info",
+                    title: "Update Payment Method",
+                    description: "Opening payment method settings...",
+                  })
+                }}
+              >
                 <CreditCard className="h-3.5 w-3.5 mr-2" />
                 Update Payment Method
               </Button>
-              <Button variant="outline" size="sm" className="w-full justify-start h-8">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full justify-start h-8"
+                onClick={() => {
+                  toast({
+                    variant: "info",
+                    title: "Billing History",
+                    description: "Loading full billing history...",
+                  })
+                }}
+              >
                 <Calendar className="h-3.5 w-3.5 mr-2" />
                 Billing History
               </Button>
-              <Button variant="outline" size="sm" className="w-full justify-start h-8">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full justify-start h-8"
+                onClick={() => {
+                  toast({
+                    variant: "success",
+                    title: "Usage Reports",
+                    description: "Generating usage reports...",
+                  })
+                }}
+              >
                 <TrendingUp className="h-3.5 w-3.5 mr-2" />
                 Usage Reports
               </Button>

@@ -46,6 +46,7 @@ import {
   Globe,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { toast } from "@/hooks/use-toast"
 
 const navigationSections = [
   {
@@ -268,6 +269,11 @@ export default function DashboardLayout({
 
   const handleLogout = () => {
     logout()
+    toast({
+      variant: "info",
+      title: "Signed out",
+      description: "You have been successfully signed out.",
+    })
     router.push("/auth/signin")
   }
 

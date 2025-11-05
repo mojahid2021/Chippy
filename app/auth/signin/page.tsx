@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useUserStore } from "@/lib/stores/userStore"
 import { AlertCircle, Loader2 } from "lucide-react"
+import { toast } from "@/hooks/use-toast"
 
 export default function SignIn() {
   const { getSavedEmail, validateProfile } = useUserStore()
@@ -55,7 +56,18 @@ export default function SignIn() {
     if (isLogin) {
       const success = await login(formData.email, formData.password, rememberMe)
       if (success) {
+        toast({
+          variant: "success",
+          title: "Welcome back!",
+          description: "You have successfully signed in to your account.",
+        })
         router.push("/dashboard")
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Sign in failed",
+          description: error || "Invalid email or password. Please try again.",
+        })
       }
     } else {
       const success = await register({
@@ -66,7 +78,18 @@ export default function SignIn() {
         phone: formData.phone || undefined
       })
       if (success) {
+        toast({
+          variant: "success",
+          title: "Account created!",
+          description: "Your account has been created successfully.",
+        })
         router.push("/dashboard")
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Registration failed",
+          description: error || "Unable to create account. Please try again.",
+        })
       }
     }
   }
