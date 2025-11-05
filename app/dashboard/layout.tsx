@@ -41,9 +41,10 @@ import {
   CreditCard,
   Receipt,
   Calendar,
-  Link as LinkIcon,
   HelpCircle,
   Command,
+  Facebook,
+  Globe,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -86,7 +87,8 @@ const navigationSections = [
     title: 'Configuration',
     items: [
       { name: 'AI Settings', href: '/dashboard/configure-ai', icon: Bot },
-      { name: 'Page Setup', href: '/dashboard/configure-page', icon: LinkIcon },
+      { name: 'Facebook Page Setup', href: '/dashboard/configure-page', icon: Facebook },
+      { name: 'Website Setup', href: '/dashboard/website-setup', icon: Globe },
       { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     ]
   },
