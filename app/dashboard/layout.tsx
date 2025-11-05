@@ -29,6 +29,12 @@ import {
   Bell,
   Search,
   LogOut,
+  ShoppingCart,
+  Package,
+  ShoppingBag,
+  Truck,
+  Tags,
+  Boxes,
   ChevronLeft,
   ChevronRight,
   User,
@@ -47,6 +53,17 @@ const navigationSections = [
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: Home },
       { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+    ]
+  },
+  {
+    title: 'E-Commerce',
+    items: [
+      { name: 'Orders', href: '/dashboard/orders', icon: ShoppingCart },
+      { name: 'Products', href: '/dashboard/products', icon: Package },
+      { name: 'Categories', href: '/dashboard/categories', icon: Boxes },
+      { name: 'Inventory', href: '/dashboard/inventory', icon: ShoppingBag },
+      { name: 'Shipping', href: '/dashboard/shipping', icon: Truck },
+      { name: 'Coupons', href: '/dashboard/coupons', icon: Tags },
     ]
   },
   {
