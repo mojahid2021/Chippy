@@ -39,7 +39,6 @@ import {
   ChevronRight,
   User,
   CreditCard,
-  Receipt,
   Calendar,
   HelpCircle,
   Command,
@@ -80,7 +79,6 @@ const navigationSections = [
     items: [
       { name: 'Plans', href: '/dashboard/plans', icon: CreditCard },
       { name: 'Subscription', href: '/dashboard/subscription', icon: Calendar },
-      { name: 'Transactions', href: '/dashboard/transactions', icon: Receipt },
     ]
   },
   {

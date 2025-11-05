@@ -396,7 +396,7 @@ export default function SubscriptionPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Subscription</h1>
           <p className="text-sm text-slate-600 mt-0.5">Manage your plan and billing</p>
@@ -405,7 +405,7 @@ export default function SubscriptionPage() {
           <Settings className="h-3.5 w-3.5 mr-1.5" />
           Manage Billing
         </Button>
-      </div>
+      </div> */}
 
       {/* Show message if no subscription */}
       {!hasSubscription && subscription === null && (
