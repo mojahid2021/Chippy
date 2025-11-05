@@ -468,7 +468,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="p-2 lg:p-3 max-w-[1600px] mx-auto">
+        <main className="p-2 lg:p-3 mx-auto">
           {children}
         </main>
       </div>

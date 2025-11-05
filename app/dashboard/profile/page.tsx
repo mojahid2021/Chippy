@@ -45,7 +45,7 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
           <p className="text-gray-600 mt-1">Manage your account settings and preferences</p>
@@ -67,7 +67,7 @@ export default function ProfilePage() {
             </Button>
           </div>
         )}
-      </div>
+      </div> */}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Overview */}
@@ -183,64 +183,7 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Account Statistics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Statistics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900">2</div>
-                  <div className="text-sm text-gray-600">Connected Accounts</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900">5</div>
-                  <div className="text-sm text-gray-600">Scheduled Posts</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900">12</div>
-                  <div className="text-sm text-gray-600">AI Generated Content</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900">98%</div>
-                  <div className="text-sm text-gray-600">Success Rate</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Account Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                <div>
-                  <h4 className="font-medium text-gray-900">Email Notifications</h4>
-                  <p className="text-sm text-gray-600">Receive notifications about your account activity</p>
-                </div>
-                <Button variant="outline" size="sm">Configure</Button>
-              </div>
-
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                <div>
-                  <h4 className="font-medium text-gray-900">Two-Factor Authentication</h4>
-                  <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
-                </div>
-                <Button variant="outline" size="sm">Enable</Button>
-              </div>
-
-              <div className="flex items-center justify-between p-4 border border-red-200 bg-red-50 rounded-lg">
-                <div>
-                  <h4 className="font-medium text-red-900">Danger Zone</h4>
-                  <p className="text-sm text-red-600">Irreversible actions that affect your account</p>
-                </div>
-                <Button variant="destructive" size="sm">Delete Account</Button>
-              </div>
-            </CardContent>
-          </Card>
+         
         </div>
       </div>
     </div>
