@@ -10,7 +10,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -37,21 +36,43 @@ import {
   Receipt,
   Calendar,
   Link as LinkIcon,
+  HelpCircle,
+  Command,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Profile', href: '/dashboard/profile', icon: User },
-  { name: 'Plans', href: '/dashboard/plans', icon: CreditCard },
-  { name: 'My Subscription', href: '/dashboard/subscription', icon: Calendar },
-  { name: 'Transactions', href: '/dashboard/transactions', icon: Receipt },
-  { name: 'Accounts', href: '/dashboard/accounts', icon: Users },
-  { name: 'Content', href: '/dashboard/content', icon: FileText },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Configure AI', href: '/dashboard/configure-ai', icon: Bot },
-  { name: 'Configure Page', href: '/dashboard/configure-page', icon: LinkIcon },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+const navigationSections = [
+  {
+    title: 'Overview',
+    items: [
+      { name: 'Dashboard', href: '/dashboard', icon: Home },
+      { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+    ]
+  },
+  {
+    title: 'Management',
+    items: [
+      { name: 'Profile', href: '/dashboard/profile', icon: User },
+      { name: 'Accounts', href: '/dashboard/accounts', icon: Users },
+      { name: 'Content', href: '/dashboard/content', icon: FileText },
+    ]
+  },
+  {
+    title: 'Billing',
+    items: [
+      { name: 'Plans', href: '/dashboard/plans', icon: CreditCard },
+      { name: 'Subscription', href: '/dashboard/subscription', icon: Calendar },
+      { name: 'Transactions', href: '/dashboard/transactions', icon: Receipt },
+    ]
+  },
+  {
+    title: 'Configuration',
+    items: [
+      { name: 'AI Settings', href: '/dashboard/configure-ai', icon: Bot },
+      { name: 'Page Setup', href: '/dashboard/configure-page', icon: LinkIcon },
+      { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+    ]
+  },
 ]
 
 interface SidebarProps {
@@ -70,96 +91,131 @@ interface SidebarProps {
 
 const Sidebar = ({ mobile = false, collapsed = false, pathname = '', user, onNavigate, onToggleCollapse }: SidebarProps) => (
   <div className={cn(
-    "flex flex-col h-full bg-white border-r border-gray-200",
-    mobile ? "w-full" : collapsed ? "w-16" : "w-64"
+    "flex flex-col h-full bg-slate-950 border-r border-slate-800",
+    mobile ? "w-full" : collapsed ? "w-16" : "w-60"
   )}>
     {/* Logo & Brand */}
-    <div className="flex items-center justify-between p-6 border-b border-gray-200">
-      <div className="flex items-center space-x-4">
-        <div className="h-10 w-10 rounded-lg bg-gray-900 flex items-center justify-center">
-          <Bot className="h-6 w-6 text-white" />
+    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+      <div className="flex items-center space-x-2.5">
+        <div className="relative">
+          <div className="h-9 w-9 rounded-lg bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <Bot className="h-5 w-5 text-white" />
+          </div>
+          <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 bg-emerald-400 rounded-full border-2 border-slate-950"></div>
         </div>
         {!collapsed && !mobile && (
           <div className="flex flex-col">
-            <span className="text-xl font-bold text-gray-900">SocialAI</span>
-            <span className="text-xs text-gray-500 font-medium">Pro</span>
+            <span className="text-sm font-bold text-white tracking-tight">SocialAI Pro</span>
+            <span className="text-[10px] text-slate-400 font-medium">Workspace</span>
           </div>
         )}
       </div>
-      {!mobile && onToggleCollapse && (
+      {!mobile && onToggleCollapse && !collapsed && (
         <Button
           variant="ghost"
           size="sm"
           onClick={onToggleCollapse}
-          className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+          className="h-7 w-7 p-0 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
         >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </Button>
+      )}
+      {!mobile && onToggleCollapse && collapsed && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggleCollapse}
+          className="h-7 w-7 p-0 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg mx-auto mt-1"
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
         </Button>
       )}
     </div>
 
     {/* Navigation */}
-    <nav className="flex-1 p-4 space-y-1">
-      {navigation.map((item) => {
-        // Improved active state logic: exact match or starts with for nested routes
-        const isActive = pathname === item.href || 
-                        (item.href !== '/dashboard' && pathname.startsWith(item.href))
-        
-        return (
-          <Link
-            key={item.name}
-            href={item.href}
-            className={cn(
-              "flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
-              isActive
-                ? "bg-gray-100 text-gray-900 border-r-2 border-gray-900 shadow-sm"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-              collapsed && !mobile && "justify-center px-3"
-            )}
-            onClick={() => mobile && onNavigate?.()}
-          >
-            <div className={cn(
-              "flex items-center justify-center transition-colors duration-200",
-              isActive ? "text-gray-900" : "text-gray-500"
-            )}>
-              <item.icon className="h-5 w-5 shrink-0" />
+    <nav className="flex-1 px-2 py-3 space-y-4 overflow-y-auto custom-scrollbar">
+      {navigationSections.map((section, sectionIdx) => (
+        <div key={sectionIdx}>
+          {!collapsed && !mobile && (
+            <div className="px-2 mb-1.5">
+              <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                {section.title}
+              </h3>
             </div>
-            {(!collapsed || mobile) && (
-              <span className={cn(
-                "transition-colors duration-200",
-                isActive ? "text-gray-900 font-semibold" : "text-gray-600"
-              )}>
-                {item.name}
-              </span>
-            )}
-          </Link>
-        )
-      })}
+          )}
+          <div className="space-y-0.5">
+            {section.items.map((item) => {
+              const isActive = pathname === item.href || 
+                              (item.href !== '/dashboard' && pathname.startsWith(item.href))
+              
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    "group flex items-center px-2.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 relative",
+                    isActive
+                      ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800",
+                    collapsed && !mobile && "justify-center"
+                  )}
+                  onClick={() => mobile && onNavigate?.()}
+                >
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-white rounded-r-full"></div>
+                  )}
+                  <div className={cn(
+                    "flex items-center justify-center transition-transform duration-200",
+                    !collapsed && !mobile && "mr-2.5",
+                    isActive && "scale-110"
+                  )}>
+                    <item.icon className={cn(
+                      "h-4 w-4 shrink-0",
+                      isActive ? "text-white" : "text-slate-400 group-hover:text-white"
+                    )} />
+                  </div>
+                  {(!collapsed || mobile) && (
+                    <span className={cn(
+                      "transition-colors duration-200 truncate",
+                      isActive ? "text-white font-semibold" : "text-slate-400 group-hover:text-white"
+                    )}>
+                      {item.name}
+                    </span>
+                  )}
+                  {isActive && !collapsed && !mobile && (
+                    <div className="ml-auto">
+                      <div className="h-1 w-1 rounded-full bg-white"></div>
+                    </div>
+                  )}
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      ))}
     </nav>
 
     {/* User Info */}
-    <div className="p-4 border-t border-gray-200">
-      <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
-        <Avatar className="h-10 w-10 border-2 border-gray-200">
+    <div className="p-2.5 border-t border-slate-800">
+      <div className={cn(
+        "flex items-center p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer",
+        collapsed && !mobile && "justify-center p-1.5"
+      )}>
+        <Avatar className={cn(
+          "border-2 border-slate-700",
+          collapsed && !mobile ? "h-8 w-8" : "h-9 w-9"
+        )}>
           <AvatarImage src="" />
-          <AvatarFallback className="bg-gray-900 text-white font-semibold">
+          <AvatarFallback className="bg-blue-500 text-white font-bold text-xs">
             {user?.firstName?.[0]}{user?.lastName?.[0]}
           </AvatarFallback>
         </Avatar>
         {(!collapsed || mobile) && (
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">
+          <div className="flex-1 min-w-0 ml-2.5">
+            <p className="text-xs font-semibold text-white truncate">
               {user?.firstName} {user?.lastName}
             </p>
-            <p className="text-xs text-gray-500 truncate font-medium">{user?.email}</p>
-            <div className="flex items-center mt-1">
-              <div className="h-1.5 w-1.5 bg-green-500 rounded-full mr-2"></div>
-              <span className="text-xs text-gray-500">Online</span>
-            </div>
+            <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
           </div>
         )}
       </div>
@@ -223,7 +279,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Desktop Sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex">
         <Sidebar
@@ -236,7 +292,7 @@ export default function DashboardLayout({
 
       {/* Mobile Sidebar */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="p-0 w-64">
+        <SheetContent side="left" className="p-0 w-60 bg-slate-950">
           <Sidebar
             mobile
             pathname={pathname}
@@ -249,114 +305,147 @@ export default function DashboardLayout({
       {/* Main Content */}
       <div className={cn(
         "lg:pl-0 transition-all duration-300",
-        sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"
+        sidebarCollapsed ? "lg:pl-16" : "lg:pl-60"
       )}>
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-4 py-4 lg:px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              {/* Mobile menu button */}
-              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm" className="lg:hidden hover:bg-gray-100">
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-              </Sheet>
+        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm">
+          <div className="px-4 lg:px-6 py-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {/* Mobile menu button */}
+                <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                  <SheetTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="lg:hidden h-8 w-8 p-0 hover:bg-slate-100 rounded-lg"
+                    >
+                      <Menu className="h-4 w-4 text-slate-700" />
+                    </Button>
+                  </SheetTrigger>
+                </Sheet>
 
-              {/* Page title */}
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {navigation.find(item =>
-                    pathname === item.href ||
-                    (item.href !== '/dashboard' && pathname.startsWith(item.href))
-                  )?.name || 'Dashboard'}
-                </h1>
-                <p className="text-sm text-gray-500 font-medium">
-                  Welcome back, {user?.firstName}! Here&apos;s your overview.
-                </p>
+                {/* Page title */}
+                <div>
+                  <h1 className="text-lg font-bold text-slate-900 tracking-tight">
+                    {navigationSections
+                      .flatMap(section => section.items)
+                      .find(item =>
+                        pathname === item.href ||
+                        (item.href !== '/dashboard' && pathname.startsWith(item.href))
+                      )?.name || 'Dashboard'}
+                  </h1>
+                  <p className="text-xs text-slate-500 mt-0">
+                    Welcome back, {user?.firstName}
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center space-x-3">
-              {/* Search */}
-              <Button variant="outline" size="sm" className="hidden sm:flex border-gray-300 hover:bg-gray-50">
-                <Search className="h-4 w-4 mr-2" />
-                <span className="text-sm">Search...</span>
-                <kbd className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 rounded text-gray-600">⌘K</kbd>
-              </Button>
-              <Button variant="ghost" size="sm" className="sm:hidden">
-                <Search className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-1.5">
+                {/* Search */}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="hidden sm:flex h-8 border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-lg px-2.5 gap-2 text-xs"
+                >
+                  <Search className="h-3.5 w-3.5 text-slate-500" />
+                  <span className="text-slate-600">Search</span>
+                  <kbd className="hidden lg:inline-flex h-4 px-1 items-center gap-0.5 rounded border border-slate-200 bg-slate-50 text-[10px] text-slate-600 font-mono">
+                    <Command className="h-2.5 w-2.5" />K
+                  </kbd>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="sm:hidden h-8 w-8 p-0 hover:bg-slate-100 rounded-lg"
+                >
+                  <Search className="h-4 w-4 text-slate-600" />
+                </Button>
 
-              {/* Notifications */}
-              <Button variant="ghost" size="sm" className="relative hover:bg-gray-100">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center font-semibold">
-                  3
-                </span>
-              </Button>
+                {/* Quick Actions */}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="hidden md:flex h-8 w-8 p-0 hover:bg-slate-100 rounded-lg relative"
+                  title="Help & Support"
+                >
+                  <HelpCircle className="h-4 w-4 text-slate-600" />
+                </Button>
 
-              {/* User Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-gray-100 border-2 border-transparent hover:border-gray-200 transition-colors">
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src="" />
-                      <AvatarFallback className="bg-gray-900 text-white font-semibold text-sm">
-                        {user?.firstName?.[0]}{user?.lastName?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-64" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal p-4">
-                    <div className="flex flex-col space-y-2">
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src="" />
-                          <AvatarFallback className="bg-gray-900 text-white font-semibold">
-                            {user?.firstName?.[0]}{user?.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-semibold leading-none text-gray-900">
-                            {user?.firstName} {user?.lastName}
-                          </p>
-                          <p className="text-xs leading-none text-gray-500 mt-1">
-                            {user?.email}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center pt-2 border-t border-gray-100">
-                        <div className="h-2 w-2 bg-green-500 rounded-full mr-2"></div>
-                        <span className="text-xs text-gray-600 font-medium">Active now</span>
+                {/* Notifications */}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0 hover:bg-slate-100 rounded-lg relative"
+                >
+                  <Bell className="h-4 w-4 text-slate-600" />
+                  <span className="absolute top-1 right-1 h-1.5 w-1.5 bg-red-500 rounded-full ring-2 ring-white"></span>
+                </Button>
+
+                {/* User Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="h-8 w-8 rounded-lg p-0 hover:bg-slate-100"
+                    >
+                      <Avatar className="h-7 w-7 border-2 border-slate-200">
+                        <AvatarImage src="" />
+                        <AvatarFallback className="bg-blue-500 text-white font-bold text-xs">
+                          {user?.firstName?.[0]}{user?.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-64 p-1.5" align="end" forceMount>
+                    <div className="flex items-center gap-2.5 p-2.5 mb-1">
+                      <Avatar className="h-10 w-10 border-2 border-slate-200">
+                        <AvatarImage src="" />
+                        <AvatarFallback className="bg-blue-500 text-white font-bold text-xs">
+                          {user?.firstName?.[0]}{user?.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-900 truncate">
+                          {user?.firstName} {user?.lastName}
+                        </p>
+                        <p className="text-[10px] text-slate-500 truncate">
+                          {user?.email}
+                        </p>
                       </div>
                     </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => router.push('/dashboard/profile')} className="p-3 hover:bg-gray-50">
-                    <User className="mr-3 h-4 w-4 text-gray-500" />
-                    <span className="font-medium">Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="p-3 hover:bg-gray-50">
-                    <Settings className="mr-3 h-4 w-4 text-gray-500" />
-                    <span className="font-medium">Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="p-3 hover:bg-red-50 text-red-600 hover:text-red-700">
-                    <LogOut className="mr-3 h-4 w-4" />
-                    <span className="font-medium">Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => router.push('/dashboard/profile')} 
+                      className="py-2 px-2.5 rounded-md cursor-pointer text-xs"
+                    >
+                      <User className="mr-2.5 h-3.5 w-3.5 text-slate-500" />
+                      <span className="font-medium">Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => router.push('/dashboard/settings')}
+                      className="py-2 px-2.5 rounded-md cursor-pointer text-xs"
+                    >
+                      <Settings className="mr-2.5 h-3.5 w-3.5 text-slate-500" />
+                      <span className="font-medium">Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={handleLogout} 
+                      className="py-2 px-2.5 rounded-md cursor-pointer text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <LogOut className="mr-2.5 h-3.5 w-3.5" />
+                      <span className="font-medium">Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="p-4 lg:p-6">
+        <main className="p-3 lg:p-5 max-w-[1600px] mx-auto">
           {children}
         </main>
       </div>
