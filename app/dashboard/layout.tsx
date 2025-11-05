@@ -36,6 +36,7 @@ import {
   CreditCard,
   Receipt,
   Calendar,
+  Link as LinkIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -49,6 +50,7 @@ const navigation = [
   { name: 'Content', href: '/dashboard/content', icon: FileText },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Configure AI', href: '/dashboard/configure-ai', icon: Bot },
+  { name: 'Configure Page', href: '/dashboard/configure-page', icon: LinkIcon },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 
