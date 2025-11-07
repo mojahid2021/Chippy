@@ -1,110 +1,199 @@
 "use client"
 
+import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Package, Search, Filter, Plus, Edit, Trash2, Eye } from "lucide-react"
+import { Package, Search, Edit, Trash2, Eye, Loader2 } from "lucide-react"
+import Image from "next/image"
+import { CreateProductModal } from "@/components/create-product-modal"
+
+interface Category {
+  id: string
+  name: string
+  isActive: boolean
+}
+
+interface Product {
+  id: string
+  name: string
+  description: string
+  categoryName: string
+  price: number
+  currency: string
+  image?: string
+  isActive: boolean
+  sortOrder: number
+  metadata: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
+}
 
 export default function ProductsPage() {
-  const products = [
-    {
-      id: 1,
-      name: "Wireless Headphones",
-      sku: "WH-001",
-      category: "Electronics",
-      price: "$89.99",
-      stock: 145,
-      status: "active",
-      image: "/placeholder.jpg",
-    },
-    {
-      id: 2,
-      name: "Smart Watch Pro",
-      sku: "SW-002",
-      category: "Wearables",
-      price: "$299.00",
-      stock: 67,
-      status: "active",
-      image: "/placeholder.jpg",
-    },
-    {
-      id: 3,
-      name: "USB-C Cable",
-      sku: "CB-003",
-      category: "Accessories",
-      price: "$12.99",
-      stock: 8,
-      status: "low_stock",
-      image: "/placeholder.jpg",
-    },
-    {
-      id: 4,
-      name: "Phone Case Premium",
-      sku: "PC-004",
-      category: "Accessories",
-      price: "$24.99",
-      stock: 0,
-      status: "out_of_stock",
-      image: "/placeholder.jpg",
-    },
-    {
-      id: 5,
-      name: "Bluetooth Speaker",
-      sku: "BS-005",
-      category: "Electronics",
-      price: "$45.00",
-      stock: 234,
-      status: "active",
-      image: "/placeholder.jpg",
-    },
-  ]
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const stats = [
-    { label: "Total Products", value: "342", color: "text-blue-600" },
-    { label: "Active", value: "298", color: "text-emerald-600" },
-    { label: "Low Stock", value: "23", color: "text-amber-600" },
-    { label: "Out of Stock", value: "21", color: "text-red-600" },
-  ]
+  // Helper function to get image URL for display
+  const getImageUrl = (image?: string) => {
+    if (!image) return null
+
+    // Check if it's already a full URL
+    if (image.startsWith('http://') || image.startsWith('https://')) {
+      return image
+    }
+
+    // Use our proxy route for serving images
+    return `/api/images/${image}`
+  }
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const url = '/api/user/products?includeInactive=true'
+
+      const response = await fetch(url)
+      const data = await response.json()
+
+      if (data.success) {
+        setProducts(data.data)
+      } else {
+        setError(data.message || 'Failed to fetch products')
+      }
+    } catch {
+      setError('Network error. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const handleProductCreated = useCallback(async () => {
+    // Refresh the products list after creating a new product
+    await fetchProducts();
+  }, [fetchProducts]);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await fetch('/api/user/categories?includeInactive=true')
+      const data = await response.json()
+
+      if (data.success) {
+        setCategories(data.data)
+      }
+    } catch {
+      // Categories are optional, don't show error
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchCategories()
+  }, [fetchCategories])
+
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
+
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.description.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const totalProducts = products.length
+  const activeProducts = products.filter(product => product.isActive).length
+  const lowStockProducts = products.filter(product => {
+    const stock = product.metadata?.stock
+    return typeof stock === 'number' && stock > 0 && stock <= 10
+  }).length
+  const outOfStockProducts = products.filter(product => {
+    const stock = product.metadata?.stock
+    return typeof stock === 'number' && stock === 0
+  }).length
+
+  const getStockStatus = (product: Product) => {
+    const stock = product.metadata?.stock
+    if (typeof stock !== 'number') return 'unknown'
+    if (stock === 0) return 'out_of_stock'
+    if (stock <= 10) return 'low_stock'
+    return 'active'
+  }
 
   const getStatusBadge = (status: string) => {
     const variants = {
       active: "bg-emerald-100 text-emerald-700 border-emerald-200",
       low_stock: "bg-amber-100 text-amber-700 border-amber-200",
       out_of_stock: "bg-red-100 text-red-700 border-red-200",
+      unknown: "bg-slate-100 text-slate-700 border-slate-200",
     }
-    return variants[status as keyof typeof variants] || variants.active
+    return variants[status as keyof typeof variants] || variants.unknown
   }
 
   const getStatusLabel = (status: string) => {
     const labels = {
-      active: "Active",
+      active: "In Stock",
       low_stock: "Low Stock",
       out_of_stock: "Out of Stock",
+      unknown: "Unknown",
     }
     return labels[status as keyof typeof labels] || status
+  }
+
+  const stats = [
+    { label: "Total Products", value: totalProducts.toString(), color: "text-blue-600" },
+    { label: "In Stock", value: activeProducts.toString(), color: "text-emerald-600" },
+    { label: "Low Stock", value: lowStockProducts.toString(), color: "text-amber-600" },
+    { label: "Out of Stock", value: outOfStockProducts.toString(), color: "text-red-600" },
+  ]
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Products</h1>
+            <p className="text-sm text-slate-600 mt-0.5">Manage your product catalog</p>
+          </div>
+        </div>
+        <Card className="p-6 border border-red-200 bg-red-50">
+          <p className="text-red-700">{error}</p>
+          <Button
+            onClick={fetchProducts}
+            className="mt-4 bg-red-600 hover:bg-red-700"
+            size="sm"
+          >
+            Try Again
+          </Button>
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Products</h1>
-          <p className="text-sm text-slate-600 mt-0.5">Manage your product catalog</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8">
-            <Filter className="h-3.5 w-3.5 mr-1.5" />
-            Filter
-          </Button>
-          <Button size="sm" className="h-8 bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Add Product
-          </Button>
-        </div>
-      </div>
-
-      {/* Stats */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Products</h1>
+            <p className="text-muted-foreground">
+              Manage your product catalog and inventory
+            </p>
+          </div>
+          <CreateProductModal
+            categories={categories}
+            onProductCreated={handleProductCreated}
+          />
+        </div>      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
           <Card key={index} className="p-4 border border-slate-200 shadow-sm">
@@ -126,7 +215,9 @@ export default function ProductsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search products by name, SKU, or category..."
+              placeholder="Search products by name or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -138,30 +229,43 @@ export default function ProductsPage() {
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map((product) => (
+        {filteredProducts.map((product) => (
           <Card key={product.id} className="border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
             <div className="aspect-square bg-slate-100 relative">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Package className="h-16 w-16 text-slate-300" />
-              </div>
+              {getImageUrl(product.image) ? (
+                <Image
+                  src={getImageUrl(product.image)!}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Package className="h-16 w-16 text-slate-300" />
+                </div>
+              )}
             </div>
             <div className="p-4">
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <h3 className="font-semibold text-slate-900 text-sm">{product.name}</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">SKU: {product.sku}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{product.description}</p>
                 </div>
-                <Badge className={`text-xs font-medium border ${getStatusBadge(product.status)}`}>
-                  {getStatusLabel(product.status)}
+                <Badge className={`text-xs font-medium border ${getStatusBadge(getStockStatus(product))}`}>
+                  {getStatusLabel(getStockStatus(product))}
                 </Badge>
               </div>
               <div className="flex items-center justify-between mt-3">
                 <div>
-                  <p className="text-lg font-bold text-slate-900">{product.price}</p>
-                  <p className="text-xs text-slate-600">Stock: {product.stock}</p>
+                  <p className="text-lg font-bold text-slate-900">
+                    {product.currency} {product.price.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    Stock: {typeof product.metadata?.stock === 'number' ? product.metadata.stock : 'N/A'}
+                  </p>
                 </div>
                 <Badge variant="outline" className="text-xs">
-                  {product.category}
+                  {product.categoryName || 'No Category'}
                 </Badge>
               </div>
               <div className="flex items-center gap-1 mt-4 pt-3 border-t border-slate-200">
@@ -181,6 +285,20 @@ export default function ProductsPage() {
           </Card>
         ))}
       </div>
+
+      {filteredProducts.length === 0 && !loading && (
+        <Card className="p-8 border border-slate-200 shadow-sm text-center">
+          <Package className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">No products found</h3>
+          <p className="text-slate-600 mb-4">
+            {searchTerm ? 'Try adjusting your search terms.' : 'Get started by adding your first product.'}
+          </p>
+          <CreateProductModal
+            categories={categories}
+            onProductCreated={fetchProducts}
+          />
+        </Card>
+      )}
     </div>
   )
 }
