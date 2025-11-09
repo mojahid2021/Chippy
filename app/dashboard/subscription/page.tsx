@@ -281,8 +281,8 @@ export default function SubscriptionPage() {
   } : {
     plan: 'Professional',
     status: 'active' as const,
-    amount: 49,
-    currency: 'USD',
+    amount: 4900,
+    currency: 'BDT',
     billingDate: 'Dec 15, 2024',
     daysLeft: 39,
     usage: {
@@ -298,8 +298,8 @@ export default function SubscriptionPage() {
       id: 'starter',
       name: 'Starter',
       description: 'Perfect for small businesses getting started',
-      monthlyPrice: 19,
-      yearlyPrice: 190,
+      monthlyPrice: 1900,
+      yearlyPrice: 19000,
       yearlyDiscount: 17,
       icon: Zap,
       color: 'blue',
@@ -325,8 +325,8 @@ export default function SubscriptionPage() {
       id: 'professional',
       name: 'Professional',
       description: 'Best for growing e-commerce businesses',
-      monthlyPrice: 49,
-      yearlyPrice: 490,
+      monthlyPrice: 4900,
+      yearlyPrice: 49000,
       yearlyDiscount: 17,
       icon: Crown,
       color: 'violet',
@@ -355,8 +355,8 @@ export default function SubscriptionPage() {
       id: 'enterprise',
       name: 'Enterprise',
       description: 'For large businesses with custom needs',
-      monthlyPrice: 149,
-      yearlyPrice: 1490,
+      monthlyPrice: 14900,
+      yearlyPrice: 149000,
       yearlyDiscount: 17,
       icon: Shield,
       color: 'emerald',
@@ -626,13 +626,13 @@ export default function SubscriptionPage() {
                   <div className="mb-4">
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-bold text-slate-900">
-                        ${getPrice(plan)}
+                        Tk {getPrice(plan)}
                       </span>
                       <span className="text-sm text-slate-600">/month</span>
                     </div>
                     {billingCycle === 'yearly' && (
                       <p className="text-xs text-slate-600 mt-1">
-                        ${getTotalPrice(plan)} billed annually
+                        Tk {getTotalPrice(plan)} billed annually
                       </p>
                     )}
                   </div>

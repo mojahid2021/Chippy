@@ -201,7 +201,7 @@ export default function PurchasePage({ params }: PurchasePageProps) {
     }
   }
 
-  const formatPrice = (price: number, currency: string = 'USD') => {
+  const formatPrice = (price: number, currency: string = 'BDT') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,

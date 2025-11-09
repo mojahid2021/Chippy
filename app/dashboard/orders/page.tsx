@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { ShoppingCart, Search, Filter, Download, Eye, Truck, Package, CheckCircle, Clock, Loader2, AlertCircle, MapPin, Phone, Calendar, CreditCard, User, Hash, Globe, Receipt, Printer } from "lucide-react"
+import { ShoppingCart, Search, Filter, Download, Eye, Truck, Package, CheckCircle, Clock, Loader2, AlertCircle, MapPin, Phone, Calendar, CreditCard, User, Hash, Globe, Receipt, Printer, Edit, Save, X } from "lucide-react"
 
 interface Order {
   orderId: string
@@ -28,6 +28,9 @@ interface Order {
   source: string
   createdAt: string
   updatedAt: string
+  notes?: string
+  deliveryTime?: string
+  instructions?: string
 }
 
 interface Product {
@@ -72,6 +75,15 @@ export default function OrdersPage() {
   const [productDetails, setProductDetails] = useState<Record<string, Product>>({})
   const [productDetailsLoading, setProductDetailsLoading] = useState(false)
   const [tableProductDetails, setTableProductDetails] = useState<Record<string, Product>>({})
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [editFormData, setEditFormData] = useState({
+    status: '',
+    paymentStatus: '',
+    notes: '',
+    deliveryTime: '',
+    instructions: ''
+  })
+  const [updatingOrder, setUpdatingOrder] = useState(false)
 
   // Helper function to get image URL for display
   const getImageUrl = (image?: string) => {
@@ -229,6 +241,61 @@ export default function OrdersPage() {
     fetchProductDetails(productIds)
   }
 
+  const handleEditOrder = () => {
+    if (selectedOrder) {
+      setEditFormData({
+        status: selectedOrder.status,
+        paymentStatus: selectedOrder.paymentStatus,
+        notes: selectedOrder.notes || '',
+        deliveryTime: selectedOrder.deliveryTime || '',
+        instructions: selectedOrder.instructions || ''
+      })
+      setIsEditMode(true)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false)
+    setEditFormData({
+      status: '',
+      paymentStatus: '',
+      notes: '',
+      deliveryTime: '',
+      instructions: ''
+    })
+  }
+
+  const handleUpdateOrder = async () => {
+    if (!selectedOrder) return
+
+    try {
+      setUpdatingOrder(true)
+      const response = await fetch(`/api/user/orders/${selectedOrder.orderId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editFormData)
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Update the selected order with new data
+        setSelectedOrder(data.data)
+        setIsEditMode(false)
+        // Refresh the orders list to reflect changes
+        fetchOrders()
+      } else {
+        setError(data.message || 'Failed to update order')
+      }
+    } catch {
+      setError('Network error. Please try again.')
+    } finally {
+      setUpdatingOrder(false)
+    }
+  }
+
   useEffect(() => {
     fetchOrders()
   }, [fetchOrders])
@@ -237,6 +304,14 @@ export default function OrdersPage() {
     if (!orderDetailsModal) {
       setSelectedOrder(null)
       setProductDetails({})
+      setIsEditMode(false)
+      setEditFormData({
+        status: '',
+        paymentStatus: '',
+        notes: '',
+        deliveryTime: '',
+        instructions: ''
+      })
     }
   }, [orderDetailsModal])
 
@@ -569,7 +644,7 @@ export default function OrdersPage() {
       {/* Order Details Modal */}
       {selectedOrder && (
         <Dialog open={orderDetailsModal} onOpenChange={setOrderDetailsModal}>
-          <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden p-0">
+          <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden p-0 [&>button]:hidden">
             <DialogTitle className="sr-only">Order Details - {selectedOrder.orderId}</DialogTitle>
             <div className="flex flex-col h-full max-h-[95vh]">
               {/* Header */}
@@ -584,12 +659,50 @@ export default function OrdersPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge className={`px-3 py-1 text-xs font-medium border ${getStatusBadge(selectedOrder.status)}`}>
-                    {selectedOrder.status}
-                  </Badge>
-                  <Badge className={`px-3 py-1 text-xs font-medium border ${getStatusBadge(selectedOrder.paymentStatus)}`}>
-                    {selectedOrder.paymentStatus}
-                  </Badge>
+                  {isEditMode ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                        disabled={updatingOrder}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleUpdateOrder}
+                        disabled={updatingOrder}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {updatingOrder ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        Save Changes
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Badge className={`px-3 py-1 text-xs font-medium border ${getStatusBadge(selectedOrder.status)}`}>
+                        {selectedOrder.status}
+                      </Badge>
+                      <Badge className={`px-3 py-1 text-xs font-medium border ${getStatusBadge(selectedOrder.paymentStatus)}`}>
+                        {selectedOrder.paymentStatus}
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleEditOrder}
+                        className="ml-2"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -724,9 +837,122 @@ export default function OrdersPage() {
                             <p className="text-xs text-slate-500">Order Date</p>
                           </div>
                         </div>
+                        {selectedOrder.deliveryTime && (
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center">
+                              <Calendar className="h-4 w-4 text-slate-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-900">
+                                {new Date(selectedOrder.deliveryTime).toLocaleString()}
+                              </p>
+                              <p className="text-xs text-slate-500">Delivery Time</p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedOrder.instructions && (
+                          <div className="flex items-start gap-3">
+                            <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center mt-0.5">
+                              <MapPin className="h-4 w-4 text-slate-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-900">{selectedOrder.instructions}</p>
+                              <p className="text-xs text-slate-500">Delivery Instructions</p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedOrder.notes && (
+                          <div className="flex items-start gap-3">
+                            <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center mt-0.5">
+                              <Receipt className="h-4 w-4 text-slate-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-900">{selectedOrder.notes}</p>
+                              <p className="text-xs text-slate-500">Internal Notes</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </Card>
                   </div>
+
+                  {/* Edit Form - Only show in edit mode */}
+                  {isEditMode && (
+                    <Card className="p-5 border-amber-200 bg-amber-50">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Edit className="h-5 w-5 text-amber-600" />
+                        <h3 className="text-lg font-semibold text-slate-900">Edit Order Details</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Order Status</label>
+                          <select
+                            value={editFormData.status}
+                            onChange={(e) => setEditFormData(prev => ({ ...prev, status: e.target.value }))}
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="draft">Draft</option>
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="preparing">Preparing</option>
+                            <option value="ready">Ready</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Payment Status</label>
+                          <select
+                            value={editFormData.paymentStatus}
+                            onChange={(e) => setEditFormData(prev => ({ ...prev, paymentStatus: e.target.value }))}
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="paid">Paid</option>
+                            <option value="failed">Failed</option>
+                            <option value="refunded">Refunded</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Delivery Time</label>
+                          <input
+                            type="datetime-local"
+                            value={editFormData.deliveryTime}
+                            onChange={(e) => setEditFormData(prev => ({ ...prev, deliveryTime: e.target.value }))}
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Delivery Instructions</label>
+                          <textarea
+                            value={editFormData.instructions}
+                            onChange={(e) => setEditFormData(prev => ({ ...prev, instructions: e.target.value }))}
+                            placeholder="Enter delivery instructions..."
+                            rows={3}
+                            maxLength={500}
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                          />
+                          <p className="text-xs text-slate-500 mt-1">{editFormData.instructions.length}/500 characters</p>
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Notes</label>
+                          <textarea
+                            value={editFormData.notes}
+                            onChange={(e) => setEditFormData(prev => ({ ...prev, notes: e.target.value }))}
+                            placeholder="Add internal notes..."
+                            rows={3}
+                            maxLength={1000}
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                          />
+                          <p className="text-xs text-slate-500 mt-1">{editFormData.notes.length}/1000 characters</p>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
 
                   {/* Order Items */}
                   <Card className="p-5">

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Package, Search, Edit, Trash2, Eye, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { CreateProductModal } from "@/components/create-product-modal"
+import { ProductDetailsModal } from "@/components/product-details-modal"
+import { EditProductModal } from "@/components/edit-product-modal"
 
 interface Category {
   id: string
@@ -34,7 +36,11 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [productDetailsModal, setProductDetailsModal] = useState(false)
+  const [productDetailsLoading, setProductDetailsLoading] = useState(false);
+  const [editProductModal, setEditProductModal] = useState(false)
 
   // Helper function to get image URL for display
   const getImageUrl = (image?: string) => {
@@ -89,6 +95,60 @@ export default function ProductsPage() {
     }
   }, [])
 
+  const fetchProductDetails = useCallback(async (productId: string) => {
+    try {
+      setProductDetailsLoading(true)
+      const response = await fetch(`/api/user/products/${productId}`)
+      const data = await response.json()
+
+      if (data.success) {
+        setSelectedProduct(data.data)
+        setProductDetailsModal(true)
+      } else {
+        setError(data.message || 'Failed to fetch product details')
+      }
+    } catch {
+      setError('Network error. Please try again.')
+    } finally {
+      setProductDetailsLoading(false)
+    }
+  }, [])
+
+  const handleViewProductDetails = (product: Product) => {
+    fetchProductDetails(product.id)
+  }
+
+  const handleEditProduct = (product: Product) => {
+    setSelectedProduct(product)
+    setEditProductModal(true)
+  }
+
+  const handleDeleteProduct = async (product: Product) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${product.name}"? This action cannot be undone.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      const response = await fetch(`/api/user/products/${product.id}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        await fetchProducts() // Refresh the list
+        alert('Product deleted successfully')
+      } else {
+        alert(data.message || 'Failed to delete product')
+      }
+    } catch (error) {
+      console.error('Delete product error:', error)
+      alert('Network error. Please try again.')
+    }
+  }
+
   useEffect(() => {
     fetchCategories()
   }, [fetchCategories])
@@ -112,34 +172,6 @@ export default function ProductsPage() {
     const stock = product.metadata?.stock
     return typeof stock === 'number' && stock === 0
   }).length
-
-  const getStockStatus = (product: Product) => {
-    const stock = product.metadata?.stock
-    if (typeof stock !== 'number') return 'unknown'
-    if (stock === 0) return 'out_of_stock'
-    if (stock <= 10) return 'low_stock'
-    return 'active'
-  }
-
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      active: "bg-emerald-100 text-emerald-700 border-emerald-200",
-      low_stock: "bg-amber-100 text-amber-700 border-amber-200",
-      out_of_stock: "bg-red-100 text-red-700 border-red-200",
-      unknown: "bg-slate-100 text-slate-700 border-slate-200",
-    }
-    return variants[status as keyof typeof variants] || variants.unknown
-  }
-
-  const getStatusLabel = (status: string) => {
-    const labels = {
-      active: "In Stock",
-      low_stock: "Low Stock",
-      out_of_stock: "Out of Stock",
-      unknown: "Unknown",
-    }
-    return labels[status as keyof typeof labels] || status
-  }
 
   const stats = [
     { label: "Total Products", value: totalProducts.toString(), color: "text-blue-600" },
@@ -228,7 +260,7 @@ export default function ProductsPage() {
       </Card>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {filteredProducts.map((product) => (
           <Card key={product.id} className="border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
             <div className="aspect-square bg-slate-100 relative">
@@ -246,14 +278,11 @@ export default function ProductsPage() {
               )}
             </div>
             <div className="p-4">
-              <div className="flex items-start justify-between mb-2">
+              <div className="mb-2">
                 <div>
                   <h3 className="font-semibold text-slate-900 text-sm">{product.name}</h3>
                   <p className="text-xs text-slate-500 mt-0.5">{product.description}</p>
                 </div>
-                <Badge className={`text-xs font-medium border ${getStatusBadge(getStockStatus(product))}`}>
-                  {getStatusLabel(getStockStatus(product))}
-                </Badge>
               </div>
               <div className="flex items-center justify-between mt-3">
                 <div>
@@ -264,20 +293,25 @@ export default function ProductsPage() {
                     Stock: {typeof product.metadata?.stock === 'number' ? product.metadata.stock : 'N/A'}
                   </p>
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {product.categoryName || 'No Category'}
-                </Badge>
+                <div className="flex flex-col gap-1">
+                  <Badge variant="outline" className="text-xs">
+                    {product.categoryName || 'No Category'}
+                  </Badge>
+                  <Badge variant={product.isActive ? "default" : "secondary"} className="text-xs">
+                    {product.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
               </div>
               <div className="flex items-center gap-1 mt-4 pt-3 border-t border-slate-200">
-                <Button variant="outline" size="sm" className="flex-1 h-8">
+                <Button variant="outline" size="sm" className="flex-1 h-8" onClick={() => handleViewProductDetails(product)}>
                   <Eye className="h-3.5 w-3.5 mr-1" />
                   View
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 h-8">
+                <Button variant="outline" size="sm" className="flex-1 h-8" onClick={() => handleEditProduct(product)}>
                   <Edit className="h-3.5 w-3.5 mr-1" />
                   Edit
                 </Button>
-                <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50">
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteProduct(product)}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -299,6 +333,23 @@ export default function ProductsPage() {
           />
         </Card>
       )}
+
+      <ProductDetailsModal
+        product={selectedProduct}
+        open={productDetailsModal}
+        onOpenChange={setProductDetailsModal}
+        loading={productDetailsLoading}
+        onProductDeleted={fetchProducts}
+        onEditProduct={handleEditProduct}
+      />
+
+      <EditProductModal
+        product={selectedProduct}
+        categories={categories}
+        open={editProductModal}
+        onOpenChange={setEditProductModal}
+        onProductUpdated={fetchProducts}
+      />
     </div>
   )
 }

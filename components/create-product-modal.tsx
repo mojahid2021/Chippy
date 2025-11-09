@@ -49,7 +49,7 @@ export function CreateProductModal({ categories, onProductCreated }: CreateProdu
     description: '',
     categoryName: 'none',
     price: '',
-    currency: 'USD',
+    currency: 'BDT',
     imageFile: null,
     isActive: true,
     brand: '',
@@ -64,7 +64,7 @@ export function CreateProductModal({ categories, onProductCreated }: CreateProdu
       description: '',
       categoryName: 'none',
       price: '',
-      currency: 'USD',
+      currency: 'BDT',
       imageFile: null,
       isActive: true,
       brand: '',
@@ -245,7 +245,7 @@ export function CreateProductModal({ categories, onProductCreated }: CreateProdu
                   min="0"
                   value={formData.price}
                   onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                  placeholder="1299.99"
+                  placeholder="25000.00"
                   required
                 />
                 <Select
@@ -256,6 +256,7 @@ export function CreateProductModal({ categories, onProductCreated }: CreateProdu
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="BDT">BDT (Tk)</SelectItem>
                     <SelectItem value="USD">USD</SelectItem>
                     <SelectItem value="EUR">EUR</SelectItem>
                     <SelectItem value="GBP">GBP</SelectItem>

@@ -31,9 +31,6 @@ import {
   LogOut,
   ShoppingCart,
   Package,
-  ShoppingBag,
-  Truck,
-  Tags,
   Boxes,
   ChevronLeft,
   ChevronRight,
@@ -62,9 +59,6 @@ const navigationSections = [
       { name: 'Orders', href: '/dashboard/orders', icon: ShoppingCart },
       { name: 'Products', href: '/dashboard/products', icon: Package },
       { name: 'Categories', href: '/dashboard/categories', icon: Boxes },
-      { name: 'Inventory', href: '/dashboard/inventory', icon: ShoppingBag },
-      { name: 'Shipping', href: '/dashboard/shipping', icon: Truck },
-      { name: 'Coupons', href: '/dashboard/coupons', icon: Tags },
     ]
   },
   {

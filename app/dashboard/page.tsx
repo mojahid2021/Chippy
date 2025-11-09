@@ -50,7 +50,7 @@ export default function Dashboard() {
     },
     {
       title: "Revenue Today",
-      value: "$8,432",
+      value: "Tk 8,432",
       change: "+18.4%",
       trend: "up",
       icon: DollarSign,
@@ -76,7 +76,7 @@ export default function Dashboard() {
       id: "#ORD-1247",
       customer: "Sarah Johnson",
       product: "Wireless Headphones",
-      amount: "$129.99",
+      amount: "Tk 129.99",
       status: "completed",
       time: "2 min ago",
       channel: "Facebook Messenger"
@@ -85,7 +85,7 @@ export default function Dashboard() {
       id: "#ORD-1246",
       customer: "Mike Chen",
       product: "Smart Watch Pro",
-      amount: "$299.99",
+      amount: "Tk 299.99",
       status: "processing",
       time: "5 min ago",
       channel: "WhatsApp"
@@ -94,7 +94,7 @@ export default function Dashboard() {
       id: "#ORD-1245",
       customer: "Emma Wilson",
       product: "Bluetooth Speaker",
-      amount: "$79.99",
+      amount: "Tk 79.99",
       status: "pending",
       time: "12 min ago",
       channel: "Instagram DM"
@@ -103,7 +103,7 @@ export default function Dashboard() {
       id: "#ORD-1244",
       customer: "Alex Kumar",
       product: "Phone Case Set",
-      amount: "$34.99",
+      amount: "Tk 34.99",
       status: "completed",
       time: "18 min ago",
       channel: "Facebook Messenger"

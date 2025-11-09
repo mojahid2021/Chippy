@@ -101,7 +101,7 @@ export default function PlansPage() {
     router.push(`/dashboard/plans/purchase/${plan.id}`)
   }
 
-  const formatPrice = (price: number, currency: string = 'USD') => {
+  const formatPrice = (price: number, currency: string = 'BDT') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
