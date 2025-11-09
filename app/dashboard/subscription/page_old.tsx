@@ -18,14 +18,6 @@ import {
   Settings,
   RefreshCw,
   Clock,
-  Download,
-  ArrowRight,
-  Check,
-  TrendingUp,
-  Users,
-  Database,
-  FileText,
-  Star,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUserStore } from '@/lib/stores/userStore'
@@ -203,8 +195,8 @@ export default function SubscriptionPage() {
         <div className="ml-2">
           <p className="text-gray-600 font-medium">No active subscription</p>
           <p className="text-gray-500 text-sm">Subscribe to a plan to get started</p>
-          <Button className="mt-2" onClick={() => window.location.href = '/dashboard/plans'}>
-            View Plans
+          <Button className="mt-2" onClick={() => window.location.href = '/dashboard/subscription'}>
+            View Subscription
           </Button>
         </div>
       </div>

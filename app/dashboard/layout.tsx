@@ -35,7 +35,6 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
-  CreditCard,
   Calendar,
   HelpCircle,
   Command,
@@ -72,7 +71,6 @@ const navigationSections = [
   {
     title: 'Billing',
     items: [
-      { name: 'Plans', href: '/dashboard/plans', icon: CreditCard },
       { name: 'Subscription', href: '/dashboard/subscription', icon: Calendar },
     ]
   },

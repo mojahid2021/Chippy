@@ -345,9 +345,9 @@ export default function FBPageSettingsPage() {
                       variant="outline"
                       size="sm"
                       className="border-red-300 text-red-700 hover:bg-red-50"
-                      onClick={() => window.location.href = '/dashboard/plans'}
+                      onClick={() => window.location.href = '/dashboard/subscription'}
                     >
-                      View Available Plans
+                      View Subscription
                     </Button>
                   </div>
                 </div>

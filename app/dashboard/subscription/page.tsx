@@ -23,7 +23,6 @@ import {
   Shield,
   ArrowRight,
   FileText,
-  Settings,
   Star,
   CheckCircle,
   XCircle,
@@ -31,7 +30,8 @@ import {
   MoreHorizontal,
   Eye,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Building2
 } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { useUserStore } from '@/lib/stores/userStore'
@@ -123,6 +123,41 @@ interface SubscriptionResponse {
   timestamp: string
 }
 
+interface Plan {
+  id: string
+  name: string
+  description: string
+  price: number
+  currency: string
+  interval: string
+  intervalCount: number
+  features: string[]
+  maxUsers: number
+  maxStorageGB: number
+  maxProjects: number
+  isActive: boolean
+  isPopular: boolean
+  trialDays: number
+  createdAt: string
+  updatedAt: string
+  annualPrice?: number
+}
+
+interface PlansResponse {
+  success: boolean
+  data: {
+    plans: Plan[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      pages: number
+    }
+  }
+  message: string
+  timestamp: string
+}
+
 const statusConfig = {
   completed: { color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
   pending: { color: 'bg-yellow-100 text-yellow-700', icon: Clock },
@@ -138,6 +173,7 @@ export default function SubscriptionPage() {
   const [error, setError] = useState<string | null>(null)
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [hasSubscription, setHasSubscription] = useState<boolean>(false)
+  const [plans, setPlans] = useState<Plan[]>([])
   
   // Fetch subscription from API
   const fetchSubscription = useCallback(async () => {
@@ -230,11 +266,26 @@ export default function SubscriptionPage() {
     }
   }, [token])
 
+  // Fetch plans from API
+  const fetchPlans = useCallback(async () => {
+    try {
+      const response = await fetch('/api/public/plans?sortBy=createdAt&sortOrder=desc')
+      const data: PlansResponse = await response.json()
+
+      if (data.success && data.data) {
+        setPlans(data.data.plans.filter(plan => plan.isActive))
+      }
+    } catch (err) {
+      console.error('Error fetching plans:', err)
+    }
+  }, [])
+
   // Initial load - fetch both subscription and transactions
   useEffect(() => {
     fetchSubscription()
     fetchTransactions()
-  }, [fetchSubscription, fetchTransactions])
+    fetchPlans()
+  }, [fetchSubscription, fetchTransactions, fetchPlans])
 
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
@@ -292,128 +343,50 @@ export default function SubscriptionPage() {
     }
   }
 
-  // Available plans
-  const plans = [
-    {
-      id: 'starter',
-      name: 'Starter',
-      description: 'Perfect for small businesses getting started',
-      monthlyPrice: 1900,
-      yearlyPrice: 19000,
-      yearlyDiscount: 17,
-      icon: Zap,
-      color: 'blue',
-      features: [
-        '500 Orders/month',
-        '2,000 Conversations',
-        '10,000 AI Messages',
-        '2 Team Members',
-        '10GB Storage',
-        'Email Support',
-        'Basic Analytics',
-        'Standard Templates'
-      ],
-      limits: {
-        orders: 500,
-        conversations: 2000,
-        aiMessages: 10000,
-        users: 2,
-        storage: 10
-      }
-    },
-    {
-      id: 'professional',
-      name: 'Professional',
-      description: 'Best for growing e-commerce businesses',
-      monthlyPrice: 4900,
-      yearlyPrice: 49000,
-      yearlyDiscount: 17,
-      icon: Crown,
-      color: 'violet',
-      popular: true,
-      features: [
-        '1,000 Orders/month',
-        '5,000 Conversations',
-        '20,000 AI Messages',
-        '5 Team Members',
-        '50GB Storage',
-        'Priority Support',
-        'Advanced Analytics',
-        'Custom Branding',
-        'API Access',
-        'Webhook Integration'
-      ],
-      limits: {
-        orders: 1000,
-        conversations: 5000,
-        aiMessages: 20000,
-        users: 5,
-        storage: 50
-      }
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      description: 'For large businesses with custom needs',
-      monthlyPrice: 14900,
-      yearlyPrice: 149000,
-      yearlyDiscount: 17,
-      icon: Shield,
-      color: 'emerald',
-      features: [
-        'Unlimited Orders',
-        'Unlimited Conversations',
-        'Unlimited AI Messages',
-        'Unlimited Team Members',
-        'Unlimited Storage',
-        '24/7 Phone Support',
-        'Custom AI Training',
-        'Dedicated Account Manager',
-        'Advanced Security',
-        'SLA Guarantee',
-        'Custom Integration',
-        'White Label Option'
-      ],
-      limits: {
-        orders: -1,
-        conversations: -1,
-        aiMessages: -1,
-        users: -1,
-        storage: -1
-      }
-    }
-  ]
+  // Available plans - now fetched from API
+  // const plans = [ ... ] // Removed hardcoded plans
 
-  const getPrice = (plan: typeof plans[0]) => {
-    return billingCycle === 'monthly' ? plan.monthlyPrice : Math.floor(plan.yearlyPrice / 12)
+  const getPrice = (plan: Plan) => {
+    // For monthly plans, show monthly price
+    // For yearly plans, show yearly price if available, otherwise calculate
+    if (plan.interval === 'yearly') {
+      return plan.annualPrice || plan.price
+    }
+    return plan.price
   }
 
-  const getTotalPrice = (plan: typeof plans[0]) => {
-    return billingCycle === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice
+  const getTotalPrice = (plan: Plan) => {
+    if (plan.interval === 'yearly') {
+      return plan.annualPrice || plan.price
+    }
+    // For monthly plans, calculate yearly equivalent
+    return plan.annualPrice || (plan.price * 12)
   }
 
-  const getColorClasses = (color: string, variant: 'bg' | 'text' | 'border' | 'hover') => {
-    const colors = {
-      blue: {
-        bg: 'bg-blue-50',
-        text: 'text-blue-600',
-        border: 'border-blue-500',
-        hover: 'hover:bg-blue-600'
-      },
-      violet: {
-        bg: 'bg-violet-50',
-        text: 'text-violet-600',
-        border: 'border-violet-500',
-        hover: 'hover:bg-violet-600'
-      },
-      emerald: {
-        bg: 'bg-emerald-50',
-        text: 'text-emerald-600',
-        border: 'border-emerald-500',
-        hover: 'hover:bg-emerald-600'
-      }
+  const getIconForPlan = (planName: string) => {
+    switch (planName.toLowerCase()) {
+      case 'starter':
+        return Zap
+      case 'professional':
+        return Crown
+      case 'enterprise':
+        return Shield
+      default:
+        return Zap
     }
-    return colors[color as keyof typeof colors]?.[variant] || ''
+  }
+
+  const getColorForPlan = (planName: string) => {
+    switch (planName.toLowerCase()) {
+      case 'starter':
+        return 'blue'
+      case 'professional':
+        return 'violet'
+      case 'enterprise':
+        return 'emerald'
+      default:
+        return 'blue'
+    }
   }
 
   return (
@@ -580,8 +553,9 @@ export default function SubscriptionPage() {
         {/* Plans Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map((plan) => {
-            const Icon = plan.icon
-            const isCurrentPlan = plan.name === currentSubscription.plan
+            const Icon = getIconForPlan(plan.name)
+            const planColor = getColorForPlan(plan.name)
+            const isCurrentPlan = subscription?.planId === plan.id
             
             return (
               <Card 
@@ -589,12 +563,12 @@ export default function SubscriptionPage() {
                 className={`relative border-2 transition-all hover:shadow-lg ${
                   isCurrentPlan 
                     ? 'border-violet-500 bg-violet-50/30' 
-                    : plan.popular 
+                    : plan.isPopular 
                       ? 'border-violet-200 shadow-md' 
                       : 'border-slate-200'
                 }`}
               >
-                {plan.popular && !isCurrentPlan && (
+                {plan.isPopular && !isCurrentPlan && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <Badge className="bg-violet-600 text-white px-3 py-0.5 shadow-lg">
                       <Star className="h-3 w-3 mr-1 fill-white" />
@@ -614,8 +588,8 @@ export default function SubscriptionPage() {
 
                 <div className="p-5">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className={`h-10 w-10 rounded-lg ${getColorClasses(plan.color, 'bg')} flex items-center justify-center`}>
-                      <Icon className={`h-5 w-5 ${getColorClasses(plan.color, 'text')}`} />
+                    <div className={`h-10 w-10 rounded-lg bg-${planColor}-50 flex items-center justify-center`}>
+                      <Icon className={`h-5 w-5 text-${planColor}-600`} />
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-900">{plan.name}</h3>
@@ -628,9 +602,9 @@ export default function SubscriptionPage() {
                       <span className="text-3xl font-bold text-slate-900">
                         Tk {getPrice(plan)}
                       </span>
-                      <span className="text-sm text-slate-600">/month</span>
+                      <span className="text-sm text-slate-600">/{plan.interval === 'yearly' ? 'year' : 'month'}</span>
                     </div>
-                    {billingCycle === 'yearly' && (
+                    {billingCycle === 'yearly' && plan.interval === 'monthly' && plan.annualPrice && (
                       <p className="text-xs text-slate-600 mt-1">
                         Tk {getTotalPrice(plan)} billed annually
                       </p>
@@ -641,27 +615,17 @@ export default function SubscriptionPage() {
                     className={`w-full mb-4 ${
                       isCurrentPlan
                         ? 'bg-slate-600 hover:bg-slate-700'
-                        : `${getColorClasses(plan.color, 'border')} ${getColorClasses(plan.color, 'hover')} hover:text-white`
+                        : `bg-${planColor}-600 hover:bg-${planColor}-700`
                     }`}
-                    variant={isCurrentPlan ? 'default' : 'outline'}
-                    disabled={isCurrentPlan}
+                    variant={isCurrentPlan ? 'default' : 'default'}
+                    disabled={isCurrentPlan || true}
                     onClick={() => {
-                      if (!isCurrentPlan) {
-                        const action = plan.name === 'Starter' ? 'Downgrade' : 'Upgrade'
-                        toast({
-                          variant: "info",
-                          title: `${action} to ${plan.name}`,
-                          description: `Redirecting to ${action.toLowerCase()} to the ${plan.name} plan...`,
-                        })
-                        // Add navigation logic here
-                        setTimeout(() => {
-                          toast({
-                            variant: "warning",
-                            title: "Plan Change",
-                            description: "Plan change functionality will be available soon.",
-                          })
-                        }, 1500)
-                      }
+                      // Purchase functionality disabled - plans page removed
+                      toast({
+                        variant: "info",
+                        title: "Purchase Unavailable",
+                        description: "Plan purchase functionality is currently disabled.",
+                      })
                     }}
                   >
                     {isCurrentPlan ? (
@@ -669,19 +633,24 @@ export default function SubscriptionPage() {
                     ) : plan.name === 'Professional' ? (
                       <>Upgrade Now <ArrowRight className="h-4 w-4 ml-1" /></>
                     ) : plan.name === 'Starter' ? (
-                      'Downgrade'
+                      'Get Started'
                     ) : (
                       <>Upgrade <ArrowRight className="h-4 w-4 ml-1" /></>
                     )}
                   </Button>
 
                   <div className="space-y-2">
-                    {plan.features.map((feature, idx) => (
+                    {plan.features.slice(0, 4).map((feature, idx) => (
                       <div key={idx} className="flex items-start gap-2">
                         <Check className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
                         <span className="text-xs text-slate-700">{feature}</span>
                       </div>
                     ))}
+                    {plan.features.length > 4 && (
+                      <div className="text-xs text-slate-500">
+                        +{plan.features.length - 4} more features
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -817,16 +786,68 @@ export default function SubscriptionPage() {
             <p className="text-xs text-slate-600">Manage your billing details</p>
           </div>
           <div className="p-4 space-y-4">
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-              <div className="h-10 w-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center">
-                <CreditCard className="h-5 w-5 text-slate-600" />
+            {transactions.length > 0 ? (() => {
+              // Get the latest transaction (most recent submittedAt)
+              const latestTransaction = transactions.sort((a, b) => 
+                new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+              )[0]
+              
+              // Determine payment method icon and label based on transaction type
+              const getPaymentMethodInfo = (type: string) => {
+                switch (type.toLowerCase()) {
+                  case 'bank_transfer':
+                  case 'bank-transfer':
+                    return {
+                      icon: Building2,
+                      label: 'Bank Transfer',
+                      color: 'text-blue-600'
+                    }
+                  case 'credit_card':
+                  case 'credit-card':
+                    return {
+                      icon: CreditCard,
+                      label: 'Credit Card',
+                      color: 'text-slate-600'
+                    }
+                  default:
+                    return {
+                      icon: CreditCard,
+                      label: 'Payment Method',
+                      color: 'text-slate-600'
+                    }
+                }
+              }
+              
+              const paymentMethod = getPaymentMethodInfo(latestTransaction.type)
+              const PaymentIcon = paymentMethod.icon
+              
+              return (
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                  <div className="h-10 w-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center">
+                    <PaymentIcon className={`h-5 w-5 ${paymentMethod.color}`} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-slate-900">
+                      •••• {latestTransaction.accountNumber.slice(-4)}
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      {paymentMethod.label} • Last used {formatDate(latestTransaction.submittedAt)}
+                    </p>
+                  </div>
+                  <Badge className="text-[10px] bg-blue-100 text-blue-700">Default</Badge>
+                </div>
+              )
+            })() : (
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                <div className="h-10 w-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-slate-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-900">No payment method</p>
+                  <p className="text-xs text-slate-600">Add a payment method to get started</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-900">•••• 4242</p>
-                <p className="text-xs text-slate-600">Expires 12/2025</p>
-              </div>
-              <Badge className="text-[10px] bg-blue-100 text-blue-700">Default</Badge>
-            </div>
+            )}
 
             <div className="space-y-2">
               <Button 
