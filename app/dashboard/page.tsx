@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -8,10 +9,8 @@ import {
   ShoppingCart, 
   MessageSquare, 
   TrendingUp,
-  CheckCircle2,
   AlertCircle,
   DollarSign,
-  Users,
   Bot,
   Zap,
   ArrowUpRight,
@@ -20,13 +19,94 @@ import {
   Star,
   Activity,
   Timer,
-  MoreVertical
+  MoreVertical,
+  Loader2
 } from "lucide-react"
+
+// Message interfaces
+interface Message {
+  id: string
+  messageType: string
+  content: string
+  timestamp: string
+  isEcho: boolean
+  processed: boolean
+  aiResponse?: {
+    id: string
+    aiResponse: string
+    aiModel: string
+    tokensUsed: {
+      prompt: number
+      completion: number
+      total: number
+    }
+    responseTime: number
+    status: string
+    sentToFacebook: boolean
+    createdAt: string
+    sentAt: string
+  }
+}
+
+interface MessagesResponse {
+  success: boolean
+  data: Message[]
+}
 
 export default function Dashboard() {
   const { user } = useUserStore()
+  const [messages, setMessages] = useState<Message[]>([])
+  const [messagesLoading, setMessagesLoading] = useState(true)
+  const [messagesError, setMessagesError] = useState<string | null>(null)
 
-  // Real-time stats for AI chatbot e-commerce
+  // Fetch messages from API
+  const fetchMessages = useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      setMessagesLoading(true)
+    }
+    setMessagesError(null)
+
+    try {
+      const params = new URLSearchParams({
+        limit: '10',
+        includeAIResponses: 'true'
+      })
+
+      const response = await fetch(`/api/user/messages?${params.toString()}`)
+      const data: MessagesResponse = await response.json()
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages')
+      }
+
+      if (data.success && data.data) {
+        setMessages(data.data)
+      } else {
+        throw new Error('Invalid response format')
+      }
+    } catch (err) {
+      setMessagesError(err instanceof Error ? err.message : 'An error occurred while fetching messages')
+      console.error('Error fetching messages:', err)
+    } finally {
+      if (showLoading) {
+        setMessagesLoading(false)
+      }
+    }
+  }, [])
+
+  // Fetch messages on component mount
+  useEffect(() => {
+    fetchMessages()
+  }, [fetchMessages])
+
+    // Auto-refresh messages every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchMessages(false) // Don't show loading state during auto-refresh
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [fetchMessages])  // Real-time stats for AI chatbot e-commerce
   const stats = [
     {
       title: "Total Orders Today",
@@ -110,41 +190,19 @@ export default function Dashboard() {
     }
   ]
 
-  // Live chat activity
-  const chatActivity = [
-    {
-      id: 1,
-      customer: "Jessica Brown",
-      message: "Is this available in blue?",
-      time: "Just now",
-      unread: true,
-      status: "ai-responded"
-    },
-    {
-      id: 2,
-      customer: "Tom Anderson",
-      message: "Can I track my order?",
-      time: "1 min ago",
-      unread: true,
-      status: "ai-responded"
-    },
-    {
-      id: 3,
-      customer: "Lisa Garcia",
-      message: "What's your return policy?",
-      time: "3 min ago",
-      unread: false,
-      status: "resolved"
-    },
-    {
-      id: 4,
-      customer: "David Lee",
-      message: "Need help with checkout",
-      time: "7 min ago",
-      unread: false,
-      status: "escalated"
-    }
-  ]
+  // Live chat activity - now from API
+  const chatActivity = messages.slice(0, 10).map((message) => ({
+    id: message.id,
+    userMessage: message.content === '{}' ? '📎 Image/Attachment' : message.content,
+    aiResponse: message.aiResponse?.aiResponse || '',
+    time: new Date(message.timestamp).toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    }),
+    unread: !message.processed, // Unread if not processed
+    status: message.aiResponse ? 'ai-responded' : 'pending'
+  }))
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -156,19 +214,6 @@ export default function Dashboard() {
         return "bg-amber-100 text-amber-700 border-amber-200"
       default:
         return "bg-slate-100 text-slate-700 border-slate-200"
-    }
-  }
-
-  const getChatStatusColor = (status: string) => {
-    switch (status) {
-      case "ai-responded":
-        return "bg-blue-100 text-blue-700"
-      case "resolved":
-        return "bg-emerald-100 text-emerald-700"
-      case "escalated":
-        return "bg-amber-100 text-amber-700"
-      default:
-        return "bg-slate-100 text-slate-700"
     }
   }
 
@@ -287,45 +332,82 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-500 mt-0.5">Active conversations</p>
               </div>
               <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-0">
-                {chatActivity.filter(c => c.unread).length} New
+                {messagesLoading ? '...' : chatActivity.filter(c => c.unread).length} New
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-slate-100">
-              {chatActivity.map((chat) => (
-                <div 
-                  key={chat.id} 
-                  className={`p-3 hover:bg-slate-50 transition-colors cursor-pointer ${
-                    chat.unread ? 'bg-blue-50/50' : ''
-                  }`}
-                >
+            {messagesLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                <span className="ml-2 text-sm text-slate-600">Loading messages...</span>
+              </div>
+            ) : messagesError ? (
+              <div className="flex flex-col items-center justify-center py-8 px-4">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+                <div className="mt-2 text-center">
+                  <p className="text-sm text-red-600 font-medium">Error loading messages</p>
+                  <p className="text-xs text-slate-600">{messagesError}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 h-7 text-xs"
+                    onClick={() => fetchMessages(true)}
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            ) : chatActivity.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <MessageSquare className="h-6 w-6 text-slate-400" />
+                <div className="mt-2 text-center">
+                  <p className="text-sm text-slate-600 font-medium">No messages yet</p>
+                  <p className="text-xs text-slate-500">Recent conversations will appear here</p>
+                </div>
+              </div>
+            ) : (
+              <div className="max-h-96 overflow-y-auto divide-y divide-slate-100">
+                {chatActivity.map((chat, index) => (
+                  <div
+                    key={`${chat.id}-${chat.time}`}
+                    className={`p-3 hover:bg-slate-50 transition-all duration-300 ease-in-out cursor-pointer animate-in fade-in slide-in-from-bottom-2 ${
+                      chat.unread ? 'bg-blue-50/50' : ''
+                    }`}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
                   <div className="flex items-start justify-between mb-1.5">
                     <div className="flex items-center gap-2">
                       <div className="h-7 w-7 rounded-full bg-slate-200 flex items-center justify-center">
-                        <Users className="h-3.5 w-3.5 text-slate-600" />
+                        <MessageSquare className="h-3.5 w-3.5 text-slate-600" />
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-900">{chat.customer}</p>
-                        <p className="text-[10px] text-slate-500">{chat.time}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-900 line-clamp-1">
+                          {chat.userMessage}
+                        </p>
+                        {chat.aiResponse && (
+                          <p className="text-xs text-slate-600 mt-1 line-clamp-2">
+                            {chat.aiResponse}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-[10px] text-slate-500">{chat.time}</p>
+                          {chat.aiResponse && (
+                            <span className="text-[10px] text-blue-600 font-medium">
+                              {messages.find(m => m.id === chat.id)?.aiResponse?.aiModel?.split('/')[1] || 'AI'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     {chat.unread && (
                       <div className="h-1.5 w-1.5 rounded-full bg-blue-500"></div>
                     )}
                   </div>
-                  <p className="text-xs text-slate-600 mb-1.5 ml-9 line-clamp-1">{chat.message}</p>
-                  <div className="ml-9">
-                    <Badge className={`text-[10px] px-1.5 py-0 ${getChatStatusColor(chat.status)}`}>
-                      {chat.status === 'ai-responded' && <Bot className="h-2.5 w-2.5 mr-1" />}
-                      {chat.status === 'resolved' && <CheckCircle2 className="h-2.5 w-2.5 mr-1" />}
-                      {chat.status === 'escalated' && <AlertCircle className="h-2.5 w-2.5 mr-1" />}
-                      {chat.status.replace('-', ' ')}
-                    </Badge>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
             <div className="p-3 border-t border-slate-100">
               <Button variant="outline" size="sm" className="w-full h-8 text-xs">
                 View All Conversations

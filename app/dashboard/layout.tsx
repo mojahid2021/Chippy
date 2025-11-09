@@ -39,7 +39,6 @@ import {
   HelpCircle,
   Command,
   Facebook,
-  Globe,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -49,7 +48,6 @@ const navigationSections = [
     title: 'Overview',
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: Home },
-      { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
     ]
   },
   {
@@ -65,7 +63,6 @@ const navigationSections = [
     items: [
       { name: 'Profile', href: '/dashboard/profile', icon: User },
       { name: 'Accounts', href: '/dashboard/accounts', icon: Users },
-      { name: 'Content', href: '/dashboard/content', icon: FileText },
     ]
   },
   {
@@ -79,7 +76,6 @@ const navigationSections = [
     items: [
       { name: 'AI Settings', href: '/dashboard/configure-ai', icon: Bot },
       { name: 'Facebook Page Setup', href: '/dashboard/configure-page', icon: Facebook },
-      { name: 'Website Setup', href: '/dashboard/website-setup', icon: Globe },
       { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     ]
   },
@@ -115,7 +111,7 @@ const Sidebar = ({ mobile = false, collapsed = false, pathname = '', user, onNav
         </div>
         {!collapsed && !mobile && (
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-white tracking-tight">SocialAI Pro</span>
+            <span className="text-sm font-bold text-white tracking-tight">BDChatPro</span>
             <span className="text-[10px] text-slate-400 font-medium">Workspace</span>
           </div>
         )}
