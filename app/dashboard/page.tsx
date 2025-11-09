@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -53,11 +54,57 @@ interface MessagesResponse {
   data: Message[]
 }
 
+// Order interfaces
+interface OrderItem {
+  productId: string
+  productName: string
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+}
+
+interface Order {
+  orderId: string
+  customerName: string
+  customerPhone: string
+  customerAddress: string
+  status: string
+  paymentStatus: string
+  totalAmount: number
+  currency: string
+  items: OrderItem[]
+  deliveryAddress: string
+  source: string
+  createdAt: string
+  updatedAt: string
+  notes?: string
+  deliveryTime?: string
+  instructions?: string
+}
+
+interface OrdersResponse {
+  success: boolean
+  data: {
+    orders: Order[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      pages: number
+    }
+  }
+  message: string
+  timestamp: string
+}
+
 export default function Dashboard() {
   const { user } = useUserStore()
   const [messages, setMessages] = useState<Message[]>([])
   const [messagesLoading, setMessagesLoading] = useState(true)
   const [messagesError, setMessagesError] = useState<string | null>(null)
+  const [recentOrders, setRecentOrders] = useState<Order[]>([])
+  const [recentOrdersLoading, setRecentOrdersLoading] = useState(true)
+  const [recentOrdersError, setRecentOrdersError] = useState<string | null>(null)
 
   // Fetch messages from API
   const fetchMessages = useCallback(async (showLoading = true) => {
@@ -94,10 +141,39 @@ export default function Dashboard() {
     }
   }, [])
 
+  // Fetch recent orders from API
+  const fetchRecentOrders = useCallback(async () => {
+    try {
+      setRecentOrdersLoading(true)
+      setRecentOrdersError(null)
+
+      // Fetch recent orders (limit to 8 for dashboard display)
+      const params = new URLSearchParams({
+        limit: '8',
+        page: '1'
+      })
+
+      const response = await fetch(`/api/user/orders?${params.toString()}`)
+      const data: OrdersResponse = await response.json()
+
+      if (data.success && data.data) {
+        setRecentOrders(data.data.orders)
+      } else {
+        throw new Error(data.message || 'Failed to fetch orders')
+      }
+    } catch (err) {
+      setRecentOrdersError(err instanceof Error ? err.message : 'An error occurred while fetching orders')
+      console.error('Error fetching orders:', err)
+    } finally {
+      setRecentOrdersLoading(false)
+    }
+  }, [])
+
   // Fetch messages on component mount
   useEffect(() => {
     fetchMessages()
-  }, [fetchMessages])
+    fetchRecentOrders()
+  }, [fetchMessages, fetchRecentOrders])
 
     // Auto-refresh messages every 5 seconds
   useEffect(() => {
@@ -150,45 +226,35 @@ export default function Dashboard() {
     }
   ]
 
+  // Helper function to format time ago
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date()
+    const date = new Date(dateString)
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+
+    if (diffInMinutes < 1) return 'Just now'
+    if (diffInMinutes < 60) return `${diffInMinutes} min ago`
+
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    if (diffInHours < 24) return `${diffInHours}h ago`
+
+    const diffInDays = Math.floor(diffInHours / 24)
+    if (diffInDays === 1) return 'Yesterday'
+    if (diffInDays < 7) return `${diffInDays} days ago`
+
+    return date.toLocaleDateString()
+  }
+
   // Recent orders from chatbot
-  const recentOrders = [
-    {
-      id: "#ORD-1247",
-      customer: "Sarah Johnson",
-      product: "Wireless Headphones",
-      amount: "Tk 129.99",
-      status: "completed",
-      time: "2 min ago",
-      channel: "Facebook Messenger"
-    },
-    {
-      id: "#ORD-1246",
-      customer: "Mike Chen",
-      product: "Smart Watch Pro",
-      amount: "Tk 299.99",
-      status: "processing",
-      time: "5 min ago",
-      channel: "WhatsApp"
-    },
-    {
-      id: "#ORD-1245",
-      customer: "Emma Wilson",
-      product: "Bluetooth Speaker",
-      amount: "Tk 79.99",
-      status: "pending",
-      time: "12 min ago",
-      channel: "Instagram DM"
-    },
-    {
-      id: "#ORD-1244",
-      customer: "Alex Kumar",
-      product: "Phone Case Set",
-      amount: "Tk 34.99",
-      status: "completed",
-      time: "18 min ago",
-      channel: "Facebook Messenger"
-    }
-  ]
+  const transformedRecentOrders = recentOrders.map((order) => ({
+    id: order.orderId,
+    customer: order.customerName,
+    product: order.items.length > 0 ? order.items[0].productName + (order.items.length > 1 ? ` + ${order.items.length - 1} more` : '') : 'Unknown Product',
+    amount: `${order.currency} ${order.totalAmount.toFixed(2)}`,
+    status: order.status,
+    time: formatTimeAgo(order.createdAt),
+    channel: order.source
+  }))
 
   // Live chat activity - now from API
   const chatActivity = messages.slice(0, 10).map((message) => ({
@@ -218,9 +284,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Welcome Section */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-900 mb-1">
@@ -240,11 +306,11 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         {stats.map((stat, index) => (
           <Card key={index} className="border-slate-200 hover:shadow-md transition-all hover:border-slate-300">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between mb-3">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between mb-2">
                 <div className={`p-2 rounded-lg ${stat.bgColor}`}>
                   <stat.icon className={`h-4 w-4 ${stat.color}`} />
                 </div>
@@ -269,71 +335,101 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Recent Orders - Takes 2 columns */}
         <Card className="lg:col-span-2 border-slate-200">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base font-bold text-slate-900">Recent Orders</CardTitle>
-                <p className="text-xs text-slate-500 mt-0.5">Orders placed via AI chatbot</p>
+                <p className="text-xs text-slate-500 mt-0.5">Latest customer orders</p>
               </div>
-              <Button variant="ghost" size="sm" className="h-8 text-xs">
-                View All
-                <ArrowUpRight className="h-3 w-3 ml-1" />
-              </Button>
+              <Link href="/dashboard/orders">
+                <Button variant="ghost" size="sm" className="h-7 text-xs">
+                  View All
+                  <ArrowUpRight className="h-3 w-3 ml-1" />
+                </Button>
+              </Link>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-slate-100">
-              {recentOrders.map((order) => (
-                <div key={order.id} className="p-4 hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-slate-100 flex items-center justify-center">
-                        <Package className="h-4 w-4 text-slate-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">{order.customer}</p>
-                        <p className="text-xs text-slate-500">{order.id}</p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                      <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
+            <div className="h-80 divide-y divide-slate-100 overflow-hidden">
+              {recentOrdersLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  <span className="ml-2 text-sm text-slate-600">Loading orders...</span>
+                </div>
+              ) : recentOrdersError ? (
+                <div className="flex flex-col items-center justify-center h-full px-4">
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                  <div className="mt-2 text-center">
+                    <p className="text-sm text-red-600 font-medium">Error loading orders</p>
+                    <p className="text-xs text-slate-600">{recentOrdersError}</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 h-7 text-xs"
+                      onClick={() => fetchRecentOrders()}
+                    >
+                      Try Again
                     </Button>
                   </div>
-                  <div className="flex items-center justify-between ml-12">
-                    <div className="flex-1">
-                      <p className="text-xs text-slate-600 mb-1">{order.product}</p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getStatusColor(order.status)}`}>
-                          {order.status}
-                        </Badge>
-                        <span className="text-[10px] text-slate-400">via {order.channel}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-slate-900">{order.amount}</p>
-                      <p className="text-[10px] text-slate-400">{order.time}</p>
-                    </div>
+                </div>
+              ) : transformedRecentOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <Package className="h-6 w-6 text-slate-400" />
+                  <div className="mt-2 text-center">
+                    <p className="text-sm text-slate-600 font-medium">No recent orders</p>
+                    <p className="text-xs text-slate-500">Recent orders will appear here</p>
                   </div>
                 </div>
-              ))}
+              ) : (
+                transformedRecentOrders.slice(0, 6).map((order) => (
+                  <div key={order.id} className="p-3 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                          <Package className="h-3.5 w-3.5 text-slate-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{order.customer}</p>
+                          <p className="text-xs text-slate-500">{order.id}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                        <MoreVertical className="h-3 w-3 text-slate-400" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between ml-11">
+                      <div className="flex-1">
+                        <p className="text-xs text-slate-600 mb-0.5">{order.product}</p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getStatusColor(order.status)}`}>
+                            {order.status}
+                          </Badge>
+                          <span className="text-[10px] text-slate-400">via {order.channel}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-slate-900">{order.amount}</p>
+                        <p className="text-[10px] text-slate-400">{order.time}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* Live Chat Activity */}
         <Card className="border-slate-200">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base font-bold text-slate-900">Live Chats</CardTitle>
                 <p className="text-xs text-slate-500 mt-0.5">Active conversations</p>
               </div>
-              <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-0">
-                {messagesLoading ? '...' : chatActivity.filter(c => c.unread).length} New
-              </Badge>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -408,20 +504,16 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
-            <div className="p-3 border-t border-slate-100">
-              <Button variant="outline" size="sm" className="w-full h-8 text-xs">
-                View All Conversations
-              </Button>
-            </div>
+            
           </CardContent>
         </Card>
       </div>
 
       {/* Quick Actions & Performance */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* AI Performance Metrics */}
         <Card className="border-slate-200">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <CardTitle className="text-base font-bold text-slate-900">AI Performance</CardTitle>
             <p className="text-xs text-slate-500">Last 24 hours</p>
           </CardHeader>
@@ -467,7 +559,7 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <Card className="border-slate-200">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <CardTitle className="text-base font-bold text-slate-900">Quick Actions</CardTitle>
             <p className="text-xs text-slate-500">Manage your chatbot</p>
           </CardHeader>
