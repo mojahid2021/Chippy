@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: Replace with your actual backend URL
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001'
+    // Backend URL from environment
+    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
 
     // Forward the request to your backend
     const response = await fetch(`${BACKEND_URL}/api/user/login`, {
