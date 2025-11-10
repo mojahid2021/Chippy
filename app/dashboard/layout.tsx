@@ -21,9 +21,7 @@ import {
 import {
   Bot,
   Home,
-  Users,
   FileText,
-  BarChart3,
   Settings,
   Menu,
   Bell,
@@ -62,7 +60,6 @@ const navigationSections = [
     title: 'Management',
     items: [
       { name: 'Profile', href: '/dashboard/profile', icon: User },
-      { name: 'Accounts', href: '/dashboard/accounts', icon: Users },
     ]
   },
   {

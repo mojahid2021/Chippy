@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import Link from 'next/link'
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -312,7 +313,7 @@ export default function SubscriptionPage() {
     return diffDays
   }
   
-  // Current subscription data - use real data if available, otherwise use mock data
+  // Current subscription data - only use real data, no mock data
   const currentSubscription = subscription ? {
     plan: subscription.plan.name,
     status: subscription.isActive ? 'active' : 'inactive',
@@ -329,19 +330,7 @@ export default function SubscriptionPage() {
       conversations: { current: 3240, limit: 5000 },
       aiMessages: { current: 12580, limit: 20000 },
     }
-  } : {
-    plan: 'Professional',
-    status: 'active' as const,
-    amount: 4900,
-    currency: 'BDT',
-    billingDate: 'Dec 15, 2024',
-    daysLeft: 39,
-    usage: {
-      orders: { current: 847, limit: 1000 },
-      conversations: { current: 3240, limit: 5000 },
-      aiMessages: { current: 12580, limit: 20000 },
-    }
-  }
+  } : null
 
   // Available plans - now fetched from API
   // const plans = [ ... ] // Removed hardcoded plans
@@ -426,95 +415,32 @@ export default function SubscriptionPage() {
         </Card>
       )}
 
-      {/* Current Subscription Overview */}
-      <Card className="border-slate-200 shadow-sm overflow-hidden">
-        <div className="bg-linear-to-r from-violet-500 to-violet-600 p-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Crown className="h-6 w-6 text-white" />
+      {/* Current Subscription Overview - Only show when user has an active subscription */}
+      {hasSubscription && currentSubscription && (
+        <Card className="border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-linear-to-r from-violet-500 to-violet-600 p-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <Crown className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <Badge className="bg-white/20 text-white border-white/30 mb-1">Active</Badge>
+                  <h2 className="text-xl font-bold text-white">{currentSubscription.plan} Plan</h2>
+                  <p className="text-sm text-violet-100">Your subscription is active and running smoothly</p>
+                </div>
               </div>
-              <div>
-                <Badge className="bg-white/20 text-white border-white/30 mb-1">Active</Badge>
-                <h2 className="text-xl font-bold text-white">{currentSubscription.plan} Plan</h2>
-                <p className="text-sm text-violet-100">Your subscription is active and running smoothly</p>
+              <div className="text-right">
+                <p className="text-sm text-violet-100">Next billing</p>
+                <p className="text-lg font-bold text-white">{currentSubscription.billingDate}</p>
+                <p className="text-xs text-violet-100">{currentSubscription.daysLeft} days left</p>
               </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-violet-100">Next billing</p>
-              <p className="text-lg font-bold text-white">{currentSubscription.billingDate}</p>
-              <p className="text-xs text-violet-100">{currentSubscription.daysLeft} days left</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="p-4 bg-slate-50">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Orders Usage */}
-            <div className="bg-white p-3 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-slate-600">Orders</span>
-                <FileText className="h-4 w-4 text-blue-600" />
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-bold text-slate-900">{currentSubscription.usage.orders.current}</span>
-                <span className="text-xs text-slate-500">/ {currentSubscription.usage.orders.limit}</span>
-              </div>
-              <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-blue-500 rounded-full transition-all"
-                  style={{ width: `${(currentSubscription.usage.orders.current / currentSubscription.usage.orders.limit) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                {Math.round((currentSubscription.usage.orders.current / currentSubscription.usage.orders.limit) * 100)}% used
-              </p>
-            </div>
-
-            {/* Conversations Usage */}
-            <div className="bg-white p-3 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-slate-600">Conversations</span>
-                <Users className="h-4 w-4 text-emerald-600" />
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-bold text-slate-900">{currentSubscription.usage.conversations.current}</span>
-                <span className="text-xs text-slate-500">/ {currentSubscription.usage.conversations.limit}</span>
-              </div>
-              <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-emerald-500 rounded-full transition-all"
-                  style={{ width: `${(currentSubscription.usage.conversations.current / currentSubscription.usage.conversations.limit) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                {Math.round((currentSubscription.usage.conversations.current / currentSubscription.usage.conversations.limit) * 100)}% used
-              </p>
-            </div>
-
-            {/* AI Messages Usage */}
-            <div className="bg-white p-3 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-slate-600">AI Messages</span>
-                <Zap className="h-4 w-4 text-amber-600" />
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-bold text-slate-900">{currentSubscription.usage.aiMessages.current}</span>
-                <span className="text-xs text-slate-500">/ {currentSubscription.usage.aiMessages.limit}</span>
-              </div>
-              <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-amber-500 rounded-full transition-all"
-                  style={{ width: `${(currentSubscription.usage.aiMessages.current / currentSubscription.usage.aiMessages.limit) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                {Math.round((currentSubscription.usage.aiMessages.current / currentSubscription.usage.aiMessages.limit) * 100)}% used
-              </p>
             </div>
           </div>
-        </div>
-      </Card>
+          
+
+        </Card>
+      )}
 
       {/* Available Plans Section */}
       <div>
@@ -611,33 +537,37 @@ export default function SubscriptionPage() {
                     )}
                   </div>
 
-                  <Button 
-                    className={`w-full mb-4 ${
-                      isCurrentPlan
-                        ? 'bg-slate-600 hover:bg-slate-700'
-                        : `bg-${planColor}-600 hover:bg-${planColor}-700`
-                    }`}
-                    variant={isCurrentPlan ? 'default' : 'default'}
-                    disabled={isCurrentPlan || true}
-                    onClick={() => {
-                      // Purchase functionality disabled - plans page removed
-                      toast({
-                        variant: "info",
-                        title: "Purchase Unavailable",
-                        description: "Plan purchase functionality is currently disabled.",
-                      })
-                    }}
-                  >
-                    {isCurrentPlan ? (
-                      'Current Plan'
-                    ) : plan.name === 'Professional' ? (
-                      <>Upgrade Now <ArrowRight className="h-4 w-4 ml-1" /></>
-                    ) : plan.name === 'Starter' ? (
-                      'Get Started'
-                    ) : (
-                      <>Upgrade <ArrowRight className="h-4 w-4 ml-1" /></>
-                    )}
-                  </Button>
+                  {isCurrentPlan ? (
+                    <Button
+                      className="w-full mb-4 bg-slate-600 hover:bg-slate-700"
+                      variant="default"
+                      disabled
+                    >
+                      Current Plan
+                    </Button>
+                  ) : (
+                    <Link href={`/dashboard/purchase?planId=${plan.id}`}>
+                      <Button
+                        className={`w-full mb-4 ${`bg-${planColor}-600 hover:bg-${planColor}-700`}`}
+                        variant="default"
+                      >
+                        {!hasSubscription ? (
+                          <>Purchase <ArrowRight className="h-4 w-4 ml-1" /></>
+                        ) : (() => {
+                          const currentPlanPrice = subscription?.plan.price || 0
+                          const targetPlanPrice = plan.price
+
+                          if (targetPlanPrice > currentPlanPrice) {
+                            return <>Upgrade <ArrowRight className="h-4 w-4 ml-1" /></>
+                          } else if (targetPlanPrice < currentPlanPrice) {
+                            return <>Downgrade <ArrowRight className="h-4 w-4 ml-1" /></>
+                          } else {
+                            return <>Change Plan <ArrowRight className="h-4 w-4 ml-1" /></>
+                          }
+                        })()}
+                      </Button>
+                    </Link>
+                  )}
 
                   <div className="space-y-2">
                     {plan.features.slice(0, 4).map((feature, idx) => (

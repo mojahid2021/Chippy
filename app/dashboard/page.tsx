@@ -284,9 +284,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col h-full space-y-2">
       {/* Welcome Section */}
-      <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm shrink-0">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-900 mb-1">
@@ -305,40 +305,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        {stats.map((stat, index) => (
-          <Card key={index} className="border-slate-200 hover:shadow-md transition-all hover:border-slate-300">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                </div>
-                <div className={`flex items-center text-xs font-semibold ${
-                  stat.trend === 'up' ? 'text-emerald-600' : 'text-red-600'
-                }`}>
-                  {stat.trend === 'up' ? (
-                    <ArrowUpRight className="h-3 w-3 mr-0.5" />
-                  ) : (
-                    <ArrowDownRight className="h-3 w-3 mr-0.5" />
-                  )}
-                  {stat.change}
-                </div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-slate-900 mb-1">{stat.value}</div>
-                <p className="text-xs font-medium text-slate-500">{stat.title}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-1 min-h-0">
         {/* Recent Orders - Takes 2 columns */}
-        <Card className="lg:col-span-2 border-slate-200">
-          <CardHeader className="pb-2">
+        <Card className="lg:col-span-2 border-slate-200 flex flex-col h-full">
+          <CardHeader className="pb-2 shrink-0">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base font-bold text-slate-900">Recent Orders</CardTitle>
@@ -352,8 +325,8 @@ export default function Dashboard() {
               </Link>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="h-80 divide-y divide-slate-100 overflow-hidden">
+          <CardContent className="p-0 flex-1 min-h-0">
+            <div className="h-full divide-y divide-slate-100 overflow-hidden">
               {recentOrdersLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
@@ -423,8 +396,8 @@ export default function Dashboard() {
         </Card>
 
         {/* Live Chat Activity */}
-        <Card className="border-slate-200">
-          <CardHeader className="pb-2">
+        <Card className="border-slate-200 flex flex-col h-full">
+          <CardHeader className="pb-2 shrink-0">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base font-bold text-slate-900">Live Chats</CardTitle>
@@ -432,14 +405,14 @@ export default function Dashboard() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-0 flex-1 min-h-0">
             {messagesLoading ? (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                 <span className="ml-2 text-sm text-slate-600">Loading messages...</span>
               </div>
             ) : messagesError ? (
-              <div className="flex flex-col items-center justify-center py-8 px-4">
+              <div className="flex flex-col items-center justify-center h-full px-4">
                 <AlertCircle className="h-6 w-6 text-red-600" />
                 <div className="mt-2 text-center">
                   <p className="text-sm text-red-600 font-medium">Error loading messages</p>
@@ -455,7 +428,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : chatActivity.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8">
+              <div className="flex flex-col items-center justify-center h-full">
                 <MessageSquare className="h-6 w-6 text-slate-400" />
                 <div className="mt-2 text-center">
                   <p className="text-sm text-slate-600 font-medium">No messages yet</p>
@@ -463,7 +436,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : (
-              <div className="max-h-96 overflow-y-auto divide-y divide-slate-100">
+              <div className="h-full overflow-y-auto divide-y divide-slate-100">
                 {chatActivity.map((chat, index) => (
                   <div
                     key={`${chat.id}-${chat.time}`}
@@ -504,95 +477,11 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
-            
+          
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions & Performance */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {/* AI Performance Metrics */}
-        <Card className="border-slate-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-bold text-slate-900">AI Performance</CardTitle>
-            <p className="text-xs text-slate-500">Last 24 hours</p>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <MessageSquare className="h-4 w-4 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-600">Messages Handled</p>
-                  <p className="text-lg font-bold text-slate-900">1,247</p>
-                </div>
-              </div>
-              <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">+156</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-violet-100 flex items-center justify-center">
-                  <Timer className="h-4 w-4 text-violet-600" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-600">Avg Response Time</p>
-                  <p className="text-lg font-bold text-slate-900">1.2s</p>
-                </div>
-              </div>
-              <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">-0.3s</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <Star className="h-4 w-4 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-600">Customer Satisfaction</p>
-                  <p className="text-lg font-bold text-slate-900">4.8/5.0</p>
-                </div>
-              </div>
-              <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">+0.2</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="border-slate-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-bold text-slate-900">Quick Actions</CardTitle>
-            <p className="text-xs text-slate-500">Manage your chatbot</p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="h-auto flex-col gap-2 p-4 border-slate-200 hover:bg-slate-50 hover:border-slate-300">
-                <div className="h-9 w-9 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Bot className="h-4 w-4 text-blue-600" />
-                </div>
-                <span className="text-xs font-semibold">Train AI</span>
-              </Button>
-              <Button variant="outline" className="h-auto flex-col gap-2 p-4 border-slate-200 hover:bg-slate-50 hover:border-slate-300">
-                <div className="h-9 w-9 rounded-lg bg-emerald-100 flex items-center justify-center">
-                  <Package className="h-4 w-4 text-emerald-600" />
-                </div>
-                <span className="text-xs font-semibold">Products</span>
-              </Button>
-              <Button variant="outline" className="h-auto flex-col gap-2 p-4 border-slate-200 hover:bg-slate-50 hover:border-slate-300">
-                <div className="h-9 w-9 rounded-lg bg-violet-100 flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-violet-600" />
-                </div>
-                <span className="text-xs font-semibold">Analytics</span>
-              </Button>
-              <Button variant="outline" className="h-auto flex-col gap-2 p-4 border-slate-200 hover:bg-slate-50 hover:border-slate-300">
-                <div className="h-9 w-9 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <Zap className="h-4 w-4 text-amber-600" />
-                </div>
-                <span className="text-xs font-semibold">Automations</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   )
 }
