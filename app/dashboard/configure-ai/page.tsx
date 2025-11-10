@@ -12,7 +12,6 @@ import {
   Settings as SettingsIcon,
   Brain,
   AlertCircle,
-  Sparkles,
   MessageSquare,
   Zap,
   Globe,
@@ -79,7 +78,7 @@ export default function ConfigureAIPage() {
     isDefault: false,
   })
 
-    // Fetch AI profiles on component mount
+  // Fetch AI profiles on component mount
   useEffect(() => {
     const fetchAIProfiles = async () => {
       if (!token) return
@@ -317,139 +316,74 @@ export default function ConfigureAIPage() {
   }
 
   return (
-    <>
-      <style jsx>{`
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out forwards;
-        }
-      `}</style>
-
-      <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-purple-50/20">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-linear-to-r from-blue-600 via-purple-600 to-indigo-700">
-        {/* Animated background elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-          <div className="absolute top-32 right-20 w-16 h-16 bg-purple-300/20 rounded-full blur-lg animate-bounce" style={{ animationDuration: '3s' }}></div>
-          <div className="absolute bottom-20 left-1/4 w-12 h-12 bg-blue-300/20 rounded-full blur-md animate-pulse" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 right-10 w-8 h-8 bg-indigo-300/20 rounded-full blur-sm animate-ping" style={{ animationDuration: '4s' }}></div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">AI Configuration</h1>
+          <p className="text-sm text-slate-600 mt-0.5">Manage your AI assistant profiles and settings</p>
         </div>
-
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">
-            <div className="flex justify-center mb-6">
-              <div className="relative group">
-                <div className="absolute inset-0 bg-white/20 rounded-full blur-xl animate-pulse group-hover:blur-2xl transition-all duration-500"></div>
-                <div className="relative bg-white/10 backdrop-blur-sm rounded-full p-4 group-hover:bg-white/20 transition-all duration-300">
-                  <Brain className="h-12 w-12 text-white animate-pulse" />
-                </div>
-              </div>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 animate-fade-in-up">
-              AI Configuration Center
-            </h1>
-            <p className="text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-              Craft intelligent AI assistants tailored to your needs. Customize personalities,
-              behaviors, and capabilities to create the perfect conversational experience.
-            </p>
-
-            {/* Feature highlights */}
-            <div className="mt-8 flex flex-wrap justify-center gap-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
-                <Sparkles className="h-4 w-4 text-yellow-300" />
-                <span className="text-white text-sm">Custom Personalities</span>
-              </div>
-              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
-                <MessageSquare className="h-4 w-4 text-green-300" />
-                <span className="text-white text-sm">Smart Responses</span>
-              </div>
-              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
-                <Zap className="h-4 w-4 text-orange-300" />
-                <span className="text-white text-sm">Fast Performance</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-linear-to-t from-slate-50 to-transparent"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-linear-to-br from-blue-50 to-blue-100/50 border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-blue-700 mb-1">Active Profiles</p>
-                  <p className="text-3xl font-bold text-blue-900">{aiProfiles.filter(p => p.isActive).length}</p>
-                </div>
-                <div className="bg-blue-500/10 p-3 rounded-full">
-                  <Bot className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="p-4 border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-600 font-medium">Active Profiles</p>
+              <p className="text-2xl font-bold text-slate-900">{aiProfiles.filter(p => p.isActive).length}</p>
+            </div>
+            <div className="h-10 w-10 rounded-lg bg-slate-50 flex items-center justify-center">
+              <Bot className="h-5 w-5 text-slate-600" />
+            </div>
+          </div>
+        </Card>
 
-          <Card className="bg-linear-to-br from-purple-50 to-purple-100/50 border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-purple-700 mb-1">Total Profiles</p>
-                  <p className="text-3xl font-bold text-purple-900">{aiProfiles.length}</p>
-                </div>
-                <div className="bg-purple-500/10 p-3 rounded-full">
-                  <Users className="h-6 w-6 text-purple-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <Card className="p-4 border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-600 font-medium">Total Profiles</p>
+              <p className="text-2xl font-bold text-slate-900">{aiProfiles.length}</p>
+            </div>
+            <div className="h-10 w-10 rounded-lg bg-slate-50 flex items-center justify-center">
+              <Users className="h-5 w-5 text-slate-600" />
+            </div>
+          </div>
+        </Card>
 
-          <Card className="bg-linear-to-br from-emerald-50 to-emerald-100/50 border-emerald-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-emerald-700 mb-1">Default Profile</p>
-                  <p className="text-lg font-bold text-emerald-900">
-                    {aiProfiles.find(p => p.isDefault)?.name || 'None'}
-                  </p>
-                </div>
-                <div className="bg-emerald-500/10 p-3 rounded-full">
-                  <Crown className="h-6 w-6 text-emerald-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="p-4 border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-600 font-medium">Default Profile</p>
+              <p className="text-lg font-bold text-slate-900">
+                {aiProfiles.find(p => p.isDefault)?.name || 'None'}
+              </p>
+            </div>
+            <div className="h-10 w-10 rounded-lg bg-slate-50 flex items-center justify-center">
+              <Crown className="h-5 w-5 text-slate-600" />
+            </div>
+          </div>
+        </Card>
+      </div>
 
-      {/* AI Profiles */}
-      <Card>
+      {/* AI Profiles Section */}
+      <Card className="border border-slate-200 shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Brain className="h-5 w-5 text-purple-600" />
-            <span>AI Profiles</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Create Profile Button */}
-          <div className="flex justify-end mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center space-x-2">
+                <Brain className="h-5 w-5 text-slate-600" />
+                <span>AI Profiles</span>
+              </CardTitle>
+              <p className="text-sm text-slate-600 mt-1">Create and manage AI assistant profiles</p>
+            </div>
             {!showCreateForm ? (
               <Button
                 onClick={() => setShowCreateForm(true)}
-                className="bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 px-6 py-3"
+                className="bg-blue-600 hover:bg-blue-700"
               >
-                <Plus className="h-5 w-5 mr-2 animate-pulse" />
-                Create AI Profile
+                <Plus className="h-4 w-4 mr-2" />
+                Create Profile
               </Button>
             ) : (
               <Button
@@ -470,211 +404,187 @@ export default function ConfigureAIPage() {
                     isDefault: false,
                   })
                 }}
-                className="border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-300 px-6 py-3"
               >
-                <X className="h-5 w-5 mr-2" />
+                <X className="h-4 w-4 mr-2" />
                 Cancel
               </Button>
             )}
           </div>
-
-          {/* Create/Edit Profile Form */}
+        </CardHeader>
+        <CardContent>
+          {/* Create/Edit Form */}
           {showCreateForm && (
-            <Card className="mb-6 border-2 border-dashed border-purple-200 bg-linear-to-br from-purple-50/50 to-blue-50/50 shadow-lg">
-              <CardHeader className="bg-linear-to-r from-purple-600 to-blue-600 text-white rounded-t-lg">
-                <CardTitle className="flex items-center space-x-3">
+            <Card className="mb-6 border-2 border-dashed border-slate-300">
+              <CardHeader className="bg-slate-50">
+                <CardTitle className="flex items-center space-x-2">
                   {editingProfile ? (
                     <>
-                      <div className="bg-white/20 p-2 rounded-full">
-                        <Edit3 className="h-6 w-6" />
-                      </div>
+                      <Edit3 className="h-5 w-5 text-slate-600" />
                       <span>Edit AI Profile</span>
                     </>
                   ) : (
                     <>
-                      <div className="bg-white/20 p-2 rounded-full">
-                        <Plus className="h-6 w-6" />
-                      </div>
+                      <Plus className="h-5 w-5 text-slate-600" />
                       <span>Create New AI Profile</span>
                     </>
                   )}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Left Column */}
-                  <div className="space-y-6">
-                    {!editingProfile && (
-                      <div className="space-y-3">
-                        <Label htmlFor="profileId" className="flex items-center space-x-2 text-sm font-semibold text-gray-700">
-                          <Code className="h-4 w-4 text-purple-600" />
-                          <span>Profile ID *</span>
-                        </Label>
-                        <Input
-                          id="profileId"
-                          placeholder="unique-profile-id"
-                          value={newProfile.id}
-                          onChange={(e) => setNewProfile({ ...newProfile, id: e.target.value })}
-                          className="border-2 border-purple-200 focus:border-purple-400 transition-colors"
-                          required
-                        />
-                        <p className="text-xs text-gray-500">A unique identifier for this profile</p>
-                      </div>
-                    )}
-
-                    <div className="space-y-3">
-                      <Label htmlFor="profileName" className="flex items-center space-x-2 text-sm font-semibold text-gray-700">
-                        <Bot className="h-4 w-4 text-purple-600" />
-                        <span>Profile Name *</span>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {!editingProfile && (
+                    <div className="space-y-2">
+                      <Label htmlFor="profileId" className="flex items-center space-x-2">
+                        <Code className="h-4 w-4" />
+                        <span>Profile ID *</span>
                       </Label>
                       <Input
-                        id="profileName"
-                        placeholder="My AI Assistant"
-                        value={newProfile.name}
-                        onChange={(e) => setNewProfile({ ...newProfile, name: e.target.value })}
-                        className="border-2 border-purple-200 focus:border-purple-400 transition-colors"
+                        id="profileId"
+                        placeholder="unique-profile-id"
+                        value={newProfile.id}
+                        onChange={(e) => setNewProfile({ ...newProfile, id: e.target.value })}
                         required
                       />
-                      <p className="text-xs text-gray-500">A friendly name for your AI assistant</p>
                     </div>
+                  )}
 
-                    <div className="space-y-3">
-                      <Label htmlFor="profileDescription" className="flex items-center space-x-2 text-sm font-semibold text-gray-700">
-                        <MessageSquare className="h-4 w-4 text-purple-600" />
-                        <span>Description</span>
-                      </Label>
-                      <Input
-                        id="profileDescription"
-                        placeholder="Brief description of this AI profile"
-                        value={newProfile.description}
-                        onChange={(e) => setNewProfile({ ...newProfile, description: e.target.value })}
-                        className="border-2 border-purple-200 focus:border-purple-400 transition-colors"
-                      />
-                      <p className="text-xs text-gray-500">A short description to help you identify this profile</p>
-                    </div>
-
-                    <div className="space-y-3">
-                      <Label htmlFor="language" className="flex items-center space-x-2 text-sm font-semibold text-gray-700">
-                        <Globe className="h-4 w-4 text-purple-600" />
-                        <span>Language</span>
-                      </Label>
-                      <select
-                        id="language"
-                        value={newProfile.preferences.language}
-                        onChange={(e) => setNewProfile({
-                          ...newProfile,
-                          preferences: { ...newProfile.preferences, language: e.target.value }
-                        })}
-                        className="flex h-10 w-full rounded-md border-2 border-purple-200 bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-colors"
-                      >
-                        <option value="en">🇺🇸 English</option>
-                        <option value="es">🇪🇸 Spanish</option>
-                        <option value="fr">🇫🇷 French</option>
-                        <option value="de">🇩🇪 German</option>
-                        <option value="bn">🇧🇩 Bengali</option>
-                      </select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profileName" className="flex items-center space-x-2">
+                      <Bot className="h-4 w-4" />
+                      <span>Profile Name *</span>
+                    </Label>
+                    <Input
+                      id="profileName"
+                      placeholder="My AI Assistant"
+                      value={newProfile.name}
+                      onChange={(e) => setNewProfile({ ...newProfile, name: e.target.value })}
+                      required
+                    />
                   </div>
 
-                  {/* Right Column */}
-                  <div className="space-y-6">
-                    <div className="space-y-3">
-                      <Label htmlFor="tone" className="flex items-center space-x-2 text-sm font-semibold text-gray-700">
-                        <Palette className="h-4 w-4 text-purple-600" />
-                        <span>Tone</span>
-                      </Label>
-                      <select
-                        id="tone"
-                        value={newProfile.preferences.tone}
-                        onChange={(e) => setNewProfile({
-                          ...newProfile,
-                          preferences: { ...newProfile.preferences, tone: e.target.value }
-                        })}
-                        className="flex h-10 w-full rounded-md border-2 border-purple-200 bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-colors"
-                      >
-                        <option value="professional">👔 Professional</option>
-                        <option value="casual">😊 Casual</option>
-                        <option value="friendly">🤝 Friendly</option>
-                        <option value="formal">🎩 Formal</option>
-                      </select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profileDescription">
+                      <MessageSquare className="h-4 w-4 inline mr-2" />
+                      Description
+                    </Label>
+                    <Input
+                      id="profileDescription"
+                      placeholder="Brief description of this AI profile"
+                      value={newProfile.description}
+                      onChange={(e) => setNewProfile({ ...newProfile, description: e.target.value })}
+                    />
+                  </div>
 
-                    <div className="space-y-3">
-                      <Label htmlFor="maxResponseLength" className="flex items-center space-x-2 text-sm font-semibold text-gray-700">
-                        <Zap className="h-4 w-4 text-purple-600" />
-                        <span>Max Response Length</span>
-                      </Label>
-                      <Input
-                        id="maxResponseLength"
-                        type="number"
-                        min="100"
-                        max="2000"
-                        placeholder="500"
-                        value={newProfile.preferences.maxResponseLength}
-                        onChange={(e) => setNewProfile({
-                          ...newProfile,
-                          preferences: { ...newProfile.preferences, maxResponseLength: parseInt(e.target.value) || 500 }
-                        })}
-                        className="border-2 border-purple-200 focus:border-purple-400 transition-colors"
-                      />
-                      <p className="text-xs text-gray-500">Maximum characters in AI responses</p>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="language" className="flex items-center space-x-2">
+                      <Globe className="h-4 w-4" />
+                      <span>Language</span>
+                    </Label>
+                    <select
+                      id="language"
+                      value={newProfile.preferences.language}
+                      onChange={(e) => setNewProfile({
+                        ...newProfile,
+                        preferences: { ...newProfile.preferences, language: e.target.value }
+                      })}
+                      className="flex h-10 w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="en">🇺🇸 English</option>
+                      <option value="es">🇪🇸 Spanish</option>
+                      <option value="fr">🇫🇷 French</option>
+                      <option value="de">🇩🇪 German</option>
+                      <option value="bn">🇧🇩 Bengali</option>
+                    </select>
+                  </div>
 
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-3 p-3 bg-white/50 rounded-lg border border-purple-100">
-                        <input
-                          id="isDefault"
-                          type="checkbox"
-                          checked={newProfile.isDefault}
-                          onChange={(e) => setNewProfile({ ...newProfile, isDefault: e.target.checked })}
-                          className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
-                        />
-                        <Label htmlFor="isDefault" className="flex items-center space-x-2 cursor-pointer">
-                          <Star className="h-4 w-4 text-purple-600" />
-                          <span className="text-sm font-medium">Set as Default Profile</span>
-                        </Label>
-                      </div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tone" className="flex items-center space-x-2">
+                      <Palette className="h-4 w-4" />
+                      <span>Tone</span>
+                    </Label>
+                    <select
+                      id="tone"
+                      value={newProfile.preferences.tone}
+                      onChange={(e) => setNewProfile({
+                        ...newProfile,
+                        preferences: { ...newProfile.preferences, tone: e.target.value }
+                      })}
+                      className="flex h-10 w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="professional">👔 Professional</option>
+                      <option value="casual">😊 Casual</option>
+                      <option value="friendly">🤝 Friendly</option>
+                      <option value="formal">🎩 Formal</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="maxResponseLength" className="flex items-center space-x-2">
+                      <Zap className="h-4 w-4" />
+                      <span>Max Response Length</span>
+                    </Label>
+                    <Input
+                      id="maxResponseLength"
+                      type="number"
+                      min="100"
+                      max="2000"
+                      placeholder="500"
+                      value={newProfile.preferences.maxResponseLength}
+                      onChange={(e) => setNewProfile({
+                        ...newProfile,
+                        preferences: { ...newProfile.preferences, maxResponseLength: parseInt(e.target.value) || 500 }
+                      })}
+                    />
                   </div>
                 </div>
 
-                {/* Full Width Fields */}
-                <div className="mt-6 space-y-6">
-                  <div className="space-y-3">
-                    <Label htmlFor="profilePersonality" className="flex items-center space-x-2 text-sm font-semibold text-gray-700">
-                      <Lightbulb className="h-4 w-4 text-purple-600" />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="profilePersonality" className="flex items-center space-x-2">
+                      <Lightbulb className="h-4 w-4" />
                       <span>Personality</span>
                     </Label>
                     <textarea
                       id="profilePersonality"
-                      placeholder="Describe the personality traits of this AI assistant (e.g., helpful, creative, analytical, witty)"
+                      placeholder="Describe the personality traits of this AI assistant"
                       value={newProfile.personality}
                       onChange={(e) => setNewProfile({ ...newProfile, personality: e.target.value })}
-                      rows={4}
-                      className="flex min-h-20 w-full rounded-md border-2 border-purple-200 bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:border-purple-400 transition-colors resize-none"
+                      rows={3}
+                      className="flex min-h-20 w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     />
-                    <p className="text-xs text-gray-500">Define how your AI assistant should behave and communicate</p>
                   </div>
 
-                  <div className="space-y-3">
-                    <Label htmlFor="profileInstructions" className="flex items-center space-x-2 text-sm font-semibold text-gray-700">
-                      <SettingsIcon className="h-4 w-4 text-purple-600" />
+                  <div className="space-y-2">
+                    <Label htmlFor="profileInstructions" className="flex items-center space-x-2">
+                      <SettingsIcon className="h-4 w-4" />
                       <span>Instructions</span>
                     </Label>
                     <textarea
                       id="profileInstructions"
-                      placeholder="Specific instructions for how this AI should behave (e.g., always be polite, focus on business topics, provide step-by-step solutions)"
+                      placeholder="Specific instructions for how this AI should behave"
                       value={newProfile.instructions}
                       onChange={(e) => setNewProfile({ ...newProfile, instructions: e.target.value })}
-                      rows={4}
-                      className="flex min-h-20 w-full rounded-md border-2 border-purple-200 bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:border-purple-400 transition-colors resize-none"
+                      rows={3}
+                      className="flex min-h-20 w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     />
-                    <p className="text-xs text-gray-500">Detailed guidelines for AI behavior and response patterns</p>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      id="isDefault"
+                      type="checkbox"
+                      checked={newProfile.isDefault}
+                      onChange={(e) => setNewProfile({ ...newProfile, isDefault: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                    />
+                    <Label htmlFor="isDefault" className="flex items-center space-x-2 cursor-pointer">
+                      <Star className="h-4 w-4 text-yellow-500" />
+                      <span>Set as Default Profile</span>
+                    </Label>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="mt-8 flex justify-end space-x-3 pt-6 border-t border-purple-100">
+                <div className="flex justify-end space-x-3 pt-4 border-t">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -694,7 +604,6 @@ export default function ConfigureAIPage() {
                         isDefault: false,
                       })
                     }}
-                    className="px-6 py-2 border-2 border-gray-300 hover:border-gray-400 transition-colors"
                   >
                     <X className="h-4 w-4 mr-2" />
                     Cancel
@@ -702,7 +611,7 @@ export default function ConfigureAIPage() {
                   <Button
                     onClick={editingProfile ? handleUpdateProfile : handleCreateProfile}
                     disabled={(editingProfile ? updatingProfile : creatingProfile) || (!editingProfile && !newProfile.id) || !newProfile.name}
-                    className="px-6 py-2 bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                    className="bg-blue-600 hover:bg-blue-700"
                   >
                     {(editingProfile ? updatingProfile : creatingProfile) ? (
                       <>
@@ -721,184 +630,89 @@ export default function ConfigureAIPage() {
             </Card>
           )}
 
-          {aiProfilesLoading ? (
-            <Card className="bg-linear-to-br from-blue-50 to-purple-50/50 border-2 border-blue-200">
-              <CardContent className="p-12">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <div className="relative mb-6">
-                    <div className="absolute inset-0 bg-blue-200 rounded-full blur-xl animate-pulse"></div>
-                    <div className="relative bg-white p-4 rounded-full shadow-lg">
-                      <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Loading AI Profiles</h3>
-                  <p className="text-gray-600 max-w-sm">Please wait while we fetch your AI assistant profiles...</p>
-                  <div className="mt-4 flex space-x-1">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
+          {/* Loading State */}
+          {aiProfilesLoading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+                <p className="text-slate-600">Loading AI profiles...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {aiProfilesError && (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <p className="text-red-700">{aiProfilesError}</p>
                 </div>
+                <Button
+                  onClick={() => window.location.reload()}
+                  className="mt-4 bg-red-600 hover:bg-red-700"
+                  size="sm"
+                >
+                  Try Again
+                </Button>
               </CardContent>
             </Card>
-          ) : aiProfilesError ? (
-            <Card className="bg-linear-to-br from-red-50 to-orange-50/50 border-2 border-red-200">
-              <CardContent className="p-12">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <div className="relative mb-6">
-                    <div className="absolute inset-0 bg-red-200 rounded-full blur-xl"></div>
-                    <div className="relative bg-white p-4 rounded-full shadow-lg">
-                      <AlertCircle className="h-8 w-8 text-red-600" />
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Failed to Load Profiles</h3>
-                  <p className="text-gray-600 max-w-sm mb-6">{aiProfilesError}</p>
-                  <Button
-                    onClick={() => window.location.reload()}
-                    className="bg-linear-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    <AlertCircle className="h-4 w-4 mr-2" />
-                    Try Again
-                  </Button>
-                </div>
+          )}
+
+          {/* Empty State */}
+          {!aiProfilesLoading && !aiProfilesError && aiProfiles.length === 0 && (
+            <Card className="border-dashed border-slate-300">
+              <CardContent className="p-12 text-center">
+                <Bot className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">No AI Profiles Found</h3>
+                <p className="text-slate-600 mb-4">
+                  Create your first AI assistant profile to get started.
+                </p>
+                <Button
+                  onClick={() => setShowCreateForm(true)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Profile
+                </Button>
               </CardContent>
             </Card>
-          ) : aiProfiles.length === 0 ? (
-            <Card className="bg-linear-to-br from-gray-50 to-slate-50/50 border-2 border-dashed border-gray-300">
-              <CardContent className="p-12">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <div className="relative mb-6">
-                    <div className="absolute inset-0 bg-gray-200 rounded-full blur-xl"></div>
-                    <div className="relative bg-white p-4 rounded-full shadow-lg">
-                      <Bot className="h-8 w-8 text-gray-400" />
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No AI Profiles Found</h3>
-                  <p className="text-gray-600 max-w-sm mb-6">
-                    You don&apos;t have any AI profiles configured yet. Create your first AI assistant to get started with personalized conversations.
-                  </p>
-                  <Button
-                    onClick={() => setShowCreateForm(true)}
-                    className="bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Your First AI Profile
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-6">
+          )}
+
+          {/* Profiles List */}
+          {!aiProfilesLoading && !aiProfilesError && aiProfiles.length > 0 && (
+            <div className="space-y-4">
               {aiProfiles.map((profile) => (
-                <Card key={profile.id} className="group relative overflow-hidden bg-linear-to-br from-white to-gray-50/50 border-2 border-gray-100 hover:border-purple-200 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                  {/* Status indicator */}
-                  <div className={`absolute top-0 left-0 w-1 h-full ${profile.isActive ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-
+                <Card key={profile.id} className="border border-slate-200 hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        {/* Header */}
-                        <div className="flex items-center space-x-3 mb-4">
-                          <div className={`p-3 rounded-full ${profile.isActive ? 'bg-green-100' : 'bg-gray-100'}`}>
-                            <Bot className={`h-6 w-6 ${profile.isActive ? 'text-green-600' : 'text-gray-400'}`} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-xl font-bold text-gray-900 truncate group-hover:text-purple-700 transition-colors">
-                              {profile.name}
-                            </h4>
-                            <div className="flex items-center space-x-2 mt-1">
-                              {profile.isDefault && (
-                                <Badge className="bg-linear-to-r from-yellow-400 to-orange-500 text-white border-0 shadow-sm">
-                                  <Crown className="h-3 w-3 mr-1" />
-                                  Default
-                                </Badge>
-                              )}
-                              <Badge variant={profile.isActive ? "default" : "secondary"} className={profile.isActive ? "bg-green-100 text-green-800 border-green-200" : ""}>
-                                {profile.isActive ? (
-                                  <>
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Active
-                                  </>
-                                ) : (
-                                  "Inactive"
-                                )}
-                              </Badge>
-                            </div>
-                          </div>
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-2 rounded-lg ${profile.isActive ? 'bg-green-100' : 'bg-slate-100'}`}>
+                          <Bot className={`h-5 w-5 ${profile.isActive ? 'text-green-600' : 'text-slate-400'}`} />
                         </div>
-
-                        {/* Description */}
-                        {profile.description && (
-                          <p className="text-gray-600 mb-4 leading-relaxed">{profile.description}</p>
-                        )}
-
-                        {/* Personality & Instructions */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                          <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Lightbulb className="h-4 w-4 text-blue-600" />
-                              <span className="font-semibold text-blue-900 text-sm">Personality</span>
-                            </div>
-                            <p className="text-blue-800 text-sm leading-relaxed">
-                              {profile.personality || "No personality defined"}
-                            </p>
-                          </div>
-
-                          <div className="bg-purple-50/50 p-4 rounded-lg border border-purple-100">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <SettingsIcon className="h-4 w-4 text-purple-600" />
-                              <span className="font-semibold text-purple-900 text-sm">Instructions</span>
-                            </div>
-                            <p className="text-purple-800 text-sm leading-relaxed">
-                              {profile.instructions || "No instructions defined"}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Preferences */}
-                        <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100">
-                          <div className="flex items-center space-x-2 mb-3">
-                            <Palette className="h-4 w-4 text-gray-600" />
-                            <span className="font-semibold text-gray-900 text-sm">Preferences</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <Badge variant="outline" className="bg-white border-gray-300">
-                              <Globe className="h-3 w-3 mr-1" />
-                              {profile.preferences.language === 'en' ? '🇺🇸 English' :
-                               profile.preferences.language === 'es' ? '🇪🇸 Spanish' :
-                               profile.preferences.language === 'fr' ? '🇫🇷 French' :
-                               profile.preferences.language === 'de' ? '🇩🇪 German' :
-                               profile.preferences.language === 'bn' ? '🇧🇩 Bengali' :
-                               profile.preferences.language}
-                            </Badge>
-                            <Badge variant="outline" className="bg-white border-gray-300">
-                              <Palette className="h-3 w-3 mr-1" />
-                              {profile.preferences.tone === 'professional' ? '👔 Professional' :
-                               profile.preferences.tone === 'casual' ? '😊 Casual' :
-                               profile.preferences.tone === 'friendly' ? '🤝 Friendly' :
-                               profile.preferences.tone === 'formal' ? '🎩 Formal' :
-                               profile.preferences.tone}
-                            </Badge>
-                            {profile.preferences.maxResponseLength && (
-                              <Badge variant="outline" className="bg-white border-gray-300">
-                                <Zap className="h-3 w-3 mr-1" />
-                                Max: {profile.preferences.maxResponseLength} chars
+                        <div>
+                          <h3 className="text-lg font-semibold text-slate-900">{profile.name}</h3>
+                          <div className="flex items-center space-x-2 mt-1">
+                            {profile.isDefault && (
+                              <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                                <Crown className="h-3 w-3 mr-1" />
+                                Default
                               </Badge>
                             )}
+                            <Badge variant={profile.isActive ? "default" : "secondary"}>
+                              {profile.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
                           </div>
                         </div>
                       </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex flex-col space-y-3 ml-6">
+                      <div className="flex space-x-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleEditProfile(profile)}
                           disabled={updatingProfile}
-                          className="border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-colors group/btn"
                         >
-                          <Edit3 className="h-4 w-4 mr-2 group-hover/btn:text-blue-600" />
+                          <Edit3 className="h-4 w-4 mr-1" />
                           Edit
                         </Button>
                         {!profile.isDefault && (
@@ -907,42 +721,75 @@ export default function ConfigureAIPage() {
                             size="sm"
                             onClick={() => handleDeleteProfile(profile.id)}
                             disabled={deletingProfile === profile.id}
-                            className="border-2 border-red-200 hover:border-red-400 hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors group/btn"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
                             {deletingProfile === profile.id ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Deleting...
-                              </>
+                              <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <>
-                                <Trash2 className="h-4 w-4 mr-2 group-hover/btn:text-red-700" />
-                                Delete
-                              </>
+                              <Trash2 className="h-4 w-4" />
                             )}
                           </Button>
                         )}
                       </div>
                     </div>
 
-                    {/* Footer */}
-                    <div className="mt-6 pt-4 border-t border-gray-100">
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <div className="flex items-center space-x-4">
-                          <span className="flex items-center space-x-1">
-                            <Plus className="h-3 w-3" />
-                            <span>Created: {new Date(profile.createdAt).toLocaleDateString()}</span>
-                          </span>
-                          <span className="flex items-center space-x-1">
-                            <Edit3 className="h-3 w-3" />
-                            <span>Updated: {new Date(profile.updatedAt).toLocaleDateString()}</span>
-                          </span>
+                    {profile.description && (
+                      <p className="text-slate-600 mb-4">{profile.description}</p>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="bg-slate-50 p-3 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Lightbulb className="h-4 w-4 text-slate-600" />
+                          <span className="font-medium text-sm">Personality</span>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <div className={`w-2 h-2 rounded-full ${profile.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                          <span>{profile.isActive ? 'Online' : 'Offline'}</span>
-                        </div>
+                        <p className="text-sm text-slate-700">
+                          {profile.personality || "No personality defined"}
+                        </p>
                       </div>
+
+                      <div className="bg-slate-50 p-3 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <SettingsIcon className="h-4 w-4 text-slate-600" />
+                          <span className="font-medium text-sm">Instructions</span>
+                        </div>
+                        <p className="text-sm text-slate-700">
+                          {profile.instructions || "No instructions defined"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Palette className="h-4 w-4 text-slate-600" />
+                        <span className="font-medium text-sm">Preferences</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline">
+                          <Globe className="h-3 w-3 mr-1" />
+                          {profile.preferences.language === 'en' ? 'English' :
+                           profile.preferences.language === 'es' ? 'Spanish' :
+                           profile.preferences.language === 'fr' ? 'French' :
+                           profile.preferences.language === 'de' ? 'German' :
+                           profile.preferences.language === 'bn' ? 'Bengali' :
+                           profile.preferences.language}
+                        </Badge>
+                        <Badge variant="outline">
+                          <Palette className="h-3 w-3 mr-1" />
+                          {profile.preferences.tone}
+                        </Badge>
+                        {profile.preferences.maxResponseLength && (
+                          <Badge variant="outline">
+                            <Zap className="h-3 w-3 mr-1" />
+                            Max: {profile.preferences.maxResponseLength} chars
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-500">
+                      Created: {new Date(profile.createdAt).toLocaleDateString()} • 
+                      Updated: {new Date(profile.updatedAt).toLocaleDateString()}
                     </div>
                   </CardContent>
                 </Card>
@@ -951,8 +798,6 @@ export default function ConfigureAIPage() {
           )}
         </CardContent>
       </Card>
-      </div>
     </div>
-    </>
   )
 }

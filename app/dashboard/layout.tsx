@@ -73,7 +73,6 @@ const navigationSections = [
     items: [
       { name: 'AI Settings', href: '/dashboard/configure-ai', icon: Bot },
       { name: 'Facebook Page Setup', href: '/dashboard/configure-page', icon: Facebook },
-      { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     ]
   },
 ]
@@ -381,14 +380,14 @@ export default function DashboardLayout({
                 </Button>
 
                 {/* Notifications */}
-                <Button 
+                {/* <Button 
                   variant="ghost" 
                   size="sm" 
                   className="h-8 w-8 p-0 hover:bg-slate-100 rounded-lg relative"
                 >
                   <Bell className="h-4 w-4 text-slate-600" />
                   <span className="absolute top-1 right-1 h-1.5 w-1.5 bg-red-500 rounded-full ring-2 ring-white"></span>
-                </Button>
+                </Button> */}
 
                 {/* User Menu */}
                 <DropdownMenu>
@@ -430,13 +429,7 @@ export default function DashboardLayout({
                       <User className="mr-2.5 h-3.5 w-3.5 text-slate-500" />
                       <span className="font-medium">Profile</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => router.push('/dashboard/settings')}
-                      className="py-2 px-2.5 rounded-md cursor-pointer text-xs"
-                    >
-                      <Settings className="mr-2.5 h-3.5 w-3.5 text-slate-500" />
-                      <span className="font-medium">Settings</span>
-                    </DropdownMenuItem>
+
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={handleLogout} 
