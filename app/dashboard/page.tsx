@@ -6,20 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useUserStore } from "@/lib/stores/userStore"
-import { 
-  ShoppingCart, 
-  MessageSquare, 
-  TrendingUp,
+import {
+  MessageSquare,
   AlertCircle,
-  DollarSign,
-  Bot,
-  Zap,
   ArrowUpRight,
-  ArrowDownRight,
   Package,
-  Star,
   Activity,
-  Timer,
   MoreVertical,
   Loader2
 } from "lucide-react"
@@ -182,49 +174,13 @@ export default function Dashboard() {
     }, 5000)
 
     return () => clearInterval(interval)
-  }, [fetchMessages])  // Real-time stats for AI chatbot e-commerce
-  const stats = [
-    {
-      title: "Total Orders Today",
-      value: "127",
-      change: "+12.5%",
-      trend: "up",
-      icon: ShoppingCart,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-      lightBg: "bg-blue-500"
-    },
-    {
-      title: "Active Conversations",
-      value: "43",
-      change: "+8.2%",
-      trend: "up",
-      icon: MessageSquare,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
-      lightBg: "bg-emerald-500"
-    },
-    {
-      title: "Revenue Today",
-      value: "Tk 8,432",
-      change: "+18.4%",
-      trend: "up",
-      icon: DollarSign,
-      color: "text-violet-600",
-      bgColor: "bg-violet-50",
-      lightBg: "bg-violet-500"
-    },
-    {
-      title: "AI Response Rate",
-      value: "98.5%",
-      change: "+2.1%",
-      trend: "up",
-      icon: Bot,
-      color: "text-amber-600",
-      bgColor: "bg-amber-50",
-      lightBg: "bg-amber-500"
-    }
-  ]
+  }, [fetchMessages])
+
+  // Note: this page has no "today" stats grid - a prior version rendered one
+  // with hardcoded fake numbers (127 orders, Tk 8,432 revenue, etc.) but
+  // nothing here actually displays it, so it was removed rather than wired up
+  // to real data that would never be shown. Recent Orders / Live Chats below
+  // reflect real fetched data.
 
   // Helper function to format time ago
   const formatTimeAgo = (dateString: string) => {

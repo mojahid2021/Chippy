@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getBackendUrl } from '@/lib/backend-url'
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get('categoryId')
 
     // Backend URL from environment
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
+    const BACKEND_URL = getBackendUrl()
 
     // Build the backend URL with query parameters
     let backendUrl = `${BACKEND_URL}/api/user/products`
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Backend URL from environment
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
+    const BACKEND_URL = getBackendUrl()
 
     // Forward the request to the backend
     const response = await fetch(`${BACKEND_URL}/api/user/products`, {

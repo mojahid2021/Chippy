@@ -5,20 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useUserStore } from "@/lib/stores/userStore"
+import { useToast } from "@/hooks/use-toast"
 import {
   User,
   Mail,
   Phone,
   Calendar,
   Shield,
-  Edit3,
-  Save,
-  X,
   Hash,
-  AtSign
+  AtSign,
+  Loader2,
+  KeyRound
 } from "lucide-react"
 
 interface UserProfile {
@@ -34,17 +33,50 @@ interface UserProfile {
 
 export default function ProfilePage() {
   const { token } = useUserStore()
+  const { toast } = useToast()
   const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [updating, setUpdating] = useState(false)
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    username: "",
-    phone: "",
-  })
+
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [changingPassword, setChangingPassword] = useState(false)
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (newPassword.length < 8) {
+      toast({ title: "Validation Error", description: "New password must be at least 8 characters long.", variant: "destructive" })
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Validation Error", description: "New passwords do not match.", variant: "destructive" })
+      return
+    }
+
+    try {
+      setChangingPassword(true)
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        toast({ title: "Success", description: "Your password has been changed." })
+        setCurrentPassword("")
+        setNewPassword("")
+        setConfirmPassword("")
+      } else {
+        toast({ title: "Error", description: data.message || "Failed to change password", variant: "destructive" })
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error. Please try again.", variant: "destructive" })
+    } finally {
+      setChangingPassword(false)
+    }
+  }
 
   // Fetch user profile data
   useEffect(() => {
@@ -53,23 +85,14 @@ export default function ProfilePage() {
 
       try {
         setLoading(true)
-        const response = await fetch('/api/user/profile', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        })
+        // Session is carried by the httpOnly cookie automatically; no
+        // Authorization header is needed (or trusted) on this route.
+        const response = await fetch('/api/user/profile')
 
         const data = await response.json()
 
         if (data.success && data.data) {
           setProfile(data.data)
-          setFormData({
-            firstName: data.data.firstName || "",
-            lastName: data.data.lastName || "",
-            email: data.data.email || "",
-            username: data.data.username || "",
-            phone: data.data.phone || "",
-          })
         }
       } catch (error) {
         console.error('Error fetching profile:', error)
@@ -80,57 +103,6 @@ export default function ProfilePage() {
 
     fetchProfile()
   }, [token])
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }))
-  }
-
-  const handleSave = async () => {
-    if (!token || !profile) return
-
-    try {
-      setUpdating(true)
-
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
-
-      const data = await response.json()
-
-      if (data.success && data.data) {
-        setProfile(data.data)
-        setIsEditing(false)
-      } else {
-        alert('Failed to update profile')
-      }
-    } catch (error) {
-      console.error('Error updating profile:', error)
-      alert('Failed to update profile')
-    } finally {
-      setUpdating(false)
-    }
-  }
-
-  const handleCancel = () => {
-    if (profile) {
-      setFormData({
-        firstName: profile.firstName || "",
-        lastName: profile.lastName || "",
-        email: profile.email || "",
-        username: profile.username || "",
-        phone: profile.phone || "",
-      })
-    }
-    setIsEditing(false)
-  }
 
   if (loading) {
     return (
@@ -256,11 +228,9 @@ export default function ProfilePage() {
                   </Label>
                   <Input
                     id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    className={!isEditing ? "bg-slate-50 border-slate-200" : "border-slate-200 focus:border-blue-500"}
+                    value={profile.firstName || ""}
+                    disabled
+                    className="bg-slate-50 border-slate-200"
                   />
                 </div>
                 <div className="space-y-2">
@@ -270,11 +240,9 @@ export default function ProfilePage() {
                   </Label>
                   <Input
                     id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    className={!isEditing ? "bg-slate-50 border-slate-200" : "border-slate-200 focus:border-blue-500"}
+                    value={profile.lastName || ""}
+                    disabled
+                    className="bg-slate-50 border-slate-200"
                   />
                 </div>
               </div>
@@ -286,11 +254,9 @@ export default function ProfilePage() {
                 </Label>
                 <Input
                   id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleInputChange}
-                  disabled={!isEditing}
-                  className={!isEditing ? "bg-slate-50 border-slate-200" : "border-slate-200 focus:border-blue-500"}
+                  value={profile.username || ""}
+                  disabled
+                  className="bg-slate-50 border-slate-200"
                 />
                 <p className="text-xs text-slate-500">Your unique username for identification</p>
               </div>
@@ -302,12 +268,10 @@ export default function ProfilePage() {
                 </Label>
                 <Input
                   id="email"
-                  name="email"
                   type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  disabled={!isEditing}
-                  className={!isEditing ? "bg-slate-50 border-slate-200" : "border-slate-200 focus:border-blue-500"}
+                  value={profile.email || ""}
+                  disabled
+                  className="bg-slate-50 border-slate-200"
                 />
                 <p className="text-xs text-slate-500">This email is used for account notifications and login</p>
               </div>
@@ -319,20 +283,75 @@ export default function ProfilePage() {
                 </Label>
                 <Input
                   id="phone"
-                  name="phone"
                   type="tel"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  disabled={!isEditing}
-                  className={!isEditing ? "bg-slate-50 border-slate-200" : "border-slate-200 focus:border-blue-500"}
-                  placeholder="+1 (555) 123-4567"
+                  value={profile.phone || ""}
+                  disabled
+                  className="bg-slate-50 border-slate-200"
+                  placeholder="Not provided"
                 />
-                <p className="text-xs text-slate-500">Optional: Used for account verification and support</p>
+                <p className="text-xs text-slate-500">Editing profile details isn&apos;t available yet. Contact support to update this information.</p>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      <Card className="border border-slate-200 shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2 text-lg">
+            <KeyRound className="h-5 w-5 text-blue-600" />
+            <span>Change Password</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                required
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                required
+                minLength={8}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+              <Input
+                id="confirmNewPassword"
+                type="password"
+                required
+                minLength={8}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+            <div className="md:col-span-3">
+              <Button type="submit" disabled={changingPassword}>
+                {changingPassword ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Changing...
+                  </>
+                ) : (
+                  "Change Password"
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

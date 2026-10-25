@@ -243,7 +243,7 @@ export function EditProductModal({ product, categories, open, onOpenChange, onPr
         metadata: Object.keys(metadata).length > 0 ? metadata : undefined
       }
 
-      const response = await fetch(`/api/user/products/${product.id}/status`, {
+      const response = await fetch(`/api/user/products/${product.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

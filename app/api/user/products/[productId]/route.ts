@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getBackendUrl } from '@/lib/backend-url'
 
 export async function GET(
   request: NextRequest,
@@ -35,7 +36,7 @@ export async function GET(
     }
 
     // Backend URL from environment
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
+    const BACKEND_URL = getBackendUrl()
 
     // Build the backend URL
     const backendUrl = `${BACKEND_URL}/api/user/products/${productId}`
@@ -103,10 +104,10 @@ export async function PUT(
     const body = await request.json()
 
     // Backend URL from environment
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
+    const BACKEND_URL = getBackendUrl()
 
-    // Build the backend URL
-    const backendUrl = `${BACKEND_URL}/api/user/products/${productId}/status`
+    // Build the backend URL (full product update, not the status-only sub-route)
+    const backendUrl = `${BACKEND_URL}/api/user/products/${productId}`
 
     // Forward the request to the backend
     const response = await fetch(backendUrl, {
@@ -174,7 +175,7 @@ export async function DELETE(
     }
 
     // Backend URL from environment
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
+    const BACKEND_URL = getBackendUrl()
 
     // Build the backend URL
     const backendUrl = `${BACKEND_URL}/api/user/products/${productId}`

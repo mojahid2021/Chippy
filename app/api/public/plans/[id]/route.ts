@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getBackendUrl } from '@/lib/backend-url'
 
 export async function GET(
   request: NextRequest,
@@ -15,8 +16,7 @@ export async function GET(
       )
     }
 
-    // Get base URL from environment or use default
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.example.com'
+    const baseUrl = getBackendUrl()
 
     // Construct the external API URL
     const externalUrl = `${baseUrl}/api/public/plans/${id}`

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getBackendUrl } from '@/lib/backend-url'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Get token from the httpOnly session cookie
+    const token = request.cookies.get('auth_token')?.value
+    if (!token) {
       return NextResponse.json(
         {
           success: false,
@@ -16,20 +17,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get the API base URL from environment
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
-    if (!apiBaseUrl) {
-      console.error('NEXT_PUBLIC_API_BASE_URL environment variable is not set')
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Configuration error',
-          message: 'API base URL is not configured',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 500 }
-      )
-    }
+    const apiBaseUrl = getBackendUrl()
 
     // Extract query parameters
     const { searchParams } = new URL(request.url)
@@ -119,7 +107,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(externalApiUrl, {
       method: 'GET',
       headers: {
-        'Authorization': authHeader, // Forward the JWT token
+        'Authorization': `Bearer ${token}`,
       },
     })
 

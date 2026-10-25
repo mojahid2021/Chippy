@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getBackendUrl } from '@/lib/backend-url'
 
 export async function PUT(
   request: NextRequest,
@@ -66,7 +67,7 @@ export async function PUT(
     }
 
     // Backend URL from environment
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
+    const BACKEND_URL = getBackendUrl()
 
     // Build the backend URL for status update
     const backendUrl = `${BACKEND_URL}/api/user/orders/${orderId}/status`

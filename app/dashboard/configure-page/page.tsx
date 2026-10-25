@@ -40,11 +40,14 @@ interface WebhookResponse {
   timestamp: string
 }
 
+type TokenStatus = 'valid' | 'invalid' | 'unknown'
+
 interface PageSettingsData {
   pageName: string
   appId: string
   appSecret: string
   accessToken: string
+  tokenStatus?: TokenStatus
 }
 
 interface PageSettingsResponse {
@@ -67,6 +70,7 @@ export default function FBPageSettingsPage() {
   const [copiedToken, setCopiedToken] = useState(false)
 
   const [pageSettings, setPageSettings] = useState<PageSettingsData | null>(null)
+  const [tokenStatus, setTokenStatus] = useState<TokenStatus>('unknown')
   const [pageSettingsLoading, setPageSettingsLoading] = useState(true)
   const [pageSettingsError, setPageSettingsError] = useState<string | null>(null)
   const [savingSettings, setSavingSettings] = useState(false)
@@ -147,6 +151,10 @@ export default function FBPageSettingsPage() {
             throw new Error(data.message || 'Failed to fetch page settings')
           }
           return
+        }
+
+        if (data.success) {
+          setTokenStatus(data.data?.appCredentials?.tokenStatus || 'unknown')
         }
 
         if (data.success && data.data?.appCredentials) {
@@ -257,6 +265,9 @@ export default function FBPageSettingsPage() {
 
         if (fetchResponse.ok) {
           const fetchData: PageSettingsResponse = await fetchResponse.json()
+          if (fetchData.success) {
+            setTokenStatus(fetchData.data?.appCredentials?.tokenStatus || 'unknown')
+          }
           if (fetchData.success && fetchData.data?.appCredentials) {
             setPageSettings(fetchData.data.appCredentials)
           } else if (fetchData.success && fetchData.data?.appCredentials === null) {
@@ -435,6 +446,19 @@ export default function FBPageSettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Facebook token health */}
+      {tokenStatus === 'invalid' && pageSettings && (
+        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-red-900 font-semibold">Your Facebook Page connection has expired</p>
+            <p className="text-red-700 text-sm mt-0.5">
+              The AI assistant can no longer send or receive messages on your Page. Reconnect below by updating your credentials.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Page Credentials */}
       <Card className="border-green-100 shadow-md hover:shadow-lg transition-shadow">
         <CardHeader className="pb-4">
@@ -455,11 +479,14 @@ export default function FBPageSettingsPage() {
                     onClick={() => {
                       setIsEditing(true)
                       setShowCredentialForm(true)
+                      // appSecret/accessToken from the API are masked for display only
+                      // (see app/api/user/settings/page GET) - never re-submit them as
+                      // real values. The user must re-enter both to update credentials.
                       setNewCredentials({
                         pageName: pageSettings.pageName,
                         appId: pageSettings.appId,
-                        appSecret: pageSettings.appSecret,
-                        accessToken: pageSettings.accessToken,
+                        appSecret: "",
+                        accessToken: "",
                       })
                     }}
                     className="bg-blue-600 hover:bg-blue-700 shadow-md"
@@ -559,7 +586,7 @@ export default function FBPageSettingsPage() {
                         <Input
                           id="appSecret"
                           type={showAppSecret ? "text" : "password"}
-                          placeholder="Enter Facebook App Secret"
+                          placeholder={isEditing ? "Re-enter App Secret to update it" : "Enter Facebook App Secret"}
                           value={newCredentials.appSecret}
                           onChange={(e) => setNewCredentials({ ...newCredentials, appSecret: e.target.value })}
                           required
@@ -588,7 +615,7 @@ export default function FBPageSettingsPage() {
                         <Input
                           id="accessToken"
                           type={showAccessToken ? "text" : "password"}
-                          placeholder="Enter Page Access Token"
+                          placeholder={isEditing ? "Re-enter Access Token to update it" : "Enter Page Access Token"}
                           value={newCredentials.accessToken}
                           onChange={(e) => setNewCredentials({ ...newCredentials, accessToken: e.target.value })}
                           required

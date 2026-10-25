@@ -1,0 +1,49 @@
+version: '3.9'
+
+# Frontend Application - Docker Compose
+# Standalone Next.js user application
+#
+# Prerequisites:
+#   Backend API running on http://backend:3000 (or configure BACKEND_URL)
+#
+# Quick start:
+#   docker compose up --build
+#
+# Access: http://localhost:3001
+
+services:
+  # ============================================================================
+  # FRONTEND - Next.js User Application
+  # ============================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bdchatpro-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      HOSTNAME: "0.0.0.0"
+      PORT: 3000
+      # Backend API endpoint (configure if not on localhost:3000)
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:3000}
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3001}:3000"
+    networks:
+      - frontend-network
+    labels:
+      service: frontend
+      project: bdchatpro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  frontend-network:
+    driver: bridge
+    name: bdchatpro-frontend

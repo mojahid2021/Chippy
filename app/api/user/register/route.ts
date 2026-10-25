@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getBackendUrl } from '@/lib/backend-url'
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Backend URL from environment
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
+    const BACKEND_URL = getBackendUrl()
 
     // Forward the request to your backend
     const response = await fetch(`${BACKEND_URL}/api/user/register`, {
@@ -67,7 +68,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data, { status: response.status })
     }
 
-    return NextResponse.json(data, { status: 201 })
+    // The backend's /register endpoint only creates the account and doesn't
+    // return a session token, so the post-register redirect to /dashboard
+    // would otherwise land on a user who looks logged out. Log them in with
+    // the same credentials to establish a real session.
+    try {
+      const loginResponse = await fetch(`${BACKEND_URL}/api/user/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const loginData = await loginResponse.json()
+      const token: string | undefined = loginData?.data?.token
+      const user = loginData?.data?.user ?? data.data
+
+      const res = NextResponse.json(
+        { success: true, data: { user }, message: data.message, timestamp: new Date().toISOString() },
+        { status: 201 }
+      )
+
+      if (loginResponse.ok && token) {
+        res.cookies.set('auth_token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 7 * 24 * 60 * 60,
+        })
+      }
+
+      return res
+    } catch (loginError) {
+      console.error('Auto-login after registration failed:', loginError)
+      // Registration itself succeeded - return it, just without a session.
+      return NextResponse.json(data, { status: 201 })
+    }
 
   } catch (error) {
     console.error('Registration error:', error)

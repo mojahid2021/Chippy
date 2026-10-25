@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card"
 import { Plus, Loader2, Upload } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
+import Link from "next/link"
 
 interface Category {
   id: string
@@ -191,6 +192,20 @@ export function CreateProductModal({ categories, onProductCreated }: CreateProdu
         setOpen(false)
         resetForm()
         onProductCreated()
+      } else if (data.code === 'PLAN_LIMIT_REACHED') {
+        toast({
+          title: "Plan limit reached",
+          description: (
+            <span>
+              {data.error || data.message || "You've reached your plan's product limit."}{" "}
+              <Link href="/dashboard/purchase" className="underline font-medium">
+                Upgrade your plan
+              </Link>{" "}
+              to add more products.
+            </span>
+          ),
+          variant: "destructive"
+        })
       } else {
         toast({
           title: "Error",

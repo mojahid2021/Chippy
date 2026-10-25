@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getBackendUrl } from '@/lib/backend-url'
 
 export async function POST(
   request: NextRequest,
@@ -7,20 +8,7 @@ export async function POST(
   try {
     const { subscriptionId } = await params
 
-    // Get the API base URL from environment
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
-    if (!apiBaseUrl) {
-      console.error('NEXT_PUBLIC_API_BASE_URL environment variable is not set')
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Configuration error',
-          message: 'API base URL is not configured',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 500 }
-      )
-    }
+    const apiBaseUrl = getBackendUrl()
 
     // Parse request body
     const body = await request.json()

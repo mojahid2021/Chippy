@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,7 @@ export default function BankTransferConfirmationPage() {
   const params = useParams()
   const subscriptionId = params.subscriptionId as string
   const router = useRouter()
-  const { user } = useUserStore()
+  const { user, isLoading } = useUserStore()
 
   const [formData, setFormData] = useState({
     accountNumber: '',
@@ -26,8 +26,13 @@ export default function BankTransferConfirmationPage() {
   const [success, setSuccess] = useState(false)
 
   // Redirect if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/auth/signin')
+    }
+  }, [isLoading, user, router])
+
   if (!user) {
-    router.push('/login')
     return null
   }
 

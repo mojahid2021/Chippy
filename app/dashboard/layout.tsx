@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { useUserStore } from "@/lib/stores/userStore"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +38,9 @@ import {
   HelpCircle,
   Command,
   Facebook,
+  MailWarning,
+  AlertTriangle,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -235,6 +239,9 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [verificationBannerDismissed, setVerificationBannerDismissed] = useState(false)
+  const [resendingVerification, setResendingVerification] = useState(false)
+  const [subscriptionExpired, setSubscriptionExpired] = useState(false)
 
   useEffect(() => {
     // Initialize auth state from cookies on mount
@@ -245,11 +252,60 @@ export default function DashboardLayout({
   }, [initializeAuth])
 
   useEffect(() => {
-    // Only redirect to signin if we're not already on a dashboard page and not authenticated
-    if (!isLoading && !user && !token && !pathname.startsWith('/dashboard')) {
+    // Redirect to signin once the auth check has finished and there's no session
+    // (e.g. the session expired or was cleared while the user was on this page).
+    if (!isLoading && !user && !token) {
       router.push("/auth/signin")
     }
-  }, [user, token, isLoading, router, pathname])
+  }, [user, token, isLoading, router])
+
+  useEffect(() => {
+    // Every dashboard API call can now fail with 402 SUBSCRIPTION_REQUIRED
+    // once a merchant's plan expires. Pages across the app call fetch()
+    // directly rather than through a shared client, so this intercepts at
+    // the global fetch level (scoped to our own /api/user/* routes) instead
+    // of threading the check through every page - letting a 402 surface as
+    // a generic page-level error would hide the real reason from the user.
+    const originalFetch = window.fetch.bind(window)
+    window.fetch = async (...args: Parameters<typeof fetch>) => {
+      const response = await originalFetch(...args)
+      try {
+        const input = args[0]
+        const url = typeof input === 'string' ? input : input instanceof Request ? input.url : input.toString()
+        if (response.status === 402 && url.startsWith('/api/user/')) {
+          const clone = response.clone()
+          const data = await clone.json().catch(() => null)
+          if (data?.code === 'SUBSCRIPTION_REQUIRED') {
+            setSubscriptionExpired(true)
+          }
+        }
+      } catch {
+        // Non-JSON or unreadable body - ignore, the original response still
+        // goes back to the caller untouched below.
+      }
+      return response
+    }
+    return () => {
+      window.fetch = originalFetch
+    }
+  }, [])
+
+  const handleResendVerification = useCallback(async () => {
+    setResendingVerification(true)
+    try {
+      const response = await fetch('/api/user/resend-verification', { method: 'POST' })
+      const data = await response.json()
+      toast({
+        variant: data.success ? "success" : "destructive",
+        title: data.success ? "Verification email sent" : "Couldn't send email",
+        description: data.message || (data.success ? "Please check your inbox." : "Please try again later."),
+      })
+    } catch {
+      toast({ variant: "destructive", title: "Network error", description: "Please try again." })
+    } finally {
+      setResendingVerification(false)
+    }
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -280,6 +336,28 @@ export default function DashboardLayout({
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Redirecting to sign in...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // A 402 from any dashboard API call means the merchant's subscription has
+  // lapsed - replace the whole dashboard with a clear, actionable screen
+  // instead of letting every page show its own generic "failed to load" error.
+  if (subscriptionExpired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="text-center max-w-md">
+          <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="h-8 w-8 text-amber-600" />
+          </div>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">Your subscription has expired</h1>
+          <p className="text-slate-600 mb-6">
+            Renew your plan to keep using BDChatPro - your AI assistant, orders, and catalog are paused until then.
+          </p>
+          <Button onClick={() => { setSubscriptionExpired(false); router.push('/dashboard/purchase') }} className="bg-blue-600 hover:bg-blue-700">
+            Renew subscription
+          </Button>
         </div>
       </div>
     )
@@ -444,6 +522,34 @@ export default function DashboardLayout({
             </div>
           </div>
         </header>
+
+        {/* Email verification banner */}
+        {user?.emailVerified === false && !verificationBannerDismissed && (
+          <div className="px-2 lg:px-3 pt-2">
+            <Alert className="border-amber-200 bg-amber-50 flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2">
+                <MailWarning className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <AlertDescription className="text-amber-800">
+                  Please verify your email address to make sure you never miss an important notification.{" "}
+                  <button
+                    onClick={handleResendVerification}
+                    disabled={resendingVerification}
+                    className="font-medium underline hover:text-amber-900 disabled:opacity-50"
+                  >
+                    {resendingVerification ? "Sending..." : "Resend verification email"}
+                  </button>
+                </AlertDescription>
+              </div>
+              <button
+                onClick={() => setVerificationBannerDismissed(true)}
+                className="text-amber-600 hover:text-amber-800 shrink-0"
+                aria-label="Dismiss"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </Alert>
+          </div>
+        )}
 
         {/* Page Content */}
         <main className="p-2 lg:p-3 mx-auto">

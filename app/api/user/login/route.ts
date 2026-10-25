@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getBackendUrl } from '@/lib/backend-url'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
     // Validate required fields
-    const { email, password } = body
+    const { email, password, rememberMe } = body
 
     if (!email || !password) {
       return NextResponse.json(
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Backend URL from environment
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
+    const BACKEND_URL = getBackendUrl()
 
     // Forward the request to your backend
     const response = await fetch(`${BACKEND_URL}/api/user/login`, {
@@ -52,7 +53,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data, { status: response.status })
     }
 
-    return NextResponse.json(data, { status: 200 })
+    const token: string | undefined = data?.data?.token
+    const user = data?.data?.user
+
+    // Never send the raw JWT to the browser - keep it in an httpOnly cookie
+    // the client can't read, so an XSS can't steal the session token.
+    const res = NextResponse.json(
+      { success: true, data: { user }, message: data.message, timestamp: new Date().toISOString() },
+      { status: 200 }
+    )
+
+    if (token) {
+      const daysToExpire = rememberMe ? 365 : 7
+      res.cookies.set('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: daysToExpire * 24 * 60 * 60,
+      })
+    }
+
+    return res
 
   } catch (error) {
     console.error('Login error:', error)

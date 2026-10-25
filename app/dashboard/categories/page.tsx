@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Boxes, Search, Edit, Trash2, Package, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { CreateCategoryModal } from "@/components/create-category-modal"
+import { EditCategoryModal } from "@/components/edit-category-modal"
+import { useToast } from "@/hooks/use-toast"
 
 interface Category {
   id: string
@@ -21,10 +23,14 @@ interface Category {
   createdAt: string
   updatedAt: string
 }export default function CategoriesPage() {
+  const { toast } = useToast()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
     // Helper function to get image URL for display
   const getImageUrl = (image?: string) => {
@@ -77,6 +83,29 @@ interface Category {
 
   const getSubcategoriesCount = (categoryId: string) => {
     return categories.filter(cat => cat.parentId === categoryId).length
+  }
+
+  const handleDeleteCategory = async (category: Category) => {
+    if (!window.confirm(`Delete category "${category.name}"? This cannot be undone.`)) {
+      return
+    }
+
+    try {
+      setDeletingId(category.id)
+      const response = await fetch(`/api/user/categories/${category.id}`, { method: 'DELETE' })
+      const data = await response.json()
+
+      if (data.success) {
+        toast({ title: "Success", description: "Category deleted successfully" })
+        fetchCategories()
+      } else {
+        toast({ title: "Error", description: data.message || "Failed to delete category", variant: "destructive" })
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error. Please try again.", variant: "destructive" })
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   if (loading) {
@@ -222,12 +251,30 @@ interface Category {
             </div>
 
             <div className="flex items-center gap-2 pt-3 border-t border-slate-200">
-              <Button variant="outline" size="sm" className="flex-1 h-8">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 h-8"
+                onClick={() => {
+                  setEditingCategory(category)
+                  setEditModalOpen(true)
+                }}
+              >
                 <Edit className="h-3.5 w-3.5 mr-1" />
                 Edit
               </Button>
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50">
-                <Trash2 className="h-3.5 w-3.5" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={() => handleDeleteCategory(category)}
+                disabled={deletingId === category.id}
+              >
+                {deletingId === category.id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
               </Button>
             </div>
           </Card>
@@ -247,6 +294,13 @@ interface Category {
           />
         </Card>
       )}
+
+      <EditCategoryModal
+        category={editingCategory}
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        onCategoryUpdated={fetchCategories}
+      />
     </div>
   )
 }

@@ -603,7 +603,11 @@ export default function OrdersPage() {
       {pagination.pages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-slate-600">
-            Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} orders
+            {searchTerm ? (
+              <>Showing {filteredOrders.length} of {orders.length} orders on this page matching &quot;{searchTerm}&quot;</>
+            ) : (
+              <>Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} orders</>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button

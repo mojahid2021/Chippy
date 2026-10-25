@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     // Get the API base URL from environment
     const apiBaseUrl = process.env.BACKEND_URL
     if (!apiBaseUrl) {
-      console.error('NEXT_PUBLIC_API_BASE_URL environment variable is not set')
+      console.error('BACKEND_URL environment variable is not set')
       return NextResponse.json(
         {
           success: false,

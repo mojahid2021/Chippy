@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     // Get the API base URL from environment
     const apiBaseUrl = process.env.BACKEND_URL
     if (!apiBaseUrl) {
-      console.error('NEXT_PUBLIC_API_BASE_URL environment variable is not set')
+      console.error('BACKEND_URL environment variable is not set')
       return NextResponse.json(
         {
           success: false,
@@ -46,32 +46,51 @@ export async function GET(request: NextRequest) {
 
       if (response.ok) {
         const data = await response.json()
+        // Never send the real Facebook App Secret / Page Access Token to the
+        // browser — mask them so they can't be read from devtools or an XSS.
+        const credentials = data?.data?.appCredentials
+        if (credentials && typeof credentials === 'object') {
+          const mask = (value: unknown) =>
+            typeof value === 'string' && value.length > 4
+              ? `${'*'.repeat(Math.max(value.length - 4, 0))}${value.slice(-4)}`
+              : '****'
+          credentials.appSecret = mask(credentials.appSecret)
+          credentials.accessToken = mask(credentials.accessToken)
+        }
         return NextResponse.json(data, { status: response.status })
-      } else {
-        // If external API returns error, return no credentials format
+      } else if (response.status === 404) {
+        // No credentials configured yet - a real, known state.
         return NextResponse.json(
           {
             success: true,
-            data: {
-              appCredentials: null
-            },
-            message: "Settings retrieved successfully",
+            data: { appCredentials: null },
+            message: 'Settings retrieved successfully',
             timestamp: new Date().toISOString(),
           },
           { status: 200 }
         )
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Failed to fetch page settings',
+            message: 'The backend returned an unexpected error',
+            timestamp: new Date().toISOString(),
+          },
+          { status: response.status }
+        )
       }
-    } catch {
-      // If backend is not available, simulate no settings for development
-      console.warn('Backend not available, simulating no page settings')
-      return NextResponse.json({
-        success: true,
-        data: {
-          appCredentials: null
+    } catch (error) {
+      console.error('Page settings GET backend connection error:', error)
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Backend unavailable',
+          message: 'Unable to connect to the backend service',
+          timestamp: new Date().toISOString(),
         },
-        message: 'Settings retrieved successfully',
-        timestamp: new Date().toISOString(),
-      }, { status: 200 })
+        { status: 502 }
+      )
     }
   } catch (error) {
     console.error('Page settings GET API error:', error)
@@ -124,7 +143,7 @@ export async function POST(request: NextRequest) {
     // Get the API base URL from environment
     const apiBaseUrl = process.env.BACKEND_URL
     if (!apiBaseUrl) {
-      console.error('NEXT_PUBLIC_API_BASE_URL environment variable is not set')
+      console.error('BACKEND_URL environment variable is not set')
       return NextResponse.json(
         {
           success: false,
@@ -163,14 +182,17 @@ export async function POST(request: NextRequest) {
           { status: response.status }
         )
       }
-    } catch {
-      // If backend is not available, simulate success for development
-      console.warn('Backend not available, simulating page settings update')
-      return NextResponse.json({
-        success: true,
-        message: 'Settings updated successfully',
-        timestamp: new Date().toISOString(),
-      })
+    } catch (error) {
+      console.error('Page settings POST backend connection error:', error)
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Backend unavailable',
+          message: 'Unable to connect to the backend service',
+          timestamp: new Date().toISOString(),
+        },
+        { status: 502 }
+      )
     }
   } catch (error) {
     console.error('Page settings POST API error:', error)

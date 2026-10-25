@@ -1,35 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getBackendUrl } from '@/lib/backend-url'
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Get token from the httpOnly session cookie
+    const token = request.cookies.get('auth_token')?.value
+    if (!token) {
       return NextResponse.json(
         {
           success: false,
           error: 'Authentication required',
-          message: 'JWT token is required in Authorization header',
+          message: 'You must be signed in to perform this action',
           timestamp: new Date().toISOString(),
         },
         { status: 401 }
       )
     }
 
-    // Get the API base URL from environment
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
-    if (!apiBaseUrl) {
-      console.error('NEXT_PUBLIC_API_BASE_URL environment variable is not set')
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Configuration error',
-          message: 'API base URL is not configured',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 500 }
-      )
-    }
+    const apiBaseUrl = getBackendUrl()
 
     // Parse request body
     const body = await request.json()
@@ -81,7 +69,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': authHeader, // Forward the JWT token
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     })

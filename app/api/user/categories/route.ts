@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getBackendUrl } from '@/lib/backend-url'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     const includeInactive = searchParams.get('includeInactive') || 'false'
 
     // Backend URL from environment
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
+    const BACKEND_URL = getBackendUrl()
 
     // Forward the request to the backend
     const response = await fetch(`${BACKEND_URL}/api/user/categories?includeInactive=${includeInactive}`, {
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Backend URL from environment
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
+    const BACKEND_URL = getBackendUrl()
 
     // Forward the request to the backend
     const response = await fetch(`${BACKEND_URL}/api/user/categories`, {

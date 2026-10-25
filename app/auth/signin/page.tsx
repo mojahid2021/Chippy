@@ -208,18 +208,23 @@ export default function SignIn() {
             </div>
 
             {isLogin && (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember-me"
-                  checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                />
-                <label
-                  htmlFor="remember-me"
-                  className="text-sm text-gray-600 cursor-pointer"
-                >
-                  Remember me (stay logged in for 1 year)
-                </label>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="remember-me"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  />
+                  <label
+                    htmlFor="remember-me"
+                    className="text-sm text-gray-600 cursor-pointer"
+                  >
+                    Remember me (stay logged in for 1 year)
+                  </label>
+                </div>
+                <Link href="/auth/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
+                  Forgot password?
+                </Link>
               </div>
             )}
 
