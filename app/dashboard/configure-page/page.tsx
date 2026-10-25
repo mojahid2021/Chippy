@@ -16,10 +16,9 @@ import {
   Copy,
   AlertCircle,
   CheckCircle,
-  Facebook,
+  Globe,
   Key,
   Shield,
-  Globe,
   Eye,
   EyeOff,
 } from "lucide-react"
@@ -308,7 +307,7 @@ export default function FBPageSettingsPage() {
       {/* <div className="bg-linear-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white shadow-lg">
         <div className="flex items-center gap-4">
           <div className="bg-white/20 backdrop-blur-sm p-3 rounded-lg">
-            <Facebook className="h-8 w-8" />
+            <Globe className="h-8 w-8" />
           </div>
           <div>
             <h1 className="text-2xl font-bold">Facebook Page Setup</h1>
@@ -679,7 +678,7 @@ export default function FBPageSettingsPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                        <Facebook className="h-3.5 w-3.5" />
+                        <Globe className="h-3.5 w-3.5" />
                         Page Name
                       </Label>
                       <Input

@@ -37,7 +37,7 @@ import {
   Calendar,
   HelpCircle,
   Command,
-  Facebook,
+  Globe,
   MailWarning,
   AlertTriangle,
   X,
@@ -76,7 +76,7 @@ const navigationSections = [
     title: 'Configuration',
     items: [
       { name: 'AI Settings', href: '/dashboard/configure-ai', icon: Bot },
-      { name: 'Facebook Page Setup', href: '/dashboard/configure-page', icon: Facebook },
+      { name: 'Facebook Page Setup', href: '/dashboard/configure-page', icon: Globe },
     ]
   },
 ]
@@ -260,19 +260,25 @@ export default function DashboardLayout({
   }, [user, token, isLoading, router])
 
   useEffect(() => {
-    // Every dashboard API call can now fail with 402 SUBSCRIPTION_REQUIRED
-    // once a merchant's plan expires. Pages across the app call fetch()
-    // directly rather than through a shared client, so this intercepts at
-    // the global fetch level (scoped to our own /api/user/* routes) instead
-    // of threading the check through every page - letting a 402 surface as
-    // a generic page-level error would hide the real reason from the user.
+    // A 402 SUBSCRIPTION_REQUIRED from business-operation endpoints means
+    // the merchant's subscription has expired. Only block on those endpoints,
+    // not on read-only account endpoints (profile, subscription status, etc.)
+    // which non-subscribers legitimately access to see options.
+    const blockedOn402 = [
+      '/api/user/categories',
+      '/api/user/products',
+      '/api/user/ai-profiles',
+      '/api/user/media',
+      '/api/user/orders',
+      '/api/user/messages',
+    ]
     const originalFetch = window.fetch.bind(window)
     window.fetch = async (...args: Parameters<typeof fetch>) => {
       const response = await originalFetch(...args)
       try {
         const input = args[0]
         const url = typeof input === 'string' ? input : input instanceof Request ? input.url : input.toString()
-        if (response.status === 402 && url.startsWith('/api/user/')) {
+        if (response.status === 402 && blockedOn402.some(path => url.includes(path))) {
           const clone = response.clone()
           const data = await clone.json().catch(() => null)
           if (data?.code === 'SUBSCRIPTION_REQUIRED') {

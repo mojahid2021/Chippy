@@ -4,7 +4,9 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, Bot, Calendar, BarChart, MessageSquare, Link2, Zap, Shield, Star, Check, Menu, X, Twitter, Linkedin, Instagram, Facebook, Play, Quote, TrendingUp } from "lucide-react"
+import { ArrowRight, Bot, Calendar, BarChart, MessageSquare, Link2, Zap, Shield, Star, Check, Menu, X, Share2, Globe, Camera, Play, Quote, TrendingUp } from "lucide-react"
+// Social brand icons removed in lucide-react 1.x — using generic equivalents
+const Twitter = Share2, Linkedin = Globe, Instagram = Camera, Facebook = Globe
 import { motion } from "framer-motion"
 import { useState } from "react"
 
