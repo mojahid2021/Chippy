@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { useUserStore } from "@/lib/stores/userStore"
+import { useEntitlements } from "@/hooks/use-entitlements"
+import { usePermissions } from "@/hooks/use-permissions"
+import { FeatureGateCard } from "@/components/feature-gate-card"
 import {
   Bot,
   Settings as SettingsIcon,
@@ -21,13 +23,18 @@ import {
   Plus,
   Edit3,
   Trash2,
-  CheckCircle,
+  CheckCircle2,
   X,
   Loader2,
   Crown,
   Users,
   Lightbulb,
+  Sparkles,
+  Send,
+  Wand2,
+  Play
 } from "lucide-react"
+import { toast } from "@/hooks/use-toast"
 
 interface AIProfile {
   id: string
@@ -56,6 +63,8 @@ interface AIProfilesResponse {
 
 export default function ConfigureAIPage() {
   const { token } = useUserStore()
+  const { hasFeature, loading: entitlementsLoading } = useEntitlements()
+  const { canConfigureAI } = usePermissions()
   const [aiProfiles, setAiProfiles] = useState<AIProfile[]>([])
   const [aiProfilesLoading, setAiProfilesLoading] = useState(true)
   const [aiProfilesError, setAiProfilesError] = useState<string | null>(null)
@@ -64,6 +73,12 @@ export default function ConfigureAIPage() {
   const [editingProfile, setEditingProfile] = useState<AIProfile | null>(null)
   const [updatingProfile, setUpdatingProfile] = useState(false)
   const [deletingProfile, setDeletingProfile] = useState<string | null>(null)
+
+  // Interactive Test Simulator state
+  const [simulatorInput, setSimulatorInput] = useState("Ei Panjabi ta ki delivery charge free? Koto din lagbe?")
+  const [simulatedReply, setSimulatedReply] = useState<string | null>(null)
+  const [isSimulating, setIsSimulating] = useState(false)
+
   const [newProfile, setNewProfile] = useState({
     id: '',
     name: '',
@@ -71,45 +86,63 @@ export default function ConfigureAIPage() {
     personality: '',
     instructions: '',
     preferences: {
-      language: 'en',
-      tone: 'professional',
+      language: 'bn',
+      tone: 'friendly',
       maxResponseLength: 500,
     },
     isDefault: false,
   })
 
-  // Fetch AI profiles on component mount
-  useEffect(() => {
-    const fetchAIProfiles = async () => {
-      if (!token) return
-
-      try {
-        setAiProfilesLoading(true)
-        setAiProfilesError(null)
-
-        const response = await fetch('/api/user/ai-profiles', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        })
-
-        const data: AIProfilesResponse = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Failed to fetch AI profiles')
-        }
-
-        if (data.success && data.data) {
-          setAiProfiles(data.data)
-        }
-      } catch (err) {
-        setAiProfilesError(err instanceof Error ? err.message : 'An error occurred while fetching AI profiles')
-        console.error('Error fetching AI profiles:', err)
-      } finally {
-        setAiProfilesLoading(false)
-      }
+  // Pre-configured templates
+  const templates = [
+    {
+      title: "🇧🇩 BD F-Commerce Sales Rep",
+      personality: "Warm, respectful, natural Banglish e-commerce sales assistant. Uses polite Bangladeshi conversational norms (e.g. 'Ji bhai/apu', 'Stock ache', 'Order confirm korte inbox-e address din').",
+      instructions: "Answer product inquiries politely, recommend matching colors/sizes, ask for customer delivery address and phone number to finalize order."
+    },
+    {
+      title: "⚡ Flash Deal Closer",
+      personality: "High-energy, persuasive sales closer focusing on discounts, limited stock, and same-day dispatch.",
+      instructions: "Highlight current promotional pricing, remind the customer that stock is running out fast, offer immediate Cash On Delivery option."
+    },
+    {
+      title: "💼 Formal Enterprise Support",
+      personality: "Clear, highly professional, direct, concise, and structured.",
+      instructions: "Provide accurate catalog specifications, order status updates, and clear refund/return policy information without slang."
     }
+  ]
 
+  // Fetch AI profiles
+  const fetchAIProfiles = async () => {
+    if (!token) return
+
+    try {
+      setAiProfilesLoading(true)
+      setAiProfilesError(null)
+
+      const response = await fetch('/api/user/ai-profiles', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      const data: AIProfilesResponse = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch AI profiles')
+      }
+
+      if (data.success && data.data) {
+        setAiProfiles(data.data)
+      }
+    } catch (err) {
+      setAiProfilesError(err instanceof Error ? err.message : 'An error occurred while fetching AI profiles')
+    } finally {
+      setAiProfilesLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchAIProfiles()
   }, [token])
 
@@ -117,7 +150,11 @@ export default function ConfigureAIPage() {
     if (!token) return
 
     if (!newProfile.id || !newProfile.name) {
-      alert('Please fill in all required fields (ID and Name)')
+      toast({
+        variant: "warning",
+        title: "Required Fields Missing",
+        description: "Please specify both Profile ID and Name",
+      })
       return
     }
 
@@ -140,9 +177,7 @@ export default function ConfigureAIPage() {
       }
 
       if (data.success && data.data) {
-        // Add the new profile to the list
         setAiProfiles(prev => [...prev, data.data])
-        // Reset form
         setNewProfile({
           id: '',
           name: '',
@@ -150,18 +185,25 @@ export default function ConfigureAIPage() {
           personality: '',
           instructions: '',
           preferences: {
-            language: 'en',
-            tone: 'professional',
+            language: 'bn',
+            tone: 'friendly',
             maxResponseLength: 500,
           },
           isDefault: false,
         })
         setShowCreateForm(false)
-        alert('AI profile created successfully!')
+        toast({
+          variant: "success",
+          title: "Profile Created!",
+          description: "New AI personality profile is ready for deployment.",
+        })
       }
     } catch (err) {
-      console.error('Error creating AI profile:', err)
-      alert(err instanceof Error ? err.message : 'Failed to create AI profile')
+      toast({
+        variant: "destructive",
+        title: "Creation Error",
+        description: err instanceof Error ? err.message : 'Failed to create AI profile',
+      })
     } finally {
       setCreatingProfile(false)
     }
@@ -183,20 +225,24 @@ export default function ConfigureAIPage() {
       isDefault: profile.isDefault,
     })
     setShowCreateForm(true)
+    window.scrollTo({ top: 300, behavior: 'smooth' })
   }
 
   const handleUpdateProfile = async () => {
     if (!token || !editingProfile) return
 
     if (!newProfile.name) {
-      alert('Please fill in the name field')
+      toast({
+        variant: "warning",
+        title: "Name Required",
+        description: "Please fill in the profile name",
+      })
       return
     }
 
     try {
       setUpdatingProfile(true)
 
-      // Build request body with only changed fields
       const requestBody: {
         name: string
         description?: string
@@ -208,24 +254,11 @@ export default function ConfigureAIPage() {
         name: newProfile.name,
       }
 
-      // Only include fields that have changed
-      if (newProfile.description !== editingProfile.description) {
-        requestBody.description = newProfile.description
-      }
+      if (newProfile.description !== editingProfile.description) requestBody.description = newProfile.description
+      if (newProfile.personality !== editingProfile.personality) requestBody.personality = newProfile.personality
+      if (newProfile.instructions !== editingProfile.instructions) requestBody.instructions = newProfile.instructions
+      if (newProfile.isDefault !== editingProfile.isDefault) requestBody.isDefault = newProfile.isDefault
 
-      if (newProfile.personality !== editingProfile.personality) {
-        requestBody.personality = newProfile.personality
-      }
-
-      if (newProfile.instructions !== editingProfile.instructions) {
-        requestBody.instructions = newProfile.instructions
-      }
-
-      if (newProfile.isDefault !== editingProfile.isDefault) {
-        requestBody.isDefault = newProfile.isDefault
-      }
-
-      // Check if preferences have changed
       const preferencesChanged =
         newProfile.preferences.language !== editingProfile.preferences.language ||
         newProfile.preferences.tone !== editingProfile.preferences.tone ||
@@ -251,45 +284,34 @@ export default function ConfigureAIPage() {
       }
 
       if (data.success && data.data) {
-        // Update the profile in the list
         setAiProfiles(prev => prev.map(p => p.id === editingProfile.id ? data.data : p))
-        // Reset form
-        setNewProfile({
-          id: '',
-          name: '',
-          description: '',
-          personality: '',
-          instructions: '',
-          preferences: {
-            language: 'en',
-            tone: 'professional',
-            maxResponseLength: 500,
-          },
-          isDefault: false,
-        })
         setEditingProfile(null)
         setShowCreateForm(false)
-        alert('AI profile updated successfully!')
+        toast({
+          variant: "success",
+          title: "Profile Updated",
+          description: "Changes applied to live conversation engine.",
+        })
       }
     } catch (err) {
-      console.error('Error updating AI profile:', err)
-      alert(err instanceof Error ? err.message : 'Failed to update AI profile')
+      toast({
+        variant: "destructive",
+        title: "Update Error",
+        description: err instanceof Error ? err.message : 'Failed to update AI profile',
+      })
     } finally {
       setUpdatingProfile(false)
     }
   }
 
-  const handleDeleteProfile = async (profileId: string) => {
+  const handleDeleteProfile = async (id: string) => {
     if (!token) return
-
-    if (!confirm('Are you sure you want to delete this AI profile? This action cannot be undone.')) {
-      return
-    }
+    if (!confirm('Are you sure you want to delete this AI profile?')) return
 
     try {
-      setDeletingProfile(profileId)
+      setDeletingProfile(id)
 
-      const response = await fetch(`/api/user/ai-profiles/${profileId}`, {
+      const response = await fetch(`/api/user/ai-profiles/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -303,501 +325,577 @@ export default function ConfigureAIPage() {
       }
 
       if (data.success) {
-        // Remove the profile from the list
-        setAiProfiles(prev => prev.filter(p => p.id !== profileId))
-        alert('AI profile deleted successfully!')
+        setAiProfiles(prev => prev.filter(p => p.id !== id))
+        toast({
+          variant: "success",
+          title: "Profile Deleted",
+          description: "The AI profile was successfully removed.",
+        })
       }
     } catch (err) {
-      console.error('Error deleting AI profile:', err)
-      alert(err instanceof Error ? err.message : 'Failed to delete AI profile')
+      toast({
+        variant: "destructive",
+        title: "Delete Error",
+        description: err instanceof Error ? err.message : 'Failed to delete AI profile',
+      })
     } finally {
       setDeletingProfile(null)
     }
   }
 
+  const handleSetDefaultProfile = async (profileId: string) => {
+    if (!token) return
+
+    try {
+      const response = await fetch(`/api/user/ai-profiles/${profileId}/set-default`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to set default profile')
+      }
+
+      if (data.success) {
+        setAiProfiles(prev => prev.map(p => ({
+          ...p,
+          isDefault: p.id === profileId,
+        })))
+
+        toast({
+          variant: "success",
+          title: "Default Changed",
+          description: "This profile is now actively responding to Facebook messages.",
+        })
+      }
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err instanceof Error ? err.message : 'Failed to set default profile',
+      })
+    }
+  }
+
+  // Simulate AI Response in Playground
+  const handleSimulate = () => {
+    setIsSimulating(true)
+    setSimulatedReply(null)
+
+    setTimeout(() => {
+      const defaultProf = aiProfiles.find(p => p.isDefault) || aiProfiles[0]
+      const tone = defaultProf?.preferences.tone || 'friendly'
+      
+      let reply = ""
+      if (tone === 'friendly' || defaultProf?.preferences.language === 'bn') {
+        reply = "Ji bhai/apu! 🖤 Dhaka shohorer bhetore delivery charge matro ৮০ taka, ebong Dhaka-r baire ১৫০ taka (Cash on Delivery available). Order confirm korte apnar Name, Full Address, ebong Phone Number ta kindly inbox-e share korun!"
+      } else if (tone === 'formal') {
+        reply = "Hello. Thank you for your inquiry. Delivery charges are BDT 80 inside Dhaka and BDT 150 nationwide. Estimated delivery time is 2-3 business days. Please provide your delivery details to confirm."
+      } else {
+        reply = "Hey! Panjabi stock-e ache. Ajkei order korle 48 hours er moddhe delivery peye jaben! Order korte phone number din please."
+      }
+
+      setSimulatedReply(reply)
+      setIsSimulating(false)
+    }, 700)
+  }
+
+  const activeCount = aiProfiles.filter(p => p.isActive).length
+  const defaultProfile = aiProfiles.find(p => p.isDefault)
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">AI Configuration</h1>
-          <p className="text-sm text-slate-600 mt-0.5">Manage your AI assistant profiles and settings</p>
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-medium text-blue-400 mb-1.5">
+            <Brain className="w-3.5 h-3.5" />
+            <span>AI Brain & Conversational Personality</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">AI Assistant Settings</h1>
+          <p className="text-sm text-slate-400">
+            Define tone, personality, and instructions for how the bilingual AI sells products in Facebook Messenger.
+          </p>
+        </div>
+
+        {canConfigureAI && (
+          <Button
+            onClick={() => {
+              setEditingProfile(null)
+              setShowCreateForm(!showCreateForm)
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs h-9 px-4 rounded-md"
+          >
+            {showCreateForm ? <X className="w-4 h-4 mr-1.5" /> : <Plus className="w-4 h-4 mr-1.5" />}
+            <span>{showCreateForm ? "Close Form" : "Create AI Profile"}</span>
+          </Button>
+        )}
+      </div>
+
+      {/* Feature Gate */}
+      {!hasFeature("AI_REPLIES") && !entitlementsLoading && (
+        <FeatureGateCard
+          title="Automated AI Replies Module"
+          description="Your current plan does not include the automated AI Replies module. Upgrade your subscription to enable automatic Facebook conversation handling."
+          featureKey="AI_REPLIES"
+          planRequired="Starter or Pro"
+        />
+      )}
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-400">Active Profiles</span>
+            <div className="w-8 h-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+              <Bot className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-white mt-2">{activeCount}</p>
+          <p className="text-[11px] text-slate-400 mt-1">Live in deployment</p>
+        </div>
+
+        <div className="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-400">Total Created</span>
+            <div className="w-8 h-8 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-white mt-2">{aiProfiles.length}</p>
+          <p className="text-[11px] text-slate-400 mt-1">Personality configurations</p>
+        </div>
+
+        <div className="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-400">Default Responder</span>
+            <div className="w-8 h-8 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+              <Crown className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-base font-bold text-amber-300 mt-2 truncate">
+            {defaultProfile?.name || "None Selected"}
+          </p>
+          <p className="text-[11px] text-slate-400 mt-1">Answers customer inbox</p>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-4 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-600 font-medium">Active Profiles</p>
-              <p className="text-2xl font-bold text-slate-900">{aiProfiles.filter(p => p.isActive).length}</p>
+      {/* Create / Edit Form Drawer */}
+      {showCreateForm && (
+        <div className="p-6 rounded-lg bg-slate-900 border border-blue-500/30 shadow-xl space-y-6">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+                {editingProfile ? <Edit3 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  {editingProfile ? `Edit Profile: ${editingProfile.name}` : "Create New AI Personality Profile"}
+                </h3>
+                <p className="text-xs text-slate-400">Configure language, tone, and specific selling rules.</p>
+              </div>
             </div>
-            <div className="h-10 w-10 rounded-lg bg-slate-50 flex items-center justify-center">
-              <Bot className="h-5 w-5 text-slate-600" />
-            </div>
+            <button
+              onClick={() => {
+                setShowCreateForm(false)
+                setEditingProfile(null)
+              }}
+              className="text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-        </Card>
 
-        <Card className="p-4 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-600 font-medium">Total Profiles</p>
-              <p className="text-2xl font-bold text-slate-900">{aiProfiles.length}</p>
-            </div>
-            <div className="h-10 w-10 rounded-lg bg-slate-50 flex items-center justify-center">
-              <Users className="h-5 w-5 text-slate-600" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-600 font-medium">Default Profile</p>
-              <p className="text-lg font-bold text-slate-900">
-                {aiProfiles.find(p => p.isDefault)?.name || 'None'}
-              </p>
-            </div>
-            <div className="h-10 w-10 rounded-lg bg-slate-50 flex items-center justify-center">
-              <Crown className="h-5 w-5 text-slate-600" />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* AI Profiles Section */}
-      <Card className="border border-slate-200 shadow-sm">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center space-x-2">
-                <Brain className="h-5 w-5 text-slate-600" />
-                <span>AI Profiles</span>
-              </CardTitle>
-              <p className="text-sm text-slate-600 mt-1">Create and manage AI assistant profiles</p>
-            </div>
-            {!showCreateForm ? (
-              <Button
-                onClick={() => setShowCreateForm(true)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Profile
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowCreateForm(false)
-                  setNewProfile({
-                    id: '',
-                    name: '',
-                    description: '',
-                    personality: '',
-                    instructions: '',
-                    preferences: {
-                      language: 'en',
-                      tone: 'professional',
-                      maxResponseLength: 500,
-                    },
-                    isDefault: false,
-                  })
-                }}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Create/Edit Form */}
-          {showCreateForm && (
-            <Card className="mb-6 border-2 border-dashed border-slate-300">
-              <CardHeader className="bg-slate-50">
-                <CardTitle className="flex items-center space-x-2">
-                  {editingProfile ? (
-                    <>
-                      <Edit3 className="h-5 w-5 text-slate-600" />
-                      <span>Edit AI Profile</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-5 w-5 text-slate-600" />
-                      <span>Create New AI Profile</span>
-                    </>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {!editingProfile && (
-                    <div className="space-y-2">
-                      <Label htmlFor="profileId" className="flex items-center space-x-2">
-                        <Code className="h-4 w-4" />
-                        <span>Profile ID *</span>
-                      </Label>
-                      <Input
-                        id="profileId"
-                        placeholder="unique-profile-id"
-                        value={newProfile.id}
-                        onChange={(e) => setNewProfile({ ...newProfile, id: e.target.value })}
-                        required
-                      />
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="profileName" className="flex items-center space-x-2">
-                      <Bot className="h-4 w-4" />
-                      <span>Profile Name *</span>
-                    </Label>
-                    <Input
-                      id="profileName"
-                      placeholder="My AI Assistant"
-                      value={newProfile.name}
-                      onChange={(e) => setNewProfile({ ...newProfile, name: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="profileDescription">
-                      <MessageSquare className="h-4 w-4 inline mr-2" />
-                      Description
-                    </Label>
-                    <Input
-                      id="profileDescription"
-                      placeholder="Brief description of this AI profile"
-                      value={newProfile.description}
-                      onChange={(e) => setNewProfile({ ...newProfile, description: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="language" className="flex items-center space-x-2">
-                      <Globe className="h-4 w-4" />
-                      <span>Language</span>
-                    </Label>
-                    <select
-                      id="language"
-                      value={newProfile.preferences.language}
-                      onChange={(e) => setNewProfile({
-                        ...newProfile,
-                        preferences: { ...newProfile.preferences, language: e.target.value }
-                      })}
-                      className="flex h-10 w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="en">🇺🇸 English</option>
-                      <option value="es">🇪🇸 Spanish</option>
-                      <option value="fr">🇫🇷 French</option>
-                      <option value="de">🇩🇪 German</option>
-                      <option value="bn">🇧🇩 Bengali</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="tone" className="flex items-center space-x-2">
-                      <Palette className="h-4 w-4" />
-                      <span>Tone</span>
-                    </Label>
-                    <select
-                      id="tone"
-                      value={newProfile.preferences.tone}
-                      onChange={(e) => setNewProfile({
-                        ...newProfile,
-                        preferences: { ...newProfile.preferences, tone: e.target.value }
-                      })}
-                      className="flex h-10 w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="professional">👔 Professional</option>
-                      <option value="casual">😊 Casual</option>
-                      <option value="friendly">🤝 Friendly</option>
-                      <option value="formal">🎩 Formal</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="maxResponseLength" className="flex items-center space-x-2">
-                      <Zap className="h-4 w-4" />
-                      <span>Max Response Length</span>
-                    </Label>
-                    <Input
-                      id="maxResponseLength"
-                      type="number"
-                      min="100"
-                      max="2000"
-                      placeholder="500"
-                      value={newProfile.preferences.maxResponseLength}
-                      onChange={(e) => setNewProfile({
-                        ...newProfile,
-                        preferences: { ...newProfile.preferences, maxResponseLength: parseInt(e.target.value) || 500 }
-                      })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="profilePersonality" className="flex items-center space-x-2">
-                      <Lightbulb className="h-4 w-4" />
-                      <span>Personality</span>
-                    </Label>
-                    <textarea
-                      id="profilePersonality"
-                      placeholder="Describe the personality traits of this AI assistant"
-                      value={newProfile.personality}
-                      onChange={(e) => setNewProfile({ ...newProfile, personality: e.target.value })}
-                      rows={3}
-                      className="flex min-h-20 w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="profileInstructions" className="flex items-center space-x-2">
-                      <SettingsIcon className="h-4 w-4" />
-                      <span>Instructions</span>
-                    </Label>
-                    <textarea
-                      id="profileInstructions"
-                      placeholder="Specific instructions for how this AI should behave"
-                      value={newProfile.instructions}
-                      onChange={(e) => setNewProfile({ ...newProfile, instructions: e.target.value })}
-                      rows={3}
-                      className="flex min-h-20 w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      id="isDefault"
-                      type="checkbox"
-                      checked={newProfile.isDefault}
-                      onChange={(e) => setNewProfile({ ...newProfile, isDefault: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
-                    />
-                    <Label htmlFor="isDefault" className="flex items-center space-x-2 cursor-pointer">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      <span>Set as Default Profile</span>
-                    </Label>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4 border-t">
-                  <Button
-                    variant="outline"
+          {/* Quick Preset Chips */}
+          {!editingProfile && (
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Wand2 className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Quick-Start Presets (Click to autofill):</span>
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {templates.map((tpl, i) => (
+                  <button
+                    key={i}
+                    type="button"
                     onClick={() => {
-                      setShowCreateForm(false)
-                      setEditingProfile(null)
-                      setNewProfile({
-                        id: '',
-                        name: '',
-                        description: '',
-                        personality: '',
-                        instructions: '',
+                      setNewProfile(prev => ({
+                        ...prev,
+                        name: tpl.title.replace(/[^a-zA-Z0-9 ]/g, '').trim(),
+                        id: tpl.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 20),
+                        personality: tpl.personality,
+                        instructions: tpl.instructions,
                         preferences: {
-                          language: 'en',
-                          tone: 'professional',
-                          maxResponseLength: 500,
-                        },
-                        isDefault: false,
-                      })
+                          ...prev.preferences,
+                          language: 'bn',
+                          tone: 'friendly'
+                        }
+                      }))
                     }}
+                    className="text-xs px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 hover:border-blue-500/40 hover:bg-blue-500/10 text-slate-300 hover:text-white transition-all duration-200"
                   >
-                    <X className="h-4 w-4 mr-2" />
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={editingProfile ? handleUpdateProfile : handleCreateProfile}
-                    disabled={(editingProfile ? updatingProfile : creatingProfile) || (!editingProfile && !newProfile.id) || !newProfile.name}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {(editingProfile ? updatingProfile : creatingProfile) ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {editingProfile ? 'Updating...' : 'Creating...'}
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        {editingProfile ? 'Update Profile' : 'Create Profile'}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Loading State */}
-          {aiProfilesLoading && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-                <p className="text-slate-600">Loading AI profiles...</p>
+                    {tpl.title}
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Error State */}
-          {aiProfilesError && (
-            <Card className="border-red-200 bg-red-50">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-2">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                  <p className="text-red-700">{aiProfilesError}</p>
-                </div>
-                <Button
-                  onClick={() => window.location.reload()}
-                  className="mt-4 bg-red-600 hover:bg-red-700"
-                  size="sm"
-                >
-                  Try Again
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            {!editingProfile && (
+              <div className="space-y-1.5">
+                <Label className="text-slate-300">
+                  Profile Identifier (Unique slug) <span className="text-rose-400">*</span>
+                </Label>
+                <Input
+                  placeholder="e.g. sales-agent-v1"
+                  value={newProfile.id}
+                  onChange={(e) => setNewProfile({ ...newProfile, id: e.target.value })}
+                  className="bg-slate-950/70 border-white/10 text-white font-mono text-xs h-10"
+                />
+              </div>
+            )}
 
-          {/* Empty State */}
-          {!aiProfilesLoading && !aiProfilesError && aiProfiles.length === 0 && (
-            <Card className="border-dashed border-slate-300">
-              <CardContent className="p-12 text-center">
-                <Bot className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">No AI Profiles Found</h3>
-                <p className="text-slate-600 mb-4">
-                  Create your first AI assistant profile to get started.
-                </p>
-                <Button
-                  onClick={() => setShowCreateForm(true)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Profile
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Profiles List */}
-          {!aiProfilesLoading && !aiProfilesError && aiProfiles.length > 0 && (
-            <div className="space-y-4">
-              {aiProfiles.map((profile) => (
-                <Card key={profile.id} className="border border-slate-200 hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-lg ${profile.isActive ? 'bg-green-100' : 'bg-slate-100'}`}>
-                          <Bot className={`h-5 w-5 ${profile.isActive ? 'text-green-600' : 'text-slate-400'}`} />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-slate-900">{profile.name}</h3>
-                          <div className="flex items-center space-x-2 mt-1">
-                            {profile.isDefault && (
-                              <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
-                                <Crown className="h-3 w-3 mr-1" />
-                                Default
-                              </Badge>
-                            )}
-                            <Badge variant={profile.isActive ? "default" : "secondary"}>
-                              {profile.isActive ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditProfile(profile)}
-                          disabled={updatingProfile}
-                        >
-                          <Edit3 className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
-                        {!profile.isDefault && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteProfile(profile.id)}
-                            disabled={deletingProfile === profile.id}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            {deletingProfile === profile.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    {profile.description && (
-                      <p className="text-slate-600 mb-4">{profile.description}</p>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="bg-slate-50 p-3 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Lightbulb className="h-4 w-4 text-slate-600" />
-                          <span className="font-medium text-sm">Personality</span>
-                        </div>
-                        <p className="text-sm text-slate-700">
-                          {profile.personality || "No personality defined"}
-                        </p>
-                      </div>
-
-                      <div className="bg-slate-50 p-3 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <SettingsIcon className="h-4 w-4 text-slate-600" />
-                          <span className="font-medium text-sm">Instructions</span>
-                        </div>
-                        <p className="text-sm text-slate-700">
-                          {profile.instructions || "No instructions defined"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-3 rounded-lg">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Palette className="h-4 w-4 text-slate-600" />
-                        <span className="font-medium text-sm">Preferences</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline">
-                          <Globe className="h-3 w-3 mr-1" />
-                          {profile.preferences.language === 'en' ? 'English' :
-                           profile.preferences.language === 'es' ? 'Spanish' :
-                           profile.preferences.language === 'fr' ? 'French' :
-                           profile.preferences.language === 'de' ? 'German' :
-                           profile.preferences.language === 'bn' ? 'Bengali' :
-                           profile.preferences.language}
-                        </Badge>
-                        <Badge variant="outline">
-                          <Palette className="h-3 w-3 mr-1" />
-                          {profile.preferences.tone}
-                        </Badge>
-                        {profile.preferences.maxResponseLength && (
-                          <Badge variant="outline">
-                            <Zap className="h-3 w-3 mr-1" />
-                            Max: {profile.preferences.maxResponseLength} chars
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-500">
-                      Created: {new Date(profile.createdAt).toLocaleDateString()} • 
-                      Updated: {new Date(profile.updatedAt).toLocaleDateString()}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="space-y-1.5">
+              <Label className="text-slate-300">
+                Display Name <span className="text-rose-400">*</span>
+              </Label>
+              <Input
+                placeholder="e.g. Rahim - Lead Sales Bot"
+                value={newProfile.name}
+                onChange={(e) => setNewProfile({ ...newProfile, name: e.target.value })}
+                className="bg-slate-950/70 border-white/10 text-white text-xs h-10"
+              />
             </div>
+
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-slate-300">Description</Label>
+              <Input
+                placeholder="Brief summary of what this bot handles..."
+                value={newProfile.description}
+                onChange={(e) => setNewProfile({ ...newProfile, description: e.target.value })}
+                className="bg-slate-950/70 border-white/10 text-white text-xs h-10"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-slate-300">Primary Language</Label>
+              <select
+                value={newProfile.preferences.language}
+                onChange={(e) => setNewProfile({
+                  ...newProfile,
+                  preferences: { ...newProfile.preferences, language: e.target.value }
+                })}
+                className="w-full h-10 px-3 bg-slate-950/70 border border-white/10 rounded-xl text-white text-xs"
+              >
+                <option value="bn">🇧🇩 Bengali / Banglish (Natural Bangladesh)</option>
+                <option value="en">🇺🇸 English</option>
+                <option value="es">🇪🇸 Spanish</option>
+                <option value="fr">🇫🇷 French</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-slate-300">Tone of Voice</Label>
+              <select
+                value={newProfile.preferences.tone}
+                onChange={(e) => setNewProfile({
+                  ...newProfile,
+                  preferences: { ...newProfile.preferences, tone: e.target.value }
+                })}
+                className="w-full h-10 px-3 bg-slate-950/70 border border-white/10 rounded-xl text-white text-xs"
+              >
+                <option value="friendly">🤝 Friendly & Courteous</option>
+                <option value="professional">👔 Professional & Polite</option>
+                <option value="casual">😊 Casual & Energetic</option>
+                <option value="formal">🎩 Formal</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-slate-300">Personality Traits</Label>
+              <textarea
+                rows={3}
+                placeholder="Describe how the assistant carries itself (e.g. Enthusiastic, polite, always suggests complementary products)..."
+                value={newProfile.personality}
+                onChange={(e) => setNewProfile({ ...newProfile, personality: e.target.value })}
+                className="w-full p-3 bg-slate-950/70 border border-white/10 rounded-xl text-white text-xs resize-none"
+              />
+            </div>
+
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-slate-300">Specific Business Instructions</Label>
+              <textarea
+                rows={3}
+                placeholder="Rules: Return policy is 7 days, delivery fee is 80 tk in Dhaka, ask for phone number before confirming order..."
+                value={newProfile.instructions}
+                onChange={(e) => setNewProfile({ ...newProfile, instructions: e.target.value })}
+                className="w-full p-3 bg-slate-950/70 border border-white/10 rounded-xl text-white text-xs resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-white/5">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={newProfile.isDefault}
+                onChange={(e) => setNewProfile({ ...newProfile, isDefault: e.target.checked })}
+                className="rounded border-white/20 bg-slate-950 text-blue-600 w-4 h-4"
+              />
+              <span className="text-xs text-slate-300 flex items-center gap-1 font-medium">
+                <Star className="w-3.5 h-3.5 text-amber-400" />
+                <span>Make Default Active Responder</span>
+              </span>
+            </label>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowCreateForm(false)
+                  setEditingProfile(null)
+                }}
+                className="text-xs text-slate-400 hover:text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={editingProfile ? handleUpdateProfile : handleCreateProfile}
+                disabled={editingProfile ? updatingProfile : creatingProfile}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-9 px-5 rounded-md font-medium"
+              >
+                {(editingProfile ? updatingProfile : creatingProfile) ? (
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving...</span>
+                  </span>
+                ) : (
+                  <span>{editingProfile ? "Update Profile" : "Save Profile"}</span>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Grid: Profiles List + Interactive Simulator */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Profiles List (Left) */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <Bot className="w-4 h-4 text-blue-400" />
+              <span>Configured AI Profiles ({aiProfiles.length})</span>
+            </h3>
+          </div>
+
+          {aiProfilesLoading ? (
+            <div className="p-12 text-center space-y-2 rounded-lg bg-slate-900 border border-slate-800">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" />
+              <p className="text-xs text-slate-400">Loading AI profiles...</p>
+            </div>
+          ) : aiProfilesError ? (
+            <div className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
+              {aiProfilesError}
+            </div>
+          ) : aiProfiles.length === 0 ? (
+            <div className="p-10 rounded-lg bg-slate-900 border border-slate-800 text-center space-y-3">
+              <Bot className="w-8 h-8 text-slate-500 mx-auto" />
+              <p className="text-sm font-semibold text-white">No Profiles Yet</p>
+              <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                Create your first AI profile above to customize how BDChatPro interacts with your customers.
+              </p>
+            </div>
+          ) : (
+            aiProfiles.map((profile) => (
+              <div
+                key={profile.id}
+                className={`p-5 rounded-lg border transition-colors space-y-4 ${
+                  profile.isDefault
+                    ? "bg-slate-900 border-amber-500/40 shadow-sm"
+                    : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-md flex items-center justify-center font-bold text-xs ${
+                      profile.isDefault
+                        ? "bg-amber-500 text-slate-950 font-semibold"
+                        : "bg-slate-800 border border-slate-700 text-slate-300"
+                    }`}>
+                      {profile.isDefault ? <Crown className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-white">{profile.name}</h4>
+                        {profile.isDefault && (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 font-semibold flex items-center gap-1">
+                            <Crown className="w-3 h-3" /> Active Default
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-400">ID: {profile.id}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {!profile.isDefault && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSetDefaultProfile(profile.id)}
+                        className="text-xs border-amber-500/20 text-amber-400 hover:bg-amber-500/10 h-8 px-2.5 rounded-lg"
+                      >
+                        <Star className="w-3 h-3 mr-1" />
+                        Set Default
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditProfile(profile)}
+                      className="text-slate-400 hover:text-white h-8 w-8 p-0"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </Button>
+                    {!profile.isDefault && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteProfile(profile.id)}
+                        disabled={deletingProfile === profile.id}
+                        className="text-slate-400 hover:text-rose-400 h-8 w-8 p-0"
+                      >
+                        {deletingProfile === profile.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {profile.description && (
+                  <p className="text-xs text-slate-300">{profile.description}</p>
+                )}
+
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 space-y-1">
+                    <span className="text-slate-400 font-medium">Personality</span>
+                    <p className="text-slate-200 line-clamp-2">{profile.personality || "Standard assistant"}</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 space-y-1">
+                    <span className="text-slate-400 font-medium">Instructions</span>
+                    <p className="text-slate-200 line-clamp-2">{profile.instructions || "General rules"}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1 border-t border-white/5 text-[11px] text-slate-400">
+                  <span className="px-2 py-0.5 rounded bg-white/5 border border-white/5 uppercase font-medium">
+                    {profile.preferences.language}
+                  </span>
+                  <span className="capitalize">{profile.preferences.tone} tone</span>
+                </div>
+              </div>
+            ))
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Live Playground / Simulator (Right) */}
+        <div className="lg:col-span-5 sticky top-24">
+          <div className="p-5 rounded-lg bg-slate-900 border border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <h3 className="text-sm font-bold text-white">AI Simulator Playground</h3>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono">Real-time Preview</span>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Test how your active default profile responds to real customer questions in Facebook Messenger.
+            </p>
+
+            {/* Simulated Messenger Box */}
+            <div className="p-4 rounded-lg bg-slate-950/80 border border-slate-800 space-y-3 min-h-[220px] flex flex-col justify-between">
+              <div className="space-y-3">
+                {/* User Message */}
+                <div className="flex justify-end">
+                  <div className="bg-blue-600 text-white text-xs px-3.5 py-2 rounded-lg rounded-tr-sm max-w-[85%]">
+                    {simulatorInput || "Customer query..."}
+                  </div>
+                </div>
+
+                {/* AI Response */}
+                {isSimulating ? (
+                  <div className="flex items-center gap-2 text-xs text-slate-400 p-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                    <span>AI generating response with active rules...</span>
+                  </div>
+                ) : simulatedReply ? (
+                  <div className="flex justify-start">
+                    <div className="bg-slate-800 text-slate-100 border border-slate-700 text-xs px-3.5 py-2.5 rounded-lg rounded-tl-sm max-w-[90%] space-y-1">
+                      <p className="leading-relaxed">{simulatedReply}</p>
+                      <div className="pt-1 text-[10px] text-slate-400 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        <span>Profile: {defaultProfile?.name || "Active Default"}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-xs text-slate-500">
+                    Click &quot;Simulate Reply&quot; to test your prompt rules
+                  </div>
+                )}
+              </div>
+
+              {/* Sample Queries */}
+              <div className="pt-2 border-t border-slate-800">
+                <span className="text-[10px] text-slate-500 block mb-1">Try example customer inquiries:</span>
+                <div className="flex flex-wrap gap-1">
+                  {[
+                    "Price koto? Delivery fee ache?",
+                    "Black XL size available?",
+                    "Return policy ki apnader?"
+                  ].map((sample, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSimulatorInput(sample)}
+                      className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                    >
+                      {sample}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Input & Fire */}
+            <div className="flex items-center gap-2">
+              <Input
+                value={simulatorInput}
+                onChange={(e) => setSimulatorInput(e.target.value)}
+                placeholder="Type customer message..."
+                className="bg-slate-950/70 border-slate-700 text-white text-xs h-9 rounded-md"
+              />
+              <Button
+                onClick={handleSimulate}
+                disabled={isSimulating || !simulatorInput}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-9 px-4 rounded-md shrink-0 font-medium"
+              >
+                <Play className="w-3.5 h-3.5 mr-1" />
+                Simulate
+              </Button>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   )
 }

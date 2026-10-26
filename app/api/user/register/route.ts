@@ -81,9 +81,11 @@ export async function POST(request: NextRequest) {
       const loginData = await loginResponse.json()
       const token: string | undefined = loginData?.data?.token
       const user = loginData?.data?.user ?? data.data
+      const activeTenantId = loginData?.data?.activeTenantId ?? null
+      const tenants = loginData?.data?.tenants ?? []
 
       const res = NextResponse.json(
-        { success: true, data: { user }, message: data.message, timestamp: new Date().toISOString() },
+        { success: true, data: { user, activeTenantId, tenants }, message: data.message, timestamp: new Date().toISOString() },
         { status: 201 }
       )
 

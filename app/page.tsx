@@ -1,427 +1,607 @@
 "use client"
 
-import Link from "next/link"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, Bot, Calendar, BarChart, MessageSquare, Link2, Zap, Shield, Star, Check, Menu, X, Share2, Globe, Camera, Play, Quote, TrendingUp } from "lucide-react"
-// Social brand icons removed in lucide-react 1.x — using generic equivalents
-const Twitter = Share2, Linkedin = Globe, Instagram = Camera, Facebook = Globe
-import { motion } from "framer-motion"
 import { useState } from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import {
+  ArrowRight,
+  Bot,
+  MessageSquare,
+  Zap,
+  Shield,
+  Star,
+  Check,
+  Menu,
+  X,
+  Globe,
+  Sparkles,
+  ShoppingBag,
+  Users,
+  Building2,
+  TrendingUp,
+  Layers,
+  Send,
+  Lock,
+  ChevronDown,
+  ExternalLink,
+  Cpu,
+  CheckCircle2,
+  Activity,
+  Headphones,
+  FileText,
+  CreditCard,
+  LifeBuoy,
+  PhoneCall,
+  ShieldCheck,
+  CheckCircle
+} from "lucide-react"
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly")
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navbar */}
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm"
-      >
-        <nav className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo (image only) - cropped to fit navbar */}
-            <Link href="/" className="flex items-center">
-              <div className="relative h-10 w-36 overflow-hidden rounded">
-                <Image
-                  src="/bdchatpro.jpg"
-                  alt="BDChatPro"
-                  fill
-                  className="object-cover"
-                />
+    <div className="min-h-screen bg-[#090D16] text-slate-100 selection:bg-blue-600 selection:text-white font-sans relative">
+      
+      {/* Top Notice Strip - Solid Dark Bar */}
+      <div className="relative z-50 bg-[#0F172A] border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 overflow-hidden truncate">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-900/60 text-blue-300 font-semibold text-[10px] uppercase border border-blue-700/60">
+              <Sparkles className="w-3 h-3 text-blue-400" />
+              <span>v2.4 Enterprise</span>
+            </span>
+            <span className="text-slate-300 truncate">
+              Multi-Tenant Workspaces, Banglish AI Sales Bot & Instant Meta Webhook Engine are now live!
+            </span>
+          </div>
+
+          <div className="hidden md:flex items-center gap-4 text-slate-400 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-[11px] text-slate-300 font-medium">Meta Verified Provider</span>
+            </div>
+            <span className="text-slate-700">|</span>
+            <a 
+              href="#pricing" 
+              className="text-[11px] text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 group"
+            >
+              <span>Explore Plans</span>
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Solid Enterprise Header */}
+      <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-[#090D16]/95 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          
+          {/* Brand Logo */}
+          <div className="flex items-center gap-8">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm">
+                <Bot className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-lg font-bold tracking-tight text-white">
+                    BDChat<span className="text-blue-500">Pro</span>
+                  </span>
+                  <Badge className="bg-blue-950 text-blue-400 border border-blue-800 text-[9px] px-1 py-0 font-semibold rounded">
+                    ENTERPRISE
+                  </Badge>
+                </div>
               </div>
             </Link>
 
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">Features</a>
-              <a href="#how-it-works" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">How It Works</a>
-              <a href="#testimonials" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">Testimonials</a>
-              <a href="#pricing" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">Pricing</a>
-            </div>
-
-            {/* CTA */}
-            <div className="hidden md:flex items-center space-x-4">
-              <Link href="/auth/signin" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">Sign In</Link>
-              <Link href="/auth/signin">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                  Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold text-slate-300">
+              <a href="#features" className="hover:text-blue-400 transition-colors">Features</a>
+              <a href="#demo" className="hover:text-blue-400 transition-colors flex items-center gap-1.5">
+                <span>Live Simulator</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              </a>
+              <a href="#solutions" className="hover:text-blue-400 transition-colors">Solutions</a>
+              <a href="#pricing" className="hover:text-blue-400 transition-colors">Pricing</a>
+              <Link href="/dashboard" className="text-slate-400 hover:text-white transition-colors">
+                Console
               </Link>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden">
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+            </nav>
           </div>
 
-          {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="md:hidden mt-4 pb-4 space-y-4 border-t border-gray-200 pt-4">
-              <a href="#features" className="block text-gray-600">Features</a>
-              <a href="#how-it-works" className="block text-gray-600">How It Works</a>
-              <a href="#testimonials" className="block text-gray-600">Testimonials</a>
-              <Link href="/auth/signin"><Button className="w-full bg-blue-600 hover:bg-blue-700">Get Started</Button></Link>
-            </motion.div>
-          )}
-        </nav>
-      </motion.header>
-
-      {/* Hero Section */}
-      <section className="relative py-20 md:py-28 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
-              <div className="inline-flex items-center space-x-2 bg-blue-50 border border-blue-200 rounded-full px-4 py-2 mb-6">
-                <Shield className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-700">Trusted by 10,000+ businesses</span>
-              </div>
-
-              <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight text-gray-900">
-                Automate Your Social Media with AI
-              </h1>
-
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                Save hours every day with intelligent automation. Generate content, schedule posts, and engage your audience across Facebook and Instagram—all powered by AI.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Link href="/auth/signin">
-                  <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8">
-                    Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-                <Button size="lg" variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 px-8">
-                  <Play className="mr-2 h-5 w-5" />
-                  Watch Demo
-                </Button>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <Check className="h-5 w-5 text-green-600" />
-                  <span>No credit card required</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Check className="h-5 w-5 text-green-600" />
-                  <span>14-day free trial</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                  <span className="font-semibold">4.9/5</span>
-                  <span>(2,000+ reviews)</span>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="relative">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-200">
-                  <div className="bg-white p-0 aspect-video">
-                    <div className="relative w-full h-full">
-                      <Image src="/banner.jpg" alt="Dashboard Preview" fill className="object-cover" />
-                    </div>
-                  </div>
-              </div>
-              <div className="absolute -top-4 -right-4 w-72 h-72 bg-blue-100 rounded-full blur-3xl opacity-20 -z-10"></div>
-              <div className="absolute -bottom-4 -left-4 w-72 h-72 bg-purple-100 rounded-full blur-3xl opacity-20 -z-10"></div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 bg-white border-y border-gray-200">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">10K+</div>
-              <div className="text-gray-600">Active Users</div>
+          {/* Right Action Bar */}
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded bg-[#0F172A] border border-slate-800 text-[11px] text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>99.98% Uptime</span>
+              <span className="text-slate-600">•</span>
+              <span className="text-slate-300 font-mono">Dhaka Edge</span>
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">1M+</div>
-              <div className="text-gray-600">Posts Scheduled</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">98%</div>
-              <div className="text-gray-600">Satisfaction Rate</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">24/7</div>
-              <div className="text-gray-600">Support Available</div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-              Powerful Features for Social Media Success
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Everything you need to dominate social media, powered by cutting-edge AI technology
-            </p>
-          </motion.div>
+            <Button asChild variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold h-9 px-3.5 rounded-md">
+              <Link href="/auth/signin">Sign In</Link>
+            </Button>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <FeatureCard
-              icon={<Bot className="h-8 w-8 text-blue-600" />}
-              title="AI Content Generation"
-              description="Create engaging posts, captions, and responses in seconds with our advanced AI engine trained on millions of successful posts."
-              color="blue"
-            />
-            <FeatureCard
-              icon={<Calendar className="h-8 w-8 text-green-600" />}
-              title="Smart Scheduling"
-              description="Auto-post at peak engagement times with intelligent scheduling algorithms that analyze your audience behavior."
-              color="green"
-            />
-            <FeatureCard
-              icon={<BarChart className="h-8 w-8 text-purple-600" />}
-              title="Analytics Dashboard"
-              description="Track growth, engagement, and ROI with comprehensive analytics and actionable insights in real-time."
-              color="purple"
-            />
-            <FeatureCard
-              icon={<MessageSquare className="h-8 w-8 text-red-600" />}
-              title="AI Auto-Reply"
-              description="Automatically respond to comments and DMs with personalized, context-aware AI that sounds human."
-              color="red"
-            />
-            <FeatureCard
-              icon={<Link2 className="h-8 w-8 text-orange-600" />}
-              title="Multi-Platform Sync"
-              description="Manage Facebook, Instagram, and more from one unified dashboard. Schedule once, post everywhere."
-              color="orange"
-            />
-            <FeatureCard
-              icon={<Zap className="h-8 w-8 text-indigo-600" />}
-              title="Lightning Fast"
-              description="Blazing fast workflow with instant AI processing and real-time updates. No lag, no waiting."
-              color="indigo"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section id="how-it-works" className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-              Get Started in 3 Simple Steps
-            </h2>
-            <p className="text-xl text-gray-600">No technical skills required. Start automating in minutes.</p>
-          </motion.div>
-
-          <div className="max-w-5xl mx-auto">
-            <div className="grid md:grid-cols-3 gap-12">
-              <HowItWorksStep
-                step="1"
-                title="Connect Accounts"
-                description="Securely link your Facebook and Instagram accounts with OAuth in under 60 seconds."
-                icon={<Link2 className="h-8 w-8 text-white" />}
-              />
-              <HowItWorksStep
-                step="2"
-                title="Generate Content"
-                description="Use AI to create a month's worth of viral content with just a few clicks and prompts."
-                icon={<Bot className="h-8 w-8 text-white" />}
-              />
-              <HowItWorksStep
-                step="3"
-                title="Automate & Grow"
-                description="Sit back as AI posts, engages, and analyzes your social media performance 24/7."
-                icon={<TrendingUp className="h-8 w-8 text-white" />}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section id="testimonials" className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-              Loved by Thousands of Businesses
-            </h2>
-            <p className="text-xl text-gray-600">See what our customers have to say</p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <TestimonialCard
-              quote="SocialAI has transformed how we manage our social media. We've saved 20+ hours per week!"
-              author="Sarah Johnson"
-              role="Marketing Director at TechCorp"
-              rating={5}
-            />
-            <TestimonialCard
-              quote="The AI content generation is incredible. Our engagement rates have doubled since we started using it."
-              author="Michael Chen"
-              role="Founder of GrowthLab"
-              rating={5}
-            />
-            <TestimonialCard
-              quote="Best investment for our agency. Managing 50+ clients is now effortless with SocialAI's automation."
-              author="Emily Rodriguez"
-              role="CEO of Social Buzz Agency"
-              rating={5}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-blue-600">
-        <div className="container mx-auto px-4 text-center">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
-              Ready to Transform Your Social Media?
-            </h2>
-            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              Join thousands of businesses automating their social media success. Start your free trial today.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/auth/signin">
-                <Button size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100 px-8">
-                  Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
+            <Button asChild className="h-9 px-4 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors">
+              <Link href="/auth/signin" className="flex items-center gap-1.5">
+                <span>Start Free Trial</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-blue-700 px-8">
-                Schedule a Demo
+            </Button>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-2 rounded-md border border-slate-800 text-slate-400 hover:text-white bg-[#0F172A]"
+            aria-label="Toggle navigation"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+
+        {/* Mobile Slide-out Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden px-4 pt-3 pb-6 border-t border-slate-800 bg-[#090D16] space-y-3">
+            <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-slate-300 hover:text-white">Features</a>
+            <a href="#demo" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-slate-300 hover:text-white">Live Simulator</a>
+            <a href="#solutions" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-slate-300 hover:text-white">Solutions</a>
+            <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-slate-300 hover:text-white">Pricing</a>
+            <div className="pt-3 border-t border-slate-800 flex flex-col gap-2">
+              <Button asChild variant="outline" className="w-full border-slate-800 text-slate-200 rounded-md">
+                <Link href="/auth/signin">Sign In</Link>
+              </Button>
+              <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-md">
+                <Link href="/auth/signin">Get Started Free</Link>
               </Button>
             </div>
-            <p className="text-sm text-blue-100 mt-6">No credit card required • 14-day free trial • Cancel anytime</p>
-          </motion.div>
+          </div>
+        )}
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative pt-16 pb-20 lg:pt-24 lg:pb-32 border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-[#0F172A] border border-slate-800 text-xs font-medium text-slate-300 mb-6">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span className="text-white font-semibold">Bangladesh F-Commerce Platform</span>
+            <span className="text-slate-600">•</span>
+            <span className="text-blue-400">Natural Banglish LLM</span>
+          </div>
+
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-tight">
+            Turn Facebook Messenger Into Your Highest-Converting Sales Team
+          </h1>
+
+          <p className="mt-5 text-sm sm:text-base lg:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            Stop losing customer orders overnight. BDChatPro connects to your Facebook Page, answers inquiries in conversational Bengali and Banglish, verifies inventory, and creates confirmed orders directly.
+          </p>
+
+          {/* Action CTAs */}
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button asChild size="lg" className="w-full sm:w-auto h-11 px-6 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm">
+              <Link href="/auth/signin" className="flex items-center gap-2">
+                <span>Start Free 14-Day Trial</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="w-full sm:w-auto h-11 px-5 rounded-md border-slate-800 bg-[#0F172A] hover:bg-slate-800 text-slate-200 text-xs font-semibold">
+              <a href="#demo" className="flex items-center gap-2">
+                <span>Test Live Simulator</span>
+                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+              </a>
+            </Button>
+          </div>
+
+          {/* Enterprise Metrics Strip - Solid Cards */}
+          <div className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-4xl mx-auto p-4 rounded-lg bg-[#0F172A] border border-slate-800">
+            <div className="p-3 text-left border-r border-slate-800">
+              <p className="text-2xl font-bold text-white tracking-tight">5,200,000+</p>
+              <p className="text-xs text-slate-400 mt-0.5">Automated Chats Handled</p>
+            </div>
+            <div className="p-3 text-left border-r border-slate-800">
+              <p className="text-2xl font-bold text-emerald-400 tracking-tight">99.8%</p>
+              <p className="text-xs text-slate-400 mt-0.5">Order Placement Accuracy</p>
+            </div>
+            <div className="p-3 text-left border-r border-slate-800">
+              <p className="text-2xl font-bold text-blue-400 tracking-tight">4.2x</p>
+              <p className="text-xs text-slate-400 mt-0.5">Average Conversion Lift</p>
+            </div>
+            <div className="p-3 text-left">
+              <p className="text-2xl font-bold text-slate-200 tracking-tight">&lt; 1.2s</p>
+              <p className="text-xs text-slate-400 mt-0.5">Median Response Latency</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                  <Bot className="h-5 w-5 text-white" />
+      {/* Interactive Chatbot Demo Section */}
+      <section id="demo" className="py-20 bg-[#070B13] border-b border-slate-800 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0F172A] border border-slate-800 text-xs font-semibold text-blue-400 mb-2">
+              <Activity className="w-3.5 h-3.5" />
+              <span>Real-Time Messenger Experience</span>
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
+              Watch BDChatPro Close an Order in 20 Seconds
+            </h2>
+            <p className="text-slate-400 text-xs sm:text-sm mt-2">
+              See how the bot understands customer intent, checks inventory, quotes sizes, and captures the delivery address automatically.
+            </p>
+          </div>
+
+          {/* Interactive Chat Window Mockup */}
+          <div className="max-w-xl mx-auto bg-[#0F172A] rounded-lg border border-slate-800 shadow-xl overflow-hidden">
+            {/* Chat Header */}
+            <div className="p-3.5 bg-[#1E293B] border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#1E293B]" />
                 </div>
-                <span className="text-xl font-bold text-white">SocialAI</span>
+                <div>
+                  <p className="text-xs font-bold text-white">Dhaka Fashion Boutique (BDChatPro AI)</p>
+                  <p className="text-[10px] text-emerald-400 font-medium">
+                    Active on Facebook Messenger
+                  </p>
+                </div>
               </div>
-              <p className="text-sm">AI-powered social media automation for the modern creator and business.</p>
+              <Badge className="bg-[#0F172A] border border-slate-700 text-[10px] text-slate-400 rounded">
+                Live Simulation
+              </Badge>
             </div>
 
-            <div>
-              <h4 className="font-semibold text-white mb-4">Product</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">API Docs</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Integrations</a></li>
-              </ul>
+            {/* Conversation Flow */}
+            <div className="p-4 space-y-3 text-xs">
+              <div className="flex justify-end">
+                <div className="bg-blue-600 text-white px-3.5 py-2 rounded-lg rounded-tr-none max-w-[85%]">
+                  Apu, ei Cotton Panjabi tar Black XL size ki available ache? Price koto?
+                </div>
+              </div>
+
+              <div className="flex justify-start">
+                <div className="bg-[#1E293B] text-slate-100 border border-slate-700 px-3.5 py-2.5 rounded-lg rounded-tl-none max-w-[85%] space-y-1.5">
+                  <p className="font-medium text-white">
+                    Ji bhai! Black XL size stock-e ache.
+                  </p>
+                  <p className="text-slate-300 text-[11px]">
+                    Premium Cotton Semi-Long Panjabi • Price ৳১,৮৫০ (Dhaka city delivery charge matro ৮০ taka).
+                  </p>
+                  <div className="p-2 rounded bg-[#0F172A] border border-slate-800 flex items-center justify-between text-[11px]">
+                    <span className="text-emerald-400 font-semibold">✓ In Stock (4 pcs left)</span>
+                    <span className="text-blue-400 font-semibold">Cash On Delivery</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <div className="bg-blue-600 text-white px-3.5 py-2 rounded-lg rounded-tr-none max-w-[85%]">
+                  Ami 1 piece nibo. Delivery kobe pabo? Address: House 12, Road 5, Dhanmondi, Dhaka. Phone: 01711223344
+                </div>
+              </div>
+
+              <div className="flex justify-start">
+                <div className="bg-[#1E293B] text-slate-100 border border-slate-700 px-3.5 py-2.5 rounded-lg rounded-tl-none max-w-[85%] space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Order Confirmed (#ORD-8821)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    Dhaka shohore 24-48 hours-er bhetore delivery peye jaben. Total: ৳১,৯৩০ (Delivery charge shoho). Rider delivery-r age call korbe. Thank you!
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <h4 className="font-semibold text-white mb-4">Company</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
-              </ul>
+            <div className="p-3 bg-[#1E293B] border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span>Captured directly into your Orders dashboard</span>
+              </span>
+              <Link href="/auth/signin" className="text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1">
+                <span>Try with your page</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
+          </div>
+        </div>
+      </section>
 
-            <div>
-              <h4 className="font-semibold text-white mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Cookie Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
-              </ul>
+      {/* Solutions / Features Bento Grid */}
+      <section id="features" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-b border-slate-800">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <Badge className="bg-blue-950 text-blue-400 border border-blue-800 text-xs mb-2 rounded">
+            Core Architecture
+          </Badge>
+          <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
+            Built for High-Growth Bangladeshi Merchants
+          </h2>
+          <p className="text-slate-400 text-xs sm:text-sm mt-2">
+            Everything your business needs to scale Facebook and Instagram sales effortlessly.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-5 rounded-lg bg-[#0F172A] border border-slate-800 space-y-3">
+            <div className="w-10 h-10 rounded-md bg-blue-600 flex items-center justify-center text-white">
+              <Bot className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-white">Natural Banglish Sales LLM</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Trained specifically on Bangladeshi consumer chat habits. Understands colloquial expressions, product inquiries, and address formatting.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-lg bg-[#0F172A] border border-slate-800 space-y-3">
+            <div className="w-10 h-10 rounded-md bg-blue-600 flex items-center justify-center text-white">
+              <ShoppingBag className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-white">Vector Catalog & Real-time Stock</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Semantic embeddings index your products instantly. The bot searches descriptions, sizes, and stock limits so you never oversell.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-lg bg-[#0F172A] border border-slate-800 space-y-3">
+            <div className="w-10 h-10 rounded-md bg-blue-600 flex items-center justify-center text-white">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-white">Multi-Tenant Team Workspaces</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Manage multiple pages and brands from one login. Assign roles (Owner, Admin, Manager, Agent) with granular RBAC permissions.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-20 bg-[#070B13] border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <Badge className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs mb-2 rounded">
+              Simple BDT Pricing
+            </Badge>
+            <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
+              Predictable Plans for Every Merchant
+            </h2>
+            <p className="text-slate-400 text-xs sm:text-sm mt-2">
+              Pay locally using bKash, Nagad, or Bank Transfer. Cancel or upgrade anytime.
+            </p>
+
+            {/* Toggle */}
+            <div className="mt-6 inline-flex items-center p-1 rounded-md bg-[#0F172A] border border-slate-800">
+              <button
+                onClick={() => setBillingCycle("monthly")}
+                className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                  billingCycle === "monthly" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingCycle("yearly")}
+                className={`px-3 py-1 rounded text-xs font-semibold transition-colors flex items-center gap-1 ${
+                  billingCycle === "yearly" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <span>Yearly</span>
+                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950 px-1 rounded">Save 20%</span>
+              </button>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center">
-            <p className="text-sm">© 2025 SocialAI, Inc. All rights reserved.</p>
-            <div className="flex space-x-6 mt-4 sm:mt-0">
-              <a href="#" className="hover:text-white transition-colors"><Twitter className="h-5 w-5" /></a>
-              <a href="#" className="hover:text-white transition-colors"><Linkedin className="h-5 w-5" /></a>
-              <a href="#" className="hover:text-white transition-colors"><Instagram className="h-5 w-5" /></a>
-              <a href="#" className="hover:text-white transition-colors"><Facebook className="h-5 w-5" /></a>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+            {/* Starter */}
+            <div className="p-6 rounded-lg bg-[#0F172A] border border-slate-800 flex flex-col justify-between space-y-5">
+              <div>
+                <h3 className="text-base font-bold text-white">Starter</h3>
+                <p className="text-xs text-slate-400 mt-0.5">For single page merchants & startups</p>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="text-3xl font-bold text-white">
+                    {billingCycle === "yearly" ? "৳১,৫০০" : "৳১,৮৫০"}
+                  </span>
+                  <span className="text-xs text-slate-400">/ month</span>
+                </div>
+                <ul className="mt-5 space-y-2 text-xs text-slate-300">
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Up to 50 Products in Catalog</li>
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 1 Facebook Page Connected</li>
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 1,500 AI Conversations / mo</li>
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Order Management & Receipts</li>
+                </ul>
+              </div>
+              <Button asChild variant="outline" className="w-full border-slate-800 text-white hover:bg-slate-800 text-xs h-9 rounded-md">
+                <Link href="/auth/signin">Get Started</Link>
+              </Button>
+            </div>
+
+            {/* Growth Pro */}
+            <div className="p-6 rounded-lg bg-[#0F172A] border-2 border-blue-600 flex flex-col justify-between space-y-5 relative">
+              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded bg-blue-600 text-[10px] font-bold text-white tracking-wider uppercase">
+                Most Popular
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Growth Pro</h3>
+                <p className="text-xs text-slate-400 mt-0.5">For scaling Facebook shops & brands</p>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="text-3xl font-bold text-white">
+                    {billingCycle === "yearly" ? "৳৩,২০০" : "৳৩,৯৫০"}
+                  </span>
+                  <span className="text-xs text-slate-400">/ month</span>
+                </div>
+                <ul className="mt-5 space-y-2 text-xs text-slate-200">
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Unlimited Products & Categories</li>
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Unlimited AI Sales Conversations</li>
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 5 Team Member Seats (RBAC)</li>
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Custom AI Personalities & Prompts</li>
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Priority bKash / WhatsApp Support</li>
+                </ul>
+              </div>
+              <Button asChild className="w-full h-9 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs">
+                <Link href="/auth/signin">Start 14-Day Free Trial</Link>
+              </Button>
+            </div>
+
+            {/* Enterprise */}
+            <div className="p-6 rounded-lg bg-[#0F172A] border border-slate-800 flex flex-col justify-between space-y-5">
+              <div>
+                <h3 className="text-base font-bold text-white">Enterprise Scale</h3>
+                <p className="text-xs text-slate-400 mt-0.5">For multi-brand agencies & franchises</p>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="text-3xl font-bold text-white">
+                    {billingCycle === "yearly" ? "৳৭,২০০" : "৳৮,৯০০"}
+                  </span>
+                  <span className="text-xs text-slate-400">/ month</span>
+                </div>
+                <ul className="mt-5 space-y-2 text-xs text-slate-300">
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Multiple Brands & Tenancy</li>
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Unlimited Team Seats</li>
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Custom LLM Training on Catalog</li>
+                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 99.99% SLA Dedicated Webhook Queue</li>
+                </ul>
+              </div>
+              <Button asChild variant="outline" className="w-full border-slate-800 text-white hover:bg-slate-800 text-xs h-9 rounded-md">
+                <Link href="/auth/signin">Contact Enterprise</Link>
+              </Button>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Enterprise Multi-Column Footer - Solid Slate */}
+      <footer className="border-t border-slate-800 bg-[#090D16] pt-14 pb-10 text-slate-400 text-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          {/* Main 5-Column Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 pb-12 border-b border-slate-800">
+            
+            {/* Column 1: Brand & Mission */}
+            <div className="lg:col-span-2 space-y-3">
+              <Link href="/" className="flex items-center gap-2 group">
+                <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center text-white">
+                  <Bot className="w-4 h-4" />
+                </div>
+                <span className="text-base font-bold text-white tracking-tight">
+                  BDChat<span className="text-blue-500">Pro</span>
+                </span>
+              </Link>
+              <p className="text-xs text-slate-400 leading-relaxed pr-4">
+                The premier conversational AI platform for Bangladesh Facebook Commerce. Automatically turns Messenger inquiries into delivered orders 24/7 with native Banglish comprehension.
+              </p>
+              
+              <div className="flex flex-col gap-1.5 pt-1">
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Meta Tech Provider Verified</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
+                  <Lock className="w-4 h-4 text-blue-400 shrink-0" />
+                  <span>256-Bit SSL Encrypted & Data Protected</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 2: Platform */}
+            <div className="space-y-2.5">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Platform</h4>
+              <ul className="space-y-1.5">
+                <li><a href="#features" className="hover:text-white transition-colors">AI Sales Agent</a></li>
+                <li><a href="#demo" className="hover:text-white transition-colors">Interactive Simulator</a></li>
+                <li><Link href="/dashboard/orders" className="hover:text-white transition-colors">Orders Pipeline</Link></li>
+                <li><Link href="/dashboard/products" className="hover:text-white transition-colors">Vector Catalog Sync</Link></li>
+                <li><Link href="/dashboard/configure-page" className="hover:text-white transition-colors">Meta Webhooks</Link></li>
+                <li><Link href="/dashboard/team" className="hover:text-white transition-colors">Workspaces & Roles</Link></li>
+              </ul>
+            </div>
+
+            {/* Column 3: Solutions */}
+            <div className="space-y-2.5">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Solutions</h4>
+              <ul className="space-y-1.5">
+                <li><span className="hover:text-white cursor-pointer transition-colors">Clothing & Panjabi</span></li>
+                <li><span className="hover:text-white cursor-pointer transition-colors">Gadgets & Electronics</span></li>
+                <li><span className="hover:text-white cursor-pointer transition-colors">Cosmetics & Skincare</span></li>
+                <li><span className="hover:text-white cursor-pointer transition-colors">Cloud Kitchens & Bakery</span></li>
+                <li><span className="hover:text-white cursor-pointer transition-colors">Wholesale & Agencies</span></li>
+              </ul>
+            </div>
+
+            {/* Column 4: Developers */}
+            <div className="space-y-2.5">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Developers & Docs</h4>
+              <ul className="space-y-1.5">
+                <li><Link href="/dashboard" className="hover:text-white transition-colors">Merchant Console</Link></li>
+                <li><span className="hover:text-white cursor-pointer transition-colors">REST API Spec</span></li>
+                <li><span className="hover:text-white cursor-pointer transition-colors">Webhook Payload Guide</span></li>
+                <li><span className="hover:text-white cursor-pointer transition-colors">Banglish Prompt Engine</span></li>
+                <li><span className="hover:text-white cursor-pointer transition-colors">Postman Collection</span></li>
+                <li><span className="hover:text-white cursor-pointer transition-colors">System Architecture</span></li>
+              </ul>
+            </div>
+
+            {/* Column 5: Enterprise & Help */}
+            <div className="space-y-2.5">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Enterprise & Support</h4>
+              <ul className="space-y-1.5">
+                <li><a href="#pricing" className="hover:text-white transition-colors">Pricing & Plans</a></li>
+                <li><Link href="/auth/signin" className="hover:text-white transition-colors">Merchant Login</Link></li>
+                <li><Link href="/auth/forgot-password" className="hover:text-white transition-colors">Password Recovery</Link></li>
+                <li><Link href="/dashboard/subscription" className="hover:text-white transition-colors">bKash & Nagad Billing</Link></li>
+                <li><span className="hover:text-white cursor-pointer transition-colors">Security & Compliance</span></li>
+                <li><span className="hover:text-white cursor-pointer transition-colors">Support Hotline (+880)</span></li>
+              </ul>
+            </div>
+
+          </div>
+
+          {/* Payment Partners & Trust Strip */}
+          <div className="py-5 border-b border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+              Supported Bangladesh Payment Gateways & Banking
+            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2 py-0.5 rounded bg-[#0F172A] border border-slate-800 text-slate-200 text-[11px] font-bold">
+                bKash Merchant
+              </span>
+              <span className="px-2 py-0.5 rounded bg-[#0F172A] border border-slate-800 text-slate-200 text-[11px] font-bold">
+                Nagad Direct
+              </span>
+              <span className="px-2 py-0.5 rounded bg-[#0F172A] border border-slate-800 text-slate-200 text-[11px] font-bold">
+                Bank Wire / IBAN
+              </span>
+              <span className="px-2 py-0.5 rounded bg-[#0F172A] border border-slate-800 text-slate-200 text-[11px] font-bold">
+                SSLCommerz
+              </span>
+            </div>
+          </div>
+
+          {/* Bottom Legal & Server Cluster */}
+          <div className="pt-5 flex flex-col md:flex-row items-center justify-between gap-3 text-[11px]">
+            <p className="text-slate-400">
+              © {new Date().getFullYear()} BDChatPro Technologies Ltd. Dhaka, Bangladesh. All rights reserved.
+            </p>
+
+            <div className="flex items-center gap-3 text-slate-400">
+              <span className="flex items-center gap-1.5 text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>Cluster: Dhaka Edge (ap-south-1)</span>
+              </span>
+              <span>•</span>
+              <span className="hover:text-slate-300 cursor-pointer">Privacy Policy</span>
+              <span>•</span>
+              <span className="hover:text-slate-300 cursor-pointer">Terms of Service</span>
+              <span>•</span>
+              <span className="hover:text-slate-300 cursor-pointer">Merchant Agreement</span>
+            </div>
+          </div>
+
         </div>
       </footer>
     </div>
   )
 }
-
-// Feature Card Component
-const FeatureCard = ({ icon, title, description, color }: { icon: React.ReactNode; title: string; description: string; color: string }) => {
-  const bgColors: Record<string, string> = {
-    blue: "bg-blue-100",
-    green: "bg-green-100",
-    purple: "bg-purple-100",
-    red: "bg-red-100",
-    orange: "bg-orange-100",
-    indigo: "bg-indigo-100",
-  }
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-      <Card className="bg-white border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 h-full">
-        <CardHeader>
-          <div className={`w-14 h-14 rounded-xl ${bgColors[color]} flex items-center justify-center mb-4`}>
-            {icon}
-          </div>
-          <CardTitle className="text-xl font-bold text-gray-900">{title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-600">{description}</p>
-        </CardContent>
-      </Card>
-    </motion.div>
-  )
-}
-
-// How It Works Step Component
-const HowItWorksStep = ({ step, title, description, icon }: { step: string; title: string; description: string; icon: React.ReactNode }) => (
-  <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center">
-    <div className="relative inline-block mb-6">
-      <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center relative z-10 shadow-lg">
-        {icon}
-      </div>
-    </div>
-    <div className="text-6xl font-bold text-blue-100 mb-2">{step}</div>
-    <h3 className="text-2xl font-semibold mb-3 text-gray-900">{title}</h3>
-    <p className="text-gray-600">{description}</p>
-  </motion.div>
-)
-
-// Testimonial Card Component
-const TestimonialCard = ({ quote, author, role, rating }: { quote: string; author: string; role: string; rating: number }) => (
-  <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-    <Card className="bg-white border-gray-200 h-full">
-      <CardContent className="pt-6">
-        <div className="flex mb-4">
-          {[...Array(rating)].map((_, i) => (
-            <Star key={i} className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-          ))}
-        </div>
-        <Quote className="h-8 w-8 text-blue-600 mb-4" />
-        <p className="text-gray-700 mb-6 italic">&quot;{quote}&quot;</p>
-        <div>
-          <div className="font-semibold text-gray-900">{author}</div>
-          <div className="text-sm text-gray-600">{role}</div>
-        </div>
-      </CardContent>
-    </Card>
-  </motion.div>
-)

@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useUserStore } from "@/lib/stores/userStore"
+import { useEntitlements } from "@/hooks/use-entitlements"
+import { usePermissions } from "@/hooks/use-permissions"
 import {
   MessageSquare,
   AlertCircle,
@@ -13,7 +15,19 @@ import {
   Package,
   Activity,
   MoreVertical,
-  Loader2
+  Loader2,
+  TrendingUp,
+  DollarSign,
+  Bot,
+  Users,
+  Sparkles,
+  Plus,
+  Globe,
+  Settings,
+  ShoppingBag,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react"
 
 // Message interfaces
@@ -90,46 +104,45 @@ interface OrdersResponse {
 }
 
 export default function Dashboard() {
-  const { user } = useUserStore()
+  const { user, tenants, activeTenantId, currentRole } = useUserStore()
+  const { entitlements, isGracePeriod, planName, getUsageInfo } = useEntitlements()
+  const { canManageCatalog, canConfigureAI, canManageTeam } = usePermissions()
+
   const [messages, setMessages] = useState<Message[]>([])
   const [messagesLoading, setMessagesLoading] = useState(true)
   const [messagesError, setMessagesError] = useState<string | null>(null)
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
   const [recentOrdersLoading, setRecentOrdersLoading] = useState(true)
   const [recentOrdersError, setRecentOrdersError] = useState<string | null>(null)
+  const [totalOrderCount, setTotalOrderCount] = useState(0)
+
+  const activeTenant = tenants.find((t) => t.id === activeTenantId) || tenants[0]
 
   // Fetch messages from API
   const fetchMessages = useCallback(async (showLoading = true) => {
-    if (showLoading) {
-      setMessagesLoading(true)
-    }
+    if (showLoading) setMessagesLoading(true)
     setMessagesError(null)
 
     try {
       const params = new URLSearchParams({
-        limit: '10',
-        includeAIResponses: 'true'
+        limit: "15",
+        includeAIResponses: "true",
       })
 
       const response = await fetch(`/api/user/messages?${params.toString()}`)
       const data: MessagesResponse = await response.json()
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch messages')
-      }
+      if (!response.ok) throw new Error("Failed to fetch messages")
 
       if (data.success && data.data) {
         setMessages(data.data)
       } else {
-        throw new Error('Invalid response format')
+        throw new Error("Invalid response format")
       }
     } catch (err) {
-      setMessagesError(err instanceof Error ? err.message : 'An error occurred while fetching messages')
-      console.error('Error fetching messages:', err)
+      setMessagesError(err instanceof Error ? err.message : "An error occurred while fetching messages")
     } finally {
-      if (showLoading) {
-        setMessagesLoading(false)
-      }
+      if (showLoading) setMessagesLoading(false)
     }
   }, [])
 
@@ -139,10 +152,9 @@ export default function Dashboard() {
       setRecentOrdersLoading(true)
       setRecentOrdersError(null)
 
-      // Fetch recent orders (limit to 8 for dashboard display)
       const params = new URLSearchParams({
-        limit: '8',
-        page: '1'
+        limit: "10",
+        page: "1",
       })
 
       const response = await fetch(`/api/user/orders?${params.toString()}`)
@@ -150,294 +162,348 @@ export default function Dashboard() {
 
       if (data.success && data.data) {
         setRecentOrders(data.data.orders)
+        setTotalOrderCount(data.data.pagination?.total || data.data.orders.length)
       } else {
-        throw new Error(data.message || 'Failed to fetch orders')
+        throw new Error(data.message || "Failed to fetch orders")
       }
     } catch (err) {
-      setRecentOrdersError(err instanceof Error ? err.message : 'An error occurred while fetching orders')
-      console.error('Error fetching orders:', err)
+      setRecentOrdersError(err instanceof Error ? err.message : "An error occurred while fetching orders")
     } finally {
       setRecentOrdersLoading(false)
     }
   }, [])
 
-  // Fetch messages on component mount
   useEffect(() => {
-    fetchMessages()
-    fetchRecentOrders()
-  }, [fetchMessages, fetchRecentOrders])
+    void fetchMessages()
+    void fetchRecentOrders()
+  }, [fetchMessages, fetchRecentOrders, activeTenantId])
 
-    // Auto-refresh messages every 5 seconds
+  // Periodic polling for live messages every 6 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchMessages(false) // Don't show loading state during auto-refresh
-    }, 5000)
-
+      fetchMessages(false)
+    }, 6000)
     return () => clearInterval(interval)
   }, [fetchMessages])
 
-  // Note: this page has no "today" stats grid - a prior version rendered one
-  // with hardcoded fake numbers (127 orders, Tk 8,432 revenue, etc.) but
-  // nothing here actually displays it, so it was removed rather than wired up
-  // to real data that would never be shown. Recent Orders / Live Chats below
-  // reflect real fetched data.
+  // Aggregate metrics from active orders
+  const metrics = useMemo(() => {
+    const totalRev = recentOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+    const pendingOrders = recentOrders.filter((o) => o.status === "pending" || o.status === "draft").length
+    const aiRespondedCount = messages.filter((m) => Boolean(m.aiResponse)).length
+    const aiRate = messages.length > 0 ? Math.round((aiRespondedCount / messages.length) * 100) : 100
 
-  // Helper function to format time ago
+    return {
+      revenue: totalRev,
+      pendingCount: pendingOrders,
+      aiResponseRate: aiRate,
+      messagesCount: messages.length,
+    }
+  }, [recentOrders, messages])
+
   const formatTimeAgo = (dateString: string) => {
     const now = new Date()
     const date = new Date(dateString)
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
 
-    if (diffInMinutes < 1) return 'Just now'
-    if (diffInMinutes < 60) return `${diffInMinutes} min ago`
-
+    if (diffInMinutes < 1) return "Just now"
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`
     const diffInHours = Math.floor(diffInMinutes / 60)
     if (diffInHours < 24) return `${diffInHours}h ago`
-
-    const diffInDays = Math.floor(diffInHours / 24)
-    if (diffInDays === 1) return 'Yesterday'
-    if (diffInDays < 7) return `${diffInDays} days ago`
-
     return date.toLocaleDateString()
   }
 
-  // Recent orders from chatbot
-  const transformedRecentOrders = recentOrders.map((order) => ({
-    id: order.orderId,
-    customer: order.customerName,
-    product: order.items.length > 0 ? order.items[0].productName + (order.items.length > 1 ? ` + ${order.items.length - 1} more` : '') : 'Unknown Product',
-    amount: `${order.currency} ${order.totalAmount.toFixed(2)}`,
-    status: order.status,
-    time: formatTimeAgo(order.createdAt),
-    channel: order.source
-  }))
-
-  // Live chat activity - now from API
-  const chatActivity = messages.slice(0, 10).map((message) => ({
-    id: message.id,
-    userMessage: message.content === '{}' ? '📎 Image/Attachment' : message.content,
-    aiResponse: message.aiResponse?.aiResponse || '',
-    time: new Date(message.timestamp).toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit',
-      hour12: true 
-    }),
-    unread: !message.processed, // Unread if not processed
-    status: message.aiResponse ? 'ai-responded' : 'pending'
-  }))
-
   const getStatusColor = (status: string) => {
     switch (status) {
+      case "delivered":
       case "completed":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200"
-      case "processing":
-        return "bg-blue-100 text-blue-700 border-blue-200"
+        return "bg-emerald-50 text-emerald-700 border-emerald-200"
+      case "confirmed":
+      case "preparing":
+      case "ready":
+        return "bg-blue-50 text-blue-700 border-blue-200"
       case "pending":
-        return "bg-amber-100 text-amber-700 border-amber-200"
+      case "draft":
+        return "bg-amber-50 text-amber-700 border-amber-200"
+      case "cancelled":
+        return "bg-rose-50 text-rose-700 border-rose-200"
       default:
-        return "bg-slate-100 text-slate-700 border-slate-200"
+        return "bg-slate-50 text-slate-700 border-slate-200"
     }
   }
 
   return (
-    <div className="flex flex-col h-full space-y-2">
-      {/* Welcome Section */}
-      <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm shrink-0">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 mb-1">
+    <div className="space-y-6 max-w-7xl mx-auto p-3 lg:p-6">
+      {/* Grace period warning if applicable */}
+      {isGracePeriod && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl flex items-center justify-between shadow-sm">
+          <div className="flex items-center space-x-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold">Your subscription is in grace period</p>
+              <p className="text-xs text-amber-700">
+                Please renew your plan to prevent automated chatbot and catalog service interruption.
+              </p>
+            </div>
+          </div>
+          <Button asChild size="sm" className="bg-amber-600 hover:bg-amber-700 text-white text-xs">
+            <Link href="/dashboard/purchase">Renew Plan</Link>
+          </Button>
+        </div>
+      )}
+
+      {/* Welcome Banner */}
+      <div className="bg-slate-900 rounded-lg p-6 text-white shadow-sm border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-3 mb-1">
+            <h1 className="text-2xl font-bold tracking-tight text-white">
               Welcome back, {user?.firstName}! 👋
             </h1>
-            <p className="text-sm text-slate-600">
-              Your AI chatbot is actively helping customers. Here&apos;s today&apos;s performance.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-medium">
-              <Activity className="h-3 w-3 mr-1" />
-              Live
+            <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs rounded">
+              {activeTenant?.name || "Workspace"} • {currentRole || "OWNER"}
             </Badge>
           </div>
+          <p className="text-sm text-slate-400">
+            Your Facebook AI assistant is active and processing conversations. Here is your store summary.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 flex items-center gap-1.5 text-xs font-semibold">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> Live Service Connected
+          </Badge>
         </div>
       </div>
 
-
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-1 min-h-0">
-        {/* Recent Orders - Takes 2 columns */}
-        <Card className="lg:col-span-2 border-slate-200 flex flex-col h-full">
-          <CardHeader className="pb-2 shrink-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-bold text-slate-900">Recent Orders</CardTitle>
-                <p className="text-xs text-slate-500 mt-0.5">Latest customer orders</p>
-              </div>
-              <Link href="/dashboard/orders">
-                <Button variant="ghost" size="sm" className="h-7 text-xs">
-                  View All
-                  <ArrowUpRight className="h-3 w-3 ml-1" />
-                </Button>
-              </Link>
+      {/* Top Summary Metrics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Orders Card */}
+        <Card className="border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Orders</p>
+              <h3 className="text-2xl font-bold text-slate-900 mt-1">{totalOrderCount}</h3>
+              <p className="text-xs text-emerald-600 font-medium flex items-center mt-1">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                {metrics.pendingCount} awaiting processing
+              </p>
             </div>
-          </CardHeader>
-          <CardContent className="p-0 flex-1 min-h-0">
-            <div className="h-full divide-y divide-slate-100 overflow-hidden">
-              {recentOrdersLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                  <span className="ml-2 text-sm text-slate-600">Loading orders...</span>
-                </div>
-              ) : recentOrdersError ? (
-                <div className="flex flex-col items-center justify-center h-full px-4">
-                  <AlertCircle className="h-6 w-6 text-red-600" />
-                  <div className="mt-2 text-center">
-                    <p className="text-sm text-red-600 font-medium">Error loading orders</p>
-                    <p className="text-xs text-slate-600">{recentOrdersError}</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2 h-7 text-xs"
-                      onClick={() => fetchRecentOrders()}
-                    >
-                      Try Again
-                    </Button>
-                  </div>
-                </div>
-              ) : transformedRecentOrders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <Package className="h-6 w-6 text-slate-400" />
-                  <div className="mt-2 text-center">
-                    <p className="text-sm text-slate-600 font-medium">No recent orders</p>
-                    <p className="text-xs text-slate-500">Recent orders will appear here</p>
-                  </div>
-                </div>
-              ) : (
-                transformedRecentOrders.slice(0, 6).map((order) => (
-                  <div key={order.id} className="p-3 hover:bg-slate-50 transition-colors">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                          <Package className="h-3.5 w-3.5 text-slate-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">{order.customer}</p>
-                          <p className="text-xs text-slate-500">{order.id}</p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                        <MoreVertical className="h-3 w-3 text-slate-400" />
-                      </Button>
-                    </div>
-                    <div className="flex items-center justify-between ml-11">
-                      <div className="flex-1">
-                        <p className="text-xs text-slate-600 mb-0.5">{order.product}</p>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getStatusColor(order.status)}`}>
-                            {order.status}
-                          </Badge>
-                          <span className="text-[10px] text-slate-400">via {order.channel}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-slate-900">{order.amount}</p>
-                        <p className="text-[10px] text-slate-400">{order.time}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
+            <div className="h-12 w-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+              <ShoppingBag className="h-6 w-6" />
             </div>
           </CardContent>
         </Card>
 
-        {/* Live Chat Activity */}
-        <Card className="border-slate-200 flex flex-col h-full">
-          <CardHeader className="pb-2 shrink-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-bold text-slate-900">Live Chats</CardTitle>
-                <p className="text-xs text-slate-500 mt-0.5">Active conversations</p>
+        {/* Revenue Card */}
+        <Card className="border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Recent Volume</p>
+              <h3 className="text-2xl font-bold text-slate-900 mt-1">
+                BDT {metrics.revenue.toLocaleString()}
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">From latest active batch</p>
+            </div>
+            <div className="h-12 w-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+              <DollarSign className="h-6 w-6" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* AI Automation Rate */}
+        <Card className="border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">AI Response Rate</p>
+              <h3 className="text-2xl font-bold text-slate-900 mt-1">{metrics.aiResponseRate}%</h3>
+              <p className="text-xs text-indigo-600 font-medium flex items-center mt-1">
+                <Sparkles className="h-3 w-3 mr-1" /> Automated Messenger replies
+              </p>
+            </div>
+            <div className="h-12 w-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+              <Bot className="h-6 w-6" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Active Plan Card */}
+        <Card className="border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Plan & Usage</p>
+              <h3 className="text-xl font-bold text-slate-900 mt-1">{planName}</h3>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-xs text-slate-500">
+                  Products: {getUsageInfo("MAX_PRODUCTS").used} / {getUsageInfo("MAX_PRODUCTS").limit ?? "∞"}
+                </span>
               </div>
             </div>
+            <div className="h-12 w-12 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
+              <Package className="h-6 w-6" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions Bar */}
+      <div className="flex flex-wrap items-center gap-2 p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <span className="text-xs font-semibold text-slate-500 mr-2 flex items-center gap-1.5">
+          <Sparkles className="h-3.5 w-3.5 text-blue-600" /> Quick Actions:
+        </span>
+        {canManageCatalog && (
+          <Button asChild variant="outline" size="sm" className="h-8 text-xs gap-1 border-slate-200 hover:bg-slate-50">
+            <Link href="/dashboard/products">
+              <Plus className="h-3.5 w-3.5 text-blue-600" /> Add Product
+            </Link>
+          </Button>
+        )}
+        {canConfigureAI && (
+          <Button asChild variant="outline" size="sm" className="h-8 text-xs gap-1 border-slate-200 hover:bg-slate-50">
+            <Link href="/dashboard/configure-ai">
+              <Bot className="h-3.5 w-3.5 text-indigo-600" /> Configure AI
+            </Link>
+          </Button>
+        )}
+        <Button asChild variant="outline" size="sm" className="h-8 text-xs gap-1 border-slate-200 hover:bg-slate-50">
+          <Link href="/dashboard/configure-page">
+            <Globe className="h-3.5 w-3.5 text-emerald-600" /> Facebook Setup
+          </Link>
+        </Button>
+        {canManageTeam && (
+          <Button asChild variant="outline" size="sm" className="h-8 text-xs gap-1 border-slate-200 hover:bg-slate-50">
+            <Link href="/dashboard/team">
+              <Users className="h-3.5 w-3.5 text-purple-600" /> Manage Team
+            </Link>
+          </Button>
+        )}
+      </div>
+
+      {/* Main Content Grid: Recent Orders & Live Chats */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Orders - 2 Columns */}
+        <Card className="lg:col-span-2 border-slate-200 shadow-sm bg-white flex flex-col">
+          <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <ShoppingBag className="h-4 w-4 text-blue-600" /> Recent Customer Orders
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-500">
+                Incoming orders routed from Facebook Messenger and website
+              </CardDescription>
+            </div>
+            <Button asChild variant="ghost" size="sm" className="h-8 text-xs text-blue-600 font-medium">
+              <Link href="/dashboard/orders">
+                View All <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
+              </Link>
+            </Button>
           </CardHeader>
-          <CardContent className="p-0 flex-1 min-h-0">
-            {messagesLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                <span className="ml-2 text-sm text-slate-600">Loading messages...</span>
+          <CardContent className="p-0 flex-1">
+            {recentOrdersLoading ? (
+              <div className="p-12 text-center text-slate-500 flex items-center justify-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> Loading orders...
               </div>
-            ) : messagesError ? (
-              <div className="flex flex-col items-center justify-center h-full px-4">
-                <AlertCircle className="h-6 w-6 text-red-600" />
-                <div className="mt-2 text-center">
-                  <p className="text-sm text-red-600 font-medium">Error loading messages</p>
-                  <p className="text-xs text-slate-600">{messagesError}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 h-7 text-xs"
-                    onClick={() => fetchMessages(true)}
-                  >
-                    Try Again
-                  </Button>
-                </div>
+            ) : recentOrdersError ? (
+              <div className="p-8 text-center text-slate-500">
+                <AlertCircle className="h-6 w-6 text-red-500 mx-auto mb-2" />
+                <p className="text-sm font-medium text-slate-700">{recentOrdersError}</p>
+                <Button size="sm" variant="outline" onClick={() => fetchRecentOrders()} className="mt-3 text-xs">
+                  Retry
+                </Button>
               </div>
-            ) : chatActivity.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full">
-                <MessageSquare className="h-6 w-6 text-slate-400" />
-                <div className="mt-2 text-center">
-                  <p className="text-sm text-slate-600 font-medium">No messages yet</p>
-                  <p className="text-xs text-slate-500">Recent conversations will appear here</p>
-                </div>
+            ) : recentOrders.length === 0 ? (
+              <div className="p-12 text-center text-slate-400">
+                <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm font-medium">No recent orders yet</p>
+                <p className="text-xs mt-1">Orders will appear here as soon as customers place them.</p>
               </div>
             ) : (
-              <div className="h-full overflow-y-auto divide-y divide-slate-100">
-                {chatActivity.map((chat, index) => (
-                  <div
-                    key={`${chat.id}-${chat.time}`}
-                    className={`p-3 hover:bg-slate-50 transition-all duration-300 ease-in-out cursor-pointer animate-in fade-in slide-in-from-bottom-2 ${
-                      chat.unread ? 'bg-blue-50/50' : ''
-                    }`}
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                  <div className="flex items-start justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <div className="h-7 w-7 rounded-full bg-slate-200 flex items-center justify-center">
-                        <MessageSquare className="h-3.5 w-3.5 text-slate-600" />
+              <div className="divide-y divide-slate-100">
+                {recentOrders.slice(0, 6).map((order) => (
+                  <div key={order.orderId} className="p-4 hover:bg-slate-50/80 transition-colors flex items-center justify-between gap-4">
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className="h-9 w-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 font-bold text-xs">
+                        {order.customerName?.[0] || "#"}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-slate-900 line-clamp-1">
-                          {chat.userMessage}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900 truncate">{order.customerName}</p>
+                        <p className="text-xs text-slate-500 truncate">
+                          {order.items.length > 0 ? order.items[0].productName : "Product"}
+                          {order.items.length > 1 && ` +${order.items.length - 1} more`}
                         </p>
-                        {chat.aiResponse && (
-                          <p className="text-xs text-slate-600 mt-1 line-clamp-2">
-                            {chat.aiResponse}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-[10px] text-slate-500">{chat.time}</p>
-                          {chat.aiResponse && (
-                            <span className="text-[10px] text-blue-600 font-medium">
-                              {messages.find(m => m.id === chat.id)?.aiResponse?.aiModel?.split('/')[1] || 'AI'}
-                            </span>
-                          )}
-                        </div>
                       </div>
                     </div>
-                    {chat.unread && (
-                      <div className="h-1.5 w-1.5 rounded-full bg-blue-500"></div>
-                    )}
-                  </div>
+
+                    <div className="flex items-center space-x-3 shrink-0">
+                      <Badge variant="outline" className={`${getStatusColor(order.status)} text-[11px] font-semibold px-2 py-0.5`}>
+                        {order.status}
+                      </Badge>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-slate-900">
+                          {order.currency} {order.totalAmount.toLocaleString()}
+                        </p>
+                        <p className="text-[11px] text-slate-400">{formatTimeAgo(order.createdAt)}</p>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-          
+          </CardContent>
+        </Card>
+
+        {/* Live Chats Stream */}
+        <Card className="border-slate-200 shadow-sm bg-white flex flex-col">
+          <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-emerald-600" /> Live Conversations
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-500">Real-time customer inquiries</CardDescription>
+            </div>
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+          </CardHeader>
+          <CardContent className="p-0 flex-1 max-h-[460px] overflow-y-auto custom-scrollbar">
+            {messagesLoading ? (
+              <div className="p-12 text-center text-slate-500 flex items-center justify-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin text-emerald-600" /> Connecting to stream...
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="p-12 text-center text-slate-400">
+                <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm font-medium">No messages yet</p>
+                <p className="text-xs mt-1">Connect your Facebook Page to start receiving messages.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {messages.slice(0, 8).map((msg) => (
+                  <div key={msg.id} className="p-3.5 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="flex items-center space-x-1.5 text-xs text-slate-700 font-medium">
+                        <span className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-600 font-bold">
+                          User
+                        </span>
+                        <span className="line-clamp-1">{msg.content === "{}" ? "📎 Media attachment" : msg.content}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 shrink-0">{formatTimeAgo(msg.timestamp)}</span>
+                    </div>
+
+                    {msg.aiResponse && (
+                      <div className="mt-2 p-2 rounded-lg bg-indigo-50/70 border border-indigo-100/80 text-xs text-indigo-950">
+                        <div className="flex items-center gap-1 text-[10px] font-semibold text-indigo-600 mb-0.5">
+                          <Bot className="h-3 w-3" /> AI Assistant Reply:
+                        </div>
+                        <p className="line-clamp-2 leading-relaxed">{msg.aiResponse.aiResponse}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-
     </div>
   )
 }

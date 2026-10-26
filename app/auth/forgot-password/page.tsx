@@ -4,8 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, CheckCircle2 } from "lucide-react"
+import { Bot, Mail, ArrowLeft, CheckCircle2, AlertCircle, Loader2 } from "lucide-react"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -24,8 +23,6 @@ export default function ForgotPasswordPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       })
-      // Always show the same confirmation, regardless of outcome, so the
-      // response can't be used to probe which emails have accounts.
       setSubmitted(true)
     } catch {
       setError('Network error. Please try again.')
@@ -35,64 +32,101 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Forgot password</CardTitle>
-          <p className="text-gray-600 mt-2">
-            Enter your email and we&apos;ll send you a link to reset your password.
+    <div className="min-h-screen bg-[#090D16] text-slate-100 flex flex-col justify-center px-4 py-12">
+      <div className="w-full max-w-md mx-auto">
+        <div className="text-center mb-6">
+          <Link href="/" className="inline-flex items-center gap-2 mb-3">
+            <div className="w-9 h-9 rounded-md bg-blue-600 flex items-center justify-center text-white shadow-sm">
+              <Bot className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-lg font-bold tracking-tight text-white flex items-center gap-1">
+              BDChat<span className="text-blue-500">Pro</span>
+            </span>
+          </Link>
+          <h1 className="text-xl font-bold text-white tracking-tight">Reset your password</h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Enter your registered account email to receive a recovery link.
           </p>
-        </CardHeader>
-        <CardContent>
+        </div>
+
+        <div className="rounded-lg bg-[#0F172A] border border-slate-800 p-6 sm:p-7 shadow-xl">
           {submitted ? (
-            <div className="flex flex-col items-center text-center space-y-3 py-4">
-              <CheckCircle2 className="h-10 w-10 text-green-600" />
-              <p className="text-sm text-gray-700">
-                If an account exists for <span className="font-medium">{email}</span>, a password
-                reset link has been sent. Please check your inbox.
-              </p>
+            <div className="text-center py-4 space-y-3">
+              <div className="w-12 h-12 rounded-full bg-emerald-950 border border-emerald-800 text-emerald-400 mx-auto flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold text-white">Check your email</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  If an account exists for <span className="text-white font-medium">{email}</span>, we&apos;ve sent instructions to reset your password.
+                </p>
+              </div>
+              <div className="pt-2">
+                <Link
+                  href="/auth/signin"
+                  className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 font-semibold"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Return to Sign In</span>
+                </Link>
+              </div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              <div className="space-y-1">
+                <label htmlFor="email" className="block text-xs font-medium text-slate-300">
+                  Account Email
                 </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="john@example.com"
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="merchant@example.com"
+                    className="pl-9 bg-[#1E293B] border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500 rounded-md h-9 text-xs"
+                  />
+                </div>
               </div>
 
               {error && (
-                <p className="text-sm text-red-600">{error}</p>
+                <div className="flex items-center gap-2 p-2.5 rounded-md bg-red-950/60 border border-red-800 text-red-300 text-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                  <span>{error}</span>
+                </div>
               )}
 
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
+              <Button
+                type="submit"
+                className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-md shadow-sm transition-colors"
+                disabled={loading}
+              >
                 {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Sending Recovery Link...</span>
+                  </span>
                 ) : (
-                  "Send reset link"
+                  "Send Reset Link"
                 )}
               </Button>
+
+              <div className="pt-2 text-center">
+                <Link
+                  href="/auth/signin"
+                  className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Sign In</span>
+                </Link>
+              </div>
             </form>
           )}
-
-          <div className="mt-6 text-center">
-            <Link href="/auth/signin" className="text-sm text-blue-600 hover:text-blue-500">
-              ← Back to sign in
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

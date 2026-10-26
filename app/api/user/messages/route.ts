@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getBackendUrl } from '@/lib/backend-url'
 
 // Message interfaces
 interface Message {
@@ -48,45 +49,22 @@ export async function GET(request: NextRequest) {
     }
 
     // Get the API base URL from environment
-    const apiBaseUrl = process.env.BACKEND_URL
-    if (!apiBaseUrl) {
-      console.error('BACKEND_URL environment variable is not set')
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Configuration error',
-          message: 'API base URL is not configured',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 500 }
-      )
-    }
+    const apiBaseUrl = getBackendUrl()
 
     // Extract query parameters
     const { searchParams } = new URL(request.url)
     const limit = searchParams.get('limit')
-
-    // Validate limit parameter
-    let limitParam = 50 // default
-    if (limit) {
-      const limitNum = parseInt(limit, 10)
-      if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Invalid limit parameter',
-            message: 'Limit must be a number between 1 and 100',
-            timestamp: new Date().toISOString(),
-          },
-          { status: 400 }
-        )
-      }
-      limitParam = limitNum
-    }
+    const includeAIResponses = searchParams.get('includeAIResponses')
 
     // Build the API URL with query parameters
     const apiUrl = new URL(`${apiBaseUrl}/api/user/messages`)
-    apiUrl.searchParams.set('limit', limitParam.toString())
+    if (limit) {
+      const limitNum = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50)
+      apiUrl.searchParams.set('limit', limitNum.toString())
+    }
+    if (includeAIResponses !== null) {
+      apiUrl.searchParams.set('includeAIResponses', includeAIResponses)
+    }
 
     // Forward the request to the backend API
     try {

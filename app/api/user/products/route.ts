@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const { searchParams } = new URL(request.url)
     const includeInactive = searchParams.get('includeInactive')
-    const categoryId = searchParams.get('categoryId')
+    const categoryName = searchParams.get('categoryName') || searchParams.get('categoryId')
 
     // Backend URL from environment
     const BACKEND_URL = getBackendUrl()
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const params = new URLSearchParams()
 
     if (includeInactive) params.append('includeInactive', includeInactive)
-    if (categoryId) params.append('categoryId', categoryId)
+    if (categoryName) params.append('categoryName', categoryName)
 
     if (params.toString()) {
       backendUrl += `?${params.toString()}`

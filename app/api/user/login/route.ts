@@ -55,11 +55,13 @@ export async function POST(request: NextRequest) {
 
     const token: string | undefined = data?.data?.token
     const user = data?.data?.user
+    const activeTenantId = data?.data?.activeTenantId ?? null
+    const tenants = data?.data?.tenants ?? []
 
     // Never send the raw JWT to the browser - keep it in an httpOnly cookie
     // the client can't read, so an XSS can't steal the session token.
     const res = NextResponse.json(
-      { success: true, data: { user }, message: data.message, timestamp: new Date().toISOString() },
+      { success: true, data: { user, activeTenantId, tenants }, message: data.message, timestamp: new Date().toISOString() },
       { status: 200 }
     )
 

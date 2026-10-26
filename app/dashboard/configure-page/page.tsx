@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { useUserStore } from "@/lib/stores/userStore"
 import { useToast } from "@/hooks/use-toast"
+import { usePermissions } from "@/hooks/use-permissions"
 import {
   Save,
   RefreshCw,
@@ -15,12 +15,19 @@ import {
   Settings as SettingsIcon,
   Copy,
   AlertCircle,
-  CheckCircle,
+  CheckCircle2,
   Globe,
   Key,
   Shield,
   Eye,
   EyeOff,
+  Sparkles,
+  ExternalLink,
+  Check,
+  Zap,
+  Radio,
+  Lock,
+  ArrowRight
 } from "lucide-react"
 
 interface WebhookData {
@@ -61,7 +68,9 @@ interface PageSettingsResponse {
 
 export default function FBPageSettingsPage() {
   const { token } = useUserStore()
+  const { canConfigureChannel } = usePermissions()
   const { toast } = useToast()
+  
   const [webhookData, setWebhookData] = useState<WebhookData | null>(null)
   const [webhookLoading, setWebhookLoading] = useState(true)
   const [webhookError, setWebhookError] = useState<string | null>(null)
@@ -86,99 +95,92 @@ export default function FBPageSettingsPage() {
     accessToken: "",
   })
 
-  // Fetch webhook data on component mount
-  useEffect(() => {
-    const fetchWebhookData = async () => {
-      if (!token) return
+  // Fetch webhook data
+  const fetchWebhookData = async () => {
+    if (!token) return
 
-      try {
-        setWebhookLoading(true)
-        setWebhookError(null)
+    try {
+      setWebhookLoading(true)
+      setWebhookError(null)
 
-        const response = await fetch('/api/user/webhook-tokens', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        })
+      const response = await fetch('/api/user/webhook-tokens', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
 
-        const data: WebhookResponse = await response.json()
+      const data: WebhookResponse = await response.json()
 
-        if (!response.ok) {
-          if (response.status === 404 && data.error === "Webhook token not found") {
-            setWebhookError("You have no subscription found. Please purchase a subscription")
-          } else {
-            throw new Error(data.message || 'Failed to fetch webhook data')
-          }
-          return
+      if (!response.ok) {
+        if (response.status === 404 && data.error === "Webhook token not found") {
+          setWebhookError("You have no active subscription found. Please activate a subscription to enable webhooks.")
+        } else {
+          throw new Error(data.message || 'Failed to fetch webhook data')
         }
-
-        if (data.success && data.data) {
-          setWebhookData(data.data)
-        }
-      } catch (err) {
-        setWebhookError(err instanceof Error ? err.message : 'An error occurred while fetching webhook data')
-        console.error('Error fetching webhook data:', err)
-      } finally {
-        setWebhookLoading(false)
+        return
       }
-    }
 
+      if (data.success && data.data) {
+        setWebhookData(data.data)
+      }
+    } catch (err) {
+      setWebhookError(err instanceof Error ? err.message : 'An error occurred while fetching webhook data')
+    } finally {
+      setWebhookLoading(false)
+    }
+  }
+
+  // Fetch page settings
+  const fetchPageSettings = async () => {
+    if (!token) return
+
+    try {
+      setPageSettingsLoading(true)
+      setPageSettingsError(null)
+
+      const response = await fetch('/api/user/settings/page', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      const data: PageSettingsResponse = await response.json()
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          setPageSettingsError("No Facebook page settings configured yet")
+        } else {
+          throw new Error(data.message || 'Failed to fetch page settings')
+        }
+        return
+      }
+
+      if (data.success) {
+        setTokenStatus(data.data?.appCredentials?.tokenStatus || 'unknown')
+      }
+
+      if (data.success && data.data?.appCredentials) {
+        setPageSettings(data.data.appCredentials)
+      } else if (data.success && data.data?.appCredentials === null) {
+        setPageSettings(null)
+      }
+    } catch (err) {
+      setPageSettingsError(err instanceof Error ? err.message : 'An error occurred while fetching page settings')
+    } finally {
+      setPageSettingsLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchWebhookData()
-  }, [token])
-
-  // Fetch page settings on component mount
-  useEffect(() => {
-    const fetchPageSettings = async () => {
-      if (!token) return
-
-      try {
-        setPageSettingsLoading(true)
-        setPageSettingsError(null)
-
-        const response = await fetch('/api/user/settings/page', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        })
-
-        const data: PageSettingsResponse = await response.json()
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            setPageSettingsError("No Facebook page settings configured yet")
-          } else {
-            throw new Error(data.message || 'Failed to fetch page settings')
-          }
-          return
-        }
-
-        if (data.success) {
-          setTokenStatus(data.data?.appCredentials?.tokenStatus || 'unknown')
-        }
-
-        if (data.success && data.data?.appCredentials) {
-          setPageSettings(data.data.appCredentials)
-        } else if (data.success && data.data?.appCredentials === null) {
-          setPageSettings(null)
-        }
-      } catch (err) {
-        setPageSettingsError(err instanceof Error ? err.message : 'An error occurred while fetching page settings')
-        console.error('Error fetching page settings:', err)
-      } finally {
-        setPageSettingsLoading(false)
-      }
-    }
-
     fetchPageSettings()
   }, [token])
 
   const copyToClipboard = async (text: string, type: 'url' | 'token') => {
     try {
-      // Try modern clipboard API first (works in HTTPS)
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text)
       } else {
-        // Fallback for HTTP environments
         const textArea = document.createElement('textarea')
         textArea.value = text
         textArea.style.position = 'fixed'
@@ -187,16 +189,10 @@ export default function FBPageSettingsPage() {
         document.body.appendChild(textArea)
         textArea.focus()
         textArea.select()
-
-        const successful = document.execCommand('copy')
-        if (!successful) {
-          throw new Error('Fallback copy method failed')
-        }
-
+        document.execCommand('copy')
         document.body.removeChild(textArea)
       }
 
-      // Show success feedback
       if (type === 'url') {
         setCopiedUrl(true)
         setTimeout(() => setCopiedUrl(false), 2000)
@@ -214,8 +210,7 @@ export default function FBPageSettingsPage() {
           description: "Verify token copied to clipboard",
         })
       }
-    } catch (err) {
-      console.error('Failed to copy to clipboard:', err)
+    } catch {
       toast({
         variant: "destructive",
         title: "Copy failed",
@@ -255,26 +250,7 @@ export default function FBPageSettingsPage() {
       }
 
       if (data.success) {
-        // Refresh page settings
-        const fetchResponse = await fetch('/api/user/settings/page', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        })
-
-        if (fetchResponse.ok) {
-          const fetchData: PageSettingsResponse = await fetchResponse.json()
-          if (fetchData.success) {
-            setTokenStatus(fetchData.data?.appCredentials?.tokenStatus || 'unknown')
-          }
-          if (fetchData.success && fetchData.data?.appCredentials) {
-            setPageSettings(fetchData.data.appCredentials)
-          } else if (fetchData.success && fetchData.data?.appCredentials === null) {
-            setPageSettings(null)
-          }
-        }
-
-        // Clear form and hide it
+        await fetchPageSettings()
         setNewCredentials({
           pageName: "",
           appId: "",
@@ -290,7 +266,6 @@ export default function FBPageSettingsPage() {
         })
       }
     } catch (err) {
-      console.error('Error saving page settings:', err)
       toast({
         variant: "destructive",
         title: "Error",
@@ -302,221 +277,239 @@ export default function FBPageSettingsPage() {
   }
 
   return (
-    <div className="space-y-6 mx-auto">
+    <div className="space-y-8">
       {/* Page Header */}
-      {/* <div className="bg-linear-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white shadow-lg">
-        <div className="flex items-center gap-4">
-          <div className="bg-white/20 backdrop-blur-sm p-3 rounded-lg">
-            <Globe className="h-8 w-8" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-medium text-blue-400 mb-1.5">
+            <Radio className="w-3.5 h-3.5 animate-pulse text-blue-400" />
+            <span>Meta Webhook Bridge</span>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">Facebook Page Setup</h1>
-            <p className="text-blue-100 mt-1">Configure your Facebook page integration and webhook settings</p>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Facebook Page Integration</h1>
+          <p className="text-sm text-slate-400">
+            Connect your Facebook Page with BDChatPro to route customer conversations to your bilingual AI agent.
+          </p>
         </div>
-      </div> */}
 
-      {/* Webhook Information */}
-      <Card className="border-blue-100 shadow-md hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <LinkIcon className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-blue-900">Webhook Configuration</CardTitle>
-                <CardDescription className="text-blue-700">Configure your Facebook webhook endpoints</CardDescription>
-              </div>
+        <div className="flex items-center gap-2">
+          {pageSettings && (
+            <div className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-2 ${
+              tokenStatus === 'valid' 
+                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                : tokenStatus === 'invalid'
+                ? "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${
+                tokenStatus === 'valid' ? "bg-emerald-400 animate-ping" : tokenStatus === 'invalid' ? "bg-rose-400" : "bg-blue-400"
+              }`} />
+              <span>{tokenStatus === 'valid' ? 'Live Connected' : tokenStatus === 'invalid' ? 'Token Expired' : 'Configured'}</span>
             </div>
-            {webhookData && (
-              <Badge variant={webhookData.isActive ? "default" : "secondary"} className="text-sm">
-                {webhookData.isActive ? "● Active" : "○ Inactive"}
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="pt-6">{webhookLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600 mx-auto mb-3"></div>
-                <span className="text-gray-600 font-medium">Loading webhook information...</span>
-              </div>
-            </div>
-          ) : webhookError ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6 max-w-md">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-6 w-6 text-red-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-red-900 font-semibold mb-1">Webhook Configuration Error</p>
-                    <p className="text-red-700 text-sm mb-3">{webhookError}</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-red-300 text-red-700 hover:bg-red-50"
-                      onClick={() => window.location.href = '/dashboard/subscription'}
-                    >
-                      View Subscription
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : webhookData ? (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Globe className="h-4 w-4 text-blue-600" />
-                    <Label className="text-sm font-semibold text-gray-800">Webhook URL</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={webhookData.webhookUrl}
-                      readOnly
-                      className="font-mono text-sm bg-gray-50 border-gray-300"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(webhookData.webhookUrl, 'url')}
-                      className="shrink-0 border-blue-300 hover:bg-blue-50 hover:border-blue-400"
-                    >
-                      {copiedUrl ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Copy className="h-4 w-4 text-blue-600" />
-                      )}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-600 flex items-start gap-1 mt-1">
-                    <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
-                    <span>Use this URL in your Facebook App webhook settings</span>
-                  </p>
-                </div>
+          )}
+        </div>
+      </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Shield className="h-4 w-4 text-blue-600" />
-                    <Label className="text-sm font-semibold text-gray-800">Verify Token</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={webhookData.webhookToken}
-                      readOnly
-                      type="password"
-                      className="font-mono text-sm bg-gray-50 border-gray-300"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(webhookData.webhookToken, 'token')}
-                      className="shrink-0 border-blue-300 hover:bg-blue-50 hover:border-blue-400"
-                    >
-                      {copiedToken ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Copy className="h-4 w-4 text-blue-600" />
-                      )}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-600 flex items-start gap-1 mt-1">
-                    <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
-                    <span>Use this token to verify webhook requests</span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-600 flex items-center gap-1">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    Last updated: {new Date(webhookData.updatedAt).toLocaleDateString()}
-                  </span>
-                </div>
-                <Button variant="outline" size="sm" className="border-blue-300 hover:bg-blue-50">
-                  <RefreshCw className="h-4 w-4 mr-2 text-blue-600" />
-                  Refresh
-                </Button>
-              </div>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      {/* Facebook token health */}
+      {/* Alert if token expired */}
       {tokenStatus === 'invalid' && pageSettings && (
-        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-red-900 font-semibold">Your Facebook Page connection has expired</p>
-            <p className="text-red-700 text-sm mt-0.5">
-              The AI assistant can no longer send or receive messages on your Page. Reconnect below by updating your credentials.
+        <div className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/25 flex items-start gap-3 text-rose-300">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
+          <div className="text-xs sm:text-sm">
+            <p className="font-semibold text-rose-200">Your Facebook Page access token has expired</p>
+            <p className="text-slate-300 mt-0.5">
+              The AI assistant can no longer send or receive messages on your Page. Please update your Page Access Token below to resume automated sales.
             </p>
           </div>
         </div>
       )}
 
-      {/* Page Credentials */}
-      <Card className="border-green-100 shadow-md hover:shadow-lg transition-shadow">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-green-600 p-2 rounded-lg">
-                <SettingsIcon className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-green-900">Page Credentials</CardTitle>
-                <CardDescription className="text-green-700">Manage your Facebook page access credentials</CardDescription>
-              </div>
+      {/* 3-Step Setup Wizard Banner */}
+      <div className="p-6 rounded-lg bg-slate-900 border border-slate-800 shadow-sm space-y-4">
+        <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-blue-400" />
+          <span>3-Step Quick Integration Wizard</span>
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 rounded-md bg-slate-950/60 border border-slate-800 space-y-2">
+            <div className="w-6 h-6 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-xs flex items-center justify-center">
+              1
             </div>
-            <div className="shrink-0">
-              {!showCredentialForm ? (
-                pageSettings ? (
+            <h4 className="text-sm font-semibold text-white">Copy Webhook Details</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Copy your unique Webhook Callback URL and Verify Token from the section below.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-md bg-slate-950/60 border border-slate-800 space-y-2">
+            <div className="w-6 h-6 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-xs flex items-center justify-center">
+              2
+            </div>
+            <h4 className="text-sm font-semibold text-white">Configure Meta App</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              In Meta Developers Portal, paste the URL & token under <span className="text-slate-300 font-mono">Messenger → Webhooks</span> and subscribe to <span className="text-slate-300 font-mono">messages</span>.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-md bg-slate-950/60 border border-slate-800 space-y-2">
+            <div className="w-6 h-6 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-xs flex items-center justify-center">
+              3
+            </div>
+            <h4 className="text-sm font-semibold text-white">Paste Page Token</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Generate a Page Access Token with <span className="text-slate-300 font-mono">pages_messaging</span> permission and save it below.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Webhook Configuration Card */}
+      <div className="p-6 rounded-lg bg-slate-900 border border-slate-800 shadow-sm space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-md bg-blue-600 flex items-center justify-center text-white">
+              <LinkIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">Webhook Configuration</h3>
+              <p className="text-xs text-slate-400">Meta Messenger callback endpoint and verification token</p>
+            </div>
+          </div>
+
+          {webhookData && (
+            <Badge className={`text-xs font-semibold border ${
+              webhookData.isActive 
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                : "bg-slate-500/10 text-slate-400 border-slate-700"
+            }`}>
+              {webhookData.isActive ? "● Active Endpoint" : "○ Inactive"}
+            </Badge>
+          )}
+        </div>
+
+        {webhookLoading ? (
+          <div className="py-8 text-center space-y-2">
+            <RefreshCw className="w-6 h-6 animate-spin text-blue-500 mx-auto" />
+            <p className="text-xs text-slate-400">Loading webhook configuration...</p>
+          </div>
+        ) : webhookError ? (
+          <div className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs sm:text-sm text-rose-300 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
+            <div>
+              <p className="font-semibold text-rose-200">Unable to load webhook credentials</p>
+              <p className="text-slate-300 mt-1">{webhookError}</p>
+            </div>
+          </div>
+        ) : webhookData ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              
+              {/* Webhook URL */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Callback URL (Meta Webhooks)</span>
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={webhookData.webhookUrl}
+                    readOnly
+                    className="font-mono text-xs bg-slate-950/70 border-white/10 text-slate-200"
+                  />
                   <Button
-                    onClick={() => {
-                      setIsEditing(true)
-                      setShowCredentialForm(true)
-                      // appSecret/accessToken from the API are masked for display only
-                      // (see app/api/user/settings/page GET) - never re-submit them as
-                      // real values. The user must re-enter both to update credentials.
-                      setNewCredentials({
-                        pageName: pageSettings.pageName,
-                        appId: pageSettings.appId,
-                        appSecret: "",
-                        accessToken: "",
-                      })
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 shadow-md"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(webhookData.webhookUrl, 'url')}
+                    className="shrink-0 border-white/10 text-slate-300 hover:text-white hover:bg-white/5 h-10 px-3"
                   >
-                    <SettingsIcon className="h-4 w-4 mr-2" />
-                    Update Credentials
+                    {copiedUrl ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   </Button>
-                ) : (
+                </div>
+                <p className="text-[11px] text-slate-400">Paste in Meta Developer Portal under Messenger Webhook</p>
+              </div>
+
+              {/* Verify Token */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Verify Token</span>
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={webhookData.webhookToken}
+                    readOnly
+                    type="password"
+                    className="font-mono text-xs bg-slate-950/70 border-white/10 text-slate-200"
+                  />
                   <Button
-                    onClick={() => {
-                      setIsEditing(false)
-                      setShowCredentialForm(true)
-                      setNewCredentials({
-                        pageName: "",
-                        appId: "",
-                        appSecret: "",
-                        accessToken: "",
-                      })
-                    }}
-                    className="bg-green-600 hover:bg-green-700 shadow-md"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(webhookData.webhookToken, 'token')}
+                    className="shrink-0 border-white/10 text-slate-300 hover:text-white hover:bg-white/5 h-10 px-3"
                   >
-                    <SettingsIcon className="h-4 w-4 mr-2" />
-                    Add Credentials
+                    {copiedToken ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   </Button>
-                )
+                </div>
+                <p className="text-[11px] text-slate-400">Paste in the Verify Token field in Meta Webhooks setup</p>
+              </div>
+
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-white/5 text-xs text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Last updated: {new Date(webhookData.updatedAt).toLocaleDateString()}</span>
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchWebhookData}
+                className="text-xs text-slate-400 hover:text-white h-7"
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Page Credentials Section */}
+      <div className="p-6 rounded-lg bg-slate-900 border border-slate-800 shadow-sm space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-md bg-emerald-600 flex items-center justify-center text-white">
+              <SettingsIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">Page Access Credentials</h3>
+              <p className="text-xs text-slate-400">Meta App credentials and Page Access Token</p>
+            </div>
+          </div>
+
+          <div>
+            {canConfigureChannel && !showCredentialForm ? (
+              pageSettings ? (
+                <Button
+                  onClick={() => {
+                    setIsEditing(true)
+                    setShowCredentialForm(true)
+                    setNewCredentials({
+                      pageName: pageSettings.pageName,
+                      appId: pageSettings.appId,
+                      appSecret: "",
+                      accessToken: "",
+                    })
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 px-3 rounded-md"
+                >
+                  <SettingsIcon className="w-3.5 h-3.5 mr-1.5" />
+                  Update Credentials
+                </Button>
               ) : (
                 <Button
-                  variant="outline"
                   onClick={() => {
-                    setShowCredentialForm(false)
                     setIsEditing(false)
+                    setShowCredentialForm(true)
                     setNewCredentials({
                       pageName: "",
                       appId: "",
@@ -524,217 +517,178 @@ export default function FBPageSettingsPage() {
                       accessToken: "",
                     })
                   }}
-                  className="border-gray-300 hover:bg-gray-50"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3 rounded-md"
                 >
-                  Cancel
+                  <Zap className="w-3.5 h-3.5 mr-1.5" />
+                  Connect Page Credentials
                 </Button>
-              )}
-            </div>
+              )
+            ) : showCredentialForm ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCredentialForm(false)
+                  setIsEditing(false)
+                }}
+                className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs h-8 px-3 rounded-md"
+              >
+                Cancel
+              </Button>
+            ) : null}
           </div>
-        </CardHeader>
-        <CardContent className="pt-6">{pageSettingsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-10 w-10 border-4 border-green-200 border-t-green-600 mx-auto mb-3"></div>
-                <span className="text-gray-600 font-medium">Loading page credentials...</span>
+        </div>
+
+        {pageSettingsLoading ? (
+          <div className="py-8 text-center space-y-2">
+            <RefreshCw className="w-6 h-6 animate-spin text-emerald-500 mx-auto" />
+            <p className="text-xs text-slate-400">Loading page credentials...</p>
+          </div>
+        ) : showCredentialForm ? (
+          /* Form for Entering Credentials */
+          <div className="p-5 rounded-lg bg-slate-950/60 border border-slate-800 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Key className="w-4 h-4 text-blue-400" />
+              <h4 className="text-sm font-bold text-white">
+                {isEditing ? "Update Facebook Page Credentials" : "Enter Facebook Page Credentials"}
+              </h4>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="space-y-1.5">
+                <Label className="text-slate-300">
+                  Page Display Name <span className="text-rose-400">*</span>
+                </Label>
+                <Input
+                  placeholder="e.g. Dhaka Artisan Boutique"
+                  value={newCredentials.pageName}
+                  onChange={(e) => setNewCredentials({ ...newCredentials, pageName: e.target.value })}
+                  className="bg-slate-900 border-slate-700 text-white text-xs h-9 rounded-md"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-slate-300">
+                  Facebook App ID <span className="text-rose-400">*</span>
+                </Label>
+                <Input
+                  placeholder="e.g. 1048291048592"
+                  value={newCredentials.appId}
+                  onChange={(e) => setNewCredentials({ ...newCredentials, appId: e.target.value })}
+                  className="bg-slate-900 border-slate-700 text-white text-xs h-9 font-mono rounded-md"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-slate-300">
+                  Facebook App Secret <span className="text-rose-400">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    type={showAppSecret ? "text" : "password"}
+                    placeholder={isEditing ? "Re-enter App Secret to update" : "Enter App Secret from Meta dashboard"}
+                    value={newCredentials.appSecret}
+                    onChange={(e) => setNewCredentials({ ...newCredentials, appSecret: e.target.value })}
+                    className="bg-slate-900 border-slate-700 text-white text-xs h-9 font-mono pr-10 rounded-md"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAppSecret(!showAppSecret)}
+                    className="absolute right-3 top-2.5 text-slate-500 hover:text-white"
+                  >
+                    {showAppSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-slate-300">
+                  Page Access Token <span className="text-rose-400">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    type={showAccessToken ? "text" : "password"}
+                    placeholder={isEditing ? "Re-enter Page Access Token to update" : "EAAB..."}
+                    value={newCredentials.accessToken}
+                    onChange={(e) => setNewCredentials({ ...newCredentials, accessToken: e.target.value })}
+                    className="bg-slate-900 border-slate-700 text-white text-xs h-9 font-mono pr-10 rounded-md"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAccessToken(!showAccessToken)}
+                    className="absolute right-3 top-2.5 text-slate-500 hover:text-white"
+                  >
+                    {showAccessToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Configuration Form */}
-              {showCredentialForm && (
-                <div className="bg-linear-to-br from-gray-50 to-gray-100/50 border-2 border-dashed border-gray-300 rounded-xl p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Key className="h-5 w-5 text-gray-700" />
-                    <h4 className="font-semibold text-gray-900 text-lg">
-                      {isEditing ? 'Update Page Credentials' : 'Configure Page Credentials'}
-                    </h4>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="pageName" className="text-sm font-medium text-gray-700">
-                        Page Name <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="pageName"
-                        placeholder="Enter Facebook page name"
-                        value={newCredentials.pageName}
-                        onChange={(e) => setNewCredentials({ ...newCredentials, pageName: e.target.value })}
-                        required
-                        className="border-gray-300 focus:border-green-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="appId" className="text-sm font-medium text-gray-700">
-                        App ID <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="appId"
-                        placeholder="Enter Facebook App ID"
-                        value={newCredentials.appId}
-                        onChange={(e) => setNewCredentials({ ...newCredentials, appId: e.target.value })}
-                        required
-                        className="border-gray-300 focus:border-green-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="appSecret" className="text-sm font-medium text-gray-700">
-                        App Secret <span className="text-red-500">*</span>
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="appSecret"
-                          type={showAppSecret ? "text" : "password"}
-                          placeholder={isEditing ? "Re-enter App Secret to update it" : "Enter Facebook App Secret"}
-                          value={newCredentials.appSecret}
-                          onChange={(e) => setNewCredentials({ ...newCredentials, appSecret: e.target.value })}
-                          required
-                          className="border-gray-300 focus:border-green-500 pr-10"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() => setShowAppSecret(!showAppSecret)}
-                        >
-                          {showAppSecret ? (
-                            <EyeOff className="h-4 w-4 text-gray-500" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-gray-500" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="accessToken" className="text-sm font-medium text-gray-700">
-                        Access Token <span className="text-red-500">*</span>
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="accessToken"
-                          type={showAccessToken ? "text" : "password"}
-                          placeholder={isEditing ? "Re-enter Access Token to update it" : "Enter Page Access Token"}
-                          value={newCredentials.accessToken}
-                          onChange={(e) => setNewCredentials({ ...newCredentials, accessToken: e.target.value })}
-                          required
-                          className="border-gray-300 focus:border-green-500 pr-10"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() => setShowAccessToken(!showAccessToken)}
-                        >
-                          {showAccessToken ? (
-                            <EyeOff className="h-4 w-4 text-gray-500" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-gray-500" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-6 flex justify-end">
-                    <Button
-                      onClick={handleSavePageSettings}
-                      disabled={savingSettings || !newCredentials.pageName || !newCredentials.appId || !newCredentials.appSecret || !newCredentials.accessToken}
-                      className={`shadow-md ${isEditing ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"}`}
-                    >
-                      {savingSettings ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                          {isEditing ? 'Updating...' : 'Saving...'}
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-2" />
-                          {isEditing ? 'Update Credentials' : 'Save Credentials'}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
 
-              {/* Existing Credentials Display */}
-              {pageSettingsError ? (
-                <div className="text-center py-10">
-                  <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-8 max-w-md mx-auto">
-                    <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <SettingsIcon className="h-8 w-8 text-gray-400" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Page Credentials Configured</h3>
-                    <p className="text-gray-600 text-sm">Configure your page credentials to enable page integration and start managing your Facebook page</p>
-                  </div>
-                </div>
-              ) : (pageSettings && !showCredentialForm) ? (
-                <div className="bg-linear-to-br from-green-50 to-green-100/30 border border-green-200 rounded-xl p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <h4 className="font-semibold text-gray-900 text-lg">Active Page Credentials</h4>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                        <Globe className="h-3.5 w-3.5" />
-                        Page Name
-                      </Label>
-                      <Input
-                        value={pageSettings.pageName}
-                        readOnly
-                        className="font-mono text-sm bg-white border-green-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                        <Key className="h-3.5 w-3.5" />
-                        App ID
-                      </Label>
-                      <Input
-                        value={pageSettings.appId}
-                        readOnly
-                        className="font-mono text-sm bg-white border-green-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                        <Shield className="h-3.5 w-3.5" />
-                        App Secret
-                      </Label>
-                      <Input
-                        value={pageSettings.appSecret}
-                        readOnly
-                        type="password"
-                        className="font-mono text-sm bg-white border-green-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                        <Key className="h-3.5 w-3.5" />
-                        Access Token
-                      </Label>
-                      <Input
-                        value={pageSettings.accessToken}
-                        readOnly
-                        type="password"
-                        className="font-mono text-sm bg-white border-green-200"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 pt-4 border-t border-green-200 mt-4">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <div className="text-sm text-green-700 font-medium">
-                      Credentials configured and ready to use
-                    </div>
-                  </div>
-                </div>
-              ) : null}
+            <div className="pt-2 flex justify-end">
+              <Button
+                onClick={handleSavePageSettings}
+                disabled={savingSettings || !newCredentials.pageName || !newCredentials.appId || !newCredentials.appSecret || !newCredentials.accessToken}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-9 px-5 rounded-md font-medium"
+              >
+                {savingSettings ? (
+                  <span className="flex items-center gap-1.5">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving Credentials...</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5">
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{isEditing ? "Update Credentials" : "Save Credentials"}</span>
+                  </span>
+                )}
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        ) : pageSettings ? (
+          /* Active Credentials Readout */
+          <div className="p-5 rounded-lg bg-emerald-500/5 border border-emerald-500/20 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <h4 className="text-sm font-bold text-white">Active Facebook Connection</h4>
+              </div>
+              <span className="text-[11px] text-emerald-400 font-semibold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                Connected & Receiving
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="p-3 rounded-md bg-slate-950/60 border border-slate-800 space-y-1">
+                <span className="text-slate-400 font-medium">Page Name</span>
+                <p className="text-white font-semibold text-sm">{pageSettings.pageName}</p>
+              </div>
+
+              <div className="p-3 rounded-md bg-slate-950/60 border border-slate-800 space-y-1">
+                <span className="text-slate-400 font-medium">App ID</span>
+                <p className="text-white font-mono text-xs">{pageSettings.appId}</p>
+              </div>
+
+              <div className="p-3 rounded-md bg-slate-950/60 border border-slate-800 space-y-1">
+                <span className="text-slate-400 font-medium">App Secret</span>
+                <p className="text-slate-400 font-mono text-xs">••••••••••••••••••••••••</p>
+              </div>
+
+              <div className="p-3 rounded-md bg-slate-950/60 border border-slate-800 space-y-1">
+                <span className="text-slate-400 font-medium">Page Access Token</span>
+                <p className="text-slate-400 font-mono text-xs">EAAB••••••••••••••••••••</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Empty state */
+          <div className="p-8 rounded-lg bg-slate-950/40 border border-slate-800 text-center space-y-3">
+            <SettingsIcon className="w-8 h-8 text-slate-500 mx-auto" />
+            <h4 className="text-sm font-semibold text-white">No Facebook Page Credentials Configured</h4>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Configure your Meta App ID, App Secret, and Page Access Token to connect your Facebook Page inbox.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

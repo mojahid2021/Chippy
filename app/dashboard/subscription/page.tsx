@@ -36,6 +36,7 @@ import {
 } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { useUserStore } from '@/lib/stores/userStore'
+import { usePermissions } from '@/hooks/use-permissions'
 import { toast } from '@/hooks/use-toast'
 
 // Transaction interface matching API response
@@ -167,7 +168,8 @@ const statusConfig = {
 }
 
 export default function SubscriptionPage() {
-  const { token } = useUserStore()
+  const { token, activeTenantId } = useUserStore()
+  const { canManageBilling } = usePermissions()
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
@@ -286,7 +288,7 @@ export default function SubscriptionPage() {
     fetchSubscription()
     fetchTransactions()
     fetchPlans()
-  }, [fetchSubscription, fetchTransactions, fetchPlans])
+  }, [fetchSubscription, fetchTransactions, fetchPlans, activeTenantId])
 
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
@@ -417,15 +419,15 @@ export default function SubscriptionPage() {
 
       {/* Current Subscription Overview - Only show when user has an active subscription */}
       {hasSubscription && currentSubscription && (
-        <Card className="border-slate-200 shadow-sm overflow-hidden">
-          <div className="bg-linear-to-r from-violet-500 to-violet-600 p-4">
+        <Card className="border-slate-800 shadow-sm overflow-hidden bg-slate-900">
+          <div className="bg-slate-900 border-b border-slate-800 p-5">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <Crown className="h-6 w-6 text-white" />
+                <div className="h-10 w-10 rounded-md bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                  <Crown className="h-5 w-5" />
                 </div>
                 <div>
-                  <Badge className="bg-white/20 text-white border-white/30 mb-1">Active</Badge>
+                  <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 mb-1 rounded">Active</Badge>
                   <h2 className="text-xl font-bold text-white">{currentSubscription.plan} Plan</h2>
                   <p className="text-sm text-violet-100">Your subscription is active and running smoothly</p>
                 </div>

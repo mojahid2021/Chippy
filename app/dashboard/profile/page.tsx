@@ -143,7 +143,7 @@ export default function ProfilePage() {
               <div className="flex justify-center mb-4">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src="" />
-                  <AvatarFallback className="bg-linear-to-br from-blue-500 to-purple-600 text-white text-xl font-bold">
+                  <AvatarFallback className="bg-blue-600 text-white text-xl font-bold">
                     {profile.firstName?.[0]}{profile.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
