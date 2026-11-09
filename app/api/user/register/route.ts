@@ -1,54 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getBackendUrl } from '@/lib/backend-url'
+import { AUTH_COOKIE_NAME } from '@/lib/cookie-utils'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-
-    // Validate required fields
-    const { email, password, firstName, lastName, phone } = body
+    const { email, password, firstName, lastName, phone, role = 'USER' } = body
 
     if (!email || !password || !firstName || !lastName) {
       return NextResponse.json(
         {
           success: false,
+          statusCode: 400,
+          error: 'Bad Request',
           message: 'Missing required fields: email, password, firstName, lastName',
-          timestamp: new Date().toISOString()
         },
         { status: 400 }
       )
     }
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Invalid email format',
-          timestamp: new Date().toISOString()
-        },
-        { status: 400 }
-      )
-    }
-
-    // Password validation
     if (password.length < 8) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Password must be at least 8 characters long',
-          timestamp: new Date().toISOString()
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'body/password must NOT have fewer than 8 characters',
         },
         { status: 400 }
       )
     }
 
-    // Backend URL from environment
     const BACKEND_URL = getBackendUrl()
 
-    // Forward the request to your backend
-    const response = await fetch(`${BACKEND_URL}/api/user/register`, {
+    const response = await fetch(`${BACKEND_URL}/api/v1/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -58,8 +43,9 @@ export async function POST(request: NextRequest) {
         password,
         firstName,
         lastName,
-        phone
-      })
+        role,
+        ...(phone ? { phone } : {}),
+      }),
     })
 
     const data = await response.json()
@@ -68,12 +54,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data, { status: response.status })
     }
 
-    // The backend's /register endpoint only creates the account and doesn't
-    // return a session token, so the post-register redirect to /dashboard
-    // would otherwise land on a user who looks logged out. Log them in with
-    // the same credentials to establish a real session.
+    // Auto-login to obtain token
     try {
-      const loginResponse = await fetch(`${BACKEND_URL}/api/user/login`, {
+      const loginResponse = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -81,38 +64,47 @@ export async function POST(request: NextRequest) {
       const loginData = await loginResponse.json()
       const token: string | undefined = loginData?.data?.token
       const user = loginData?.data?.user ?? data.data
-      const activeTenantId = loginData?.data?.activeTenantId ?? null
-      const tenants = loginData?.data?.tenants ?? []
 
       const res = NextResponse.json(
-        { success: true, data: { user, activeTenantId, tenants }, message: data.message, timestamp: new Date().toISOString() },
+        {
+          success: true,
+          message: data.message,
+          data: {
+            user,
+            token,
+          },
+        },
         { status: 201 }
       )
 
-      if (loginResponse.ok && token) {
-        res.cookies.set('auth_token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
+      if (token) {
+        res.cookies.set(AUTH_COOKIE_NAME, token, {
           path: '/',
           maxAge: 7 * 24 * 60 * 60,
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
         })
       }
 
       return res
-    } catch (loginError) {
-      console.error('Auto-login after registration failed:', loginError)
-      // Registration itself succeeded - return it, just without a session.
-      return NextResponse.json(data, { status: 201 })
+    } catch {
+      return NextResponse.json(
+        {
+          success: true,
+          message: data.message,
+          data: data.data,
+        },
+        { status: 201 }
+      )
     }
-
   } catch (error) {
     console.error('Registration error:', error)
     return NextResponse.json(
       {
         success: false,
+        statusCode: 500,
+        error: 'Internal Server Error',
         message: 'Internal server error',
-        timestamp: new Date().toISOString()
       },
       { status: 500 }
     )

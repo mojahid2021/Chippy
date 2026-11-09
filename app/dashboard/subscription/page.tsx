@@ -5,21 +5,20 @@ import Link from 'next/link'
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { 
   Check, 
   Crown, 
   Calendar,
   CreditCard,
-  Download,
-  TrendingUp,
-  Users,
   Zap,
   Shield,
   ArrowRight,
@@ -28,282 +27,317 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  MoreHorizontal,
-  Eye,
   Loader2,
   AlertCircle,
-  Building2
+  Sparkles,
+  RefreshCw,
+  AlertTriangle,
+  Lock,
+  Unlock
 } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { useUserStore } from '@/lib/stores/userStore'
-import { usePermissions } from '@/hooks/use-permissions'
 import { toast } from '@/hooks/use-toast'
-
-// Transaction interface matching API response
-interface Transaction {
-  id: string
-  type: string
-  subscriptionId: string
-  accountNumber: string
-  transactionId: string
-  amount: number
-  currency: string
-  status: 'pending' | 'verifying' | 'completed' | 'failed'
-  submittedAt: string
-  verifiedAt: string | null
-  notes: string | null
-  subscription: {
-    id: string
-    plan: {
-      id: string
-      name: string
-      price: number
-      interval: string
-    }
-    startDate: string
-    endDate: string
-    isActive: boolean
-  }
-}
-
-// Subscription interface matching API response
-interface Subscription {
-  id: string
-  planId: string
-  planName: string
-  paymentMethod: string
-  paymentStatus: 'pending' | 'completed' | 'failed' | 'cancelled'
-  amount: number
-  currency: string
-  startDate: string
-  endDate: string
-  isActive: boolean
-  autoRenew: boolean
-  plan: {
-    id: string
-    name: string
-    description: string
-    price: number
-    currency: string
-    interval: 'monthly' | 'yearly'
-    intervalCount: number
-    features: string[]
-    maxUsers: number
-    maxStorageGB: number
-    maxProjects: number
-    isActive: boolean
-    isPopular: boolean
-    trialDays: number
-    duration: number
-  }
-}
-
-// API Response interfaces
-interface TransactionsResponse {
-  success: boolean
-  data: {
-    transactions: Transaction[]
-    pagination: {
-      page: number
-      limit: number
-      total: number
-      pages: number
-    }
-  }
-  message: string
-  timestamp: string
-}
-
-interface SubscriptionResponse {
-  success: boolean
-  data: {
-    hasSubscription: boolean
-    message: string
-    subscription?: Subscription
-  }
-  message: string
-  timestamp: string
-}
-
-interface Plan {
-  id: string
-  name: string
-  description: string
-  price: number
-  currency: string
-  interval: string
-  intervalCount: number
-  features: string[]
-  maxUsers: number
-  maxStorageGB: number
-  maxProjects: number
-  isActive: boolean
-  isPopular: boolean
-  trialDays: number
-  createdAt: string
-  updatedAt: string
-  annualPrice?: number
-}
-
-interface PlansResponse {
-  success: boolean
-  data: {
-    plans: Plan[]
-    pagination: {
-      page: number
-      limit: number
-      total: number
-      pages: number
-    }
-  }
-  message: string
-  timestamp: string
-}
-
-const statusConfig = {
-  completed: { color: 'bg-success-soft text-success', icon: CheckCircle },
-  pending: { color: 'bg-warning-soft text-warning', icon: Clock },
-  verifying: { color: 'bg-info-soft text-info', icon: Clock },
-  failed: { color: 'bg-destructive-soft text-destructive', icon: XCircle },
-}
+import type {
+  SubscriptionPlan,
+  UserSubscription,
+  SubscriptionInvoice,
+  SubscriptionHistoryResponse,
+  PremiumContentData
+} from '@/lib/types/woombat'
 
 export default function SubscriptionPage() {
-  const { token, activeTenantId } = useUserStore()
-  const { canManageBilling } = usePermissions()
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
-  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const { user } = useUserStore()
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([])
+  const [subscription, setSubscription] = useState<UserSubscription | null>(null)
+  const [invoices, setInvoices] = useState<SubscriptionInvoice[]>([])
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 })
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [subscription, setSubscription] = useState<Subscription | null>(null)
-  const [hasSubscription, setHasSubscription] = useState<boolean>(false)
-  const [plans, setPlans] = useState<Plan[]>([])
-  
-  // Fetch subscription from API
-  const fetchSubscription = useCallback(async () => {
-    if (!token) return
+  const [plansLoading, setPlansLoading] = useState(true)
+  const [invoicesLoading, setInvoicesLoading] = useState(true)
 
-    try {
-      const response = await fetch('/api/user/subscription', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
+  // Modals & Action States
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const [cancelReason, setCancelReason] = useState("")
+  const [cancelImmediate, setCancelImmediate] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
 
-      const data: SubscriptionResponse = await response.json()
+  // Plan Switch Dialog
+  const [switchPlanModalOpen, setSwitchPlanModalOpen] = useState(false)
+  const [selectedPlanForSwitch, setSelectedPlanForSwitch] = useState<SubscriptionPlan | null>(null)
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch subscription')
-      }
+  // Premium Content Test State
+  const [premiumData, setPremiumData] = useState<PremiumContentData | null>(null)
+  const [testingPremium, setTestingPremium] = useState(false)
+  const [premiumError, setPremiumError] = useState<string | null>(null)
 
-      if (data.success && data.data) {
-        setHasSubscription(data.data.hasSubscription)
-        setSubscription(data.data.subscription || null)
-        
-        if (data.data.hasSubscription && data.data.subscription) {
-          toast({
-            variant: "success",
-            title: "Subscription Loaded",
-            description: `Your ${data.data.subscription.plan.name} plan is active`,
-          })
-        }
-      } else {
-        throw new Error('Invalid response format')
-      }
-    } catch (err) {
-      console.error('Error fetching subscription:', err)
-      toast({
-        variant: "destructive",
-        title: "Error Loading Subscription",
-        description: err instanceof Error ? err.message : "Failed to load subscription data",
-      })
-    }
-  }, [token])
-  
-  // Fetch transactions from API
-  const fetchTransactions = useCallback(async () => {
-    if (!token) return
-
-    try {
-      setLoading(true)
-      setError(null)
-
-      const params = new URLSearchParams({
-        page: '1',
-        limit: '10',
-        sortBy: 'submittedAt',
-        sortOrder: 'desc'
-      })
-
-      const response = await fetch(`/api/user/transactions?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-
-      const data: TransactionsResponse = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch transactions')
-      }
-
-      if (data.success && data.data) {
-        setTransactions(data.data.transactions)
-        toast({
-          variant: "info",
-          title: "Transactions Loaded",
-          description: `Found ${data.data.transactions.length} recent transactions`,
-        })
-      } else {
-        throw new Error('Invalid response format')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching transactions')
-      console.error('Error fetching transactions:', err)
-      toast({
-        variant: "destructive",
-        title: "Error Loading Transactions",
-        description: err instanceof Error ? err.message : "Failed to load transaction history",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }, [token])
-
-  // Fetch plans from API
+  // Fetch subscription plans
   const fetchPlans = useCallback(async () => {
     try {
-      const response = await fetch('/api/public/plans?sortBy=createdAt&sortOrder=desc')
-      const data: PlansResponse = await response.json()
-
-      if (data.success && data.data) {
-        setPlans(data.data.plans.filter(plan => plan.isActive))
+      setPlansLoading(true)
+      const res = await fetch('/api/v1/subscriptions/plans')
+      const json = await res.json()
+      if (res.ok && Array.isArray(json.data)) {
+        // Filter out redundant duplicates if any, preserving the latest active plans
+        const active = json.data.filter((p: SubscriptionPlan) => p.isActive)
+        setPlans(active)
       }
     } catch (err) {
-      console.error('Error fetching plans:', err)
+      console.error('Failed to load plans:', err)
+    } finally {
+      setPlansLoading(false)
     }
   }, [])
 
-  // Initial load - fetch both subscription and transactions
-  useEffect(() => {
-    fetchSubscription()
-    fetchTransactions()
-    fetchPlans()
-  }, [fetchSubscription, fetchTransactions, fetchPlans, activeTenantId])
+  // Fetch current subscription
+  const fetchCurrentSubscription = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await fetch('/api/v1/subscriptions/current')
+      const json = await res.json()
+      if (res.ok && json.data) {
+        setSubscription(json.data)
+      } else {
+        setSubscription(null)
+      }
+    } catch (err) {
+      console.error('Failed to load current subscription:', err)
+      setSubscription(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  const formatCurrency = (amount: number, currency: string) => {
+  // Fetch billing history / invoices
+  const fetchInvoices = useCallback(async (page = 1) => {
+    try {
+      setInvoicesLoading(true)
+      const res = await fetch(`/api/v1/subscriptions/history?page=${page}&limit=20`)
+      const json: SubscriptionHistoryResponse = await res.json()
+      if (res.ok && json.data) {
+        setInvoices(json.data)
+        if (json.pagination) {
+          setPagination(json.pagination)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load invoices:', err)
+    } finally {
+      setInvoicesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchPlans()
+    fetchCurrentSubscription()
+    fetchInvoices(1)
+  }, [fetchPlans, fetchCurrentSubscription, fetchInvoices])
+
+  // Handle Cancel Subscription
+  const handleCancelSubscription = async () => {
+    try {
+      setActionLoading(true)
+      const res = await fetch('/api/v1/subscriptions/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          immediate: cancelImmediate,
+          reason: cancelReason || 'User requested cancellation',
+        }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        toast({
+          variant: 'success',
+          title: cancelImmediate ? 'Subscription Canceled' : 'Cancellation Scheduled',
+          description: data.message || 'Subscription updated successfully.',
+        })
+        setCancelModalOpen(false)
+        setCancelReason("")
+        setCancelImmediate(false)
+        await fetchCurrentSubscription()
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Cancellation Failed',
+          description: data.message || 'Could not cancel subscription.',
+        })
+      }
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Network error',
+      })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Handle Resume Subscription
+  const handleResumeSubscription = async () => {
+    try {
+      setActionLoading(true)
+      const res = await fetch('/api/v1/subscriptions/resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        toast({
+          variant: 'success',
+          title: 'Subscription Resumed',
+          description: data.message || 'Auto-renewal has been re-enabled.',
+        })
+        await fetchCurrentSubscription()
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Resume Failed',
+          description: data.message || 'Failed to resume auto-renewal.',
+        })
+      }
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Network error',
+      })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Handle Toggle Auto-Renew
+  const handleToggleAutoRenew = async (autoRenew: boolean) => {
+    try {
+      setActionLoading(true)
+      const res = await fetch('/api/v1/subscriptions/auto-renew', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ autoRenew }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        toast({
+          variant: 'success',
+          title: autoRenew ? 'Auto-Renewal Enabled' : 'Auto-Renewal Disabled',
+          description: data.message || `Auto-renewal is now ${autoRenew ? 'active' : 'disabled'}.`,
+        })
+        await fetchCurrentSubscription()
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Update Failed',
+          description: data.message || 'Failed to update auto-renewal toggle.',
+        })
+      }
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Network error',
+      })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Handle Switch / Change Plan
+  const handleConfirmPlanChange = async () => {
+    if (!selectedPlanForSwitch) return
+
+    try {
+      setActionLoading(true)
+      const res = await fetch('/api/v1/subscriptions/change-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          newPlanId: selectedPlanForSwitch.id,
+          autoRenew: true,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        toast({
+          variant: 'success',
+          title: 'Plan Updated',
+          description: data.message || `Switched to ${selectedPlanForSwitch.name} successfully.`,
+        })
+        setSwitchPlanModalOpen(false)
+        setSelectedPlanForSwitch(null)
+        await fetchCurrentSubscription()
+        await fetchInvoices(1)
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Plan Switch Failed',
+          description: data.message || 'Could not update plan.',
+        })
+      }
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Network error',
+      })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Test Premium Content Route Guard
+  const handleTestPremiumContent = async () => {
+    try {
+      setTestingPremium(true)
+      setPremiumError(null)
+      const res = await fetch('/api/v1/subscriptions/premium-content')
+      const data = await res.json()
+
+      if (res.ok && data.data) {
+        setPremiumData(data.data)
+        toast({
+          variant: 'success',
+          title: 'Access Granted',
+          description: data.message || 'You have active subscription access to premium content.',
+        })
+      } else {
+        setPremiumData(null)
+        setPremiumError(data.message || 'Access denied: Subscription inactive or expired')
+        toast({
+          variant: 'destructive',
+          title: 'Access Denied',
+          description: data.message || 'Active subscription required.',
+        })
+      }
+    } catch {
+      setPremiumError('Failed to communicate with premium content service')
+    } finally {
+      setTestingPremium(false)
+    }
+  }
+
+  const formatCurrency = (amount: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currency,
+      currency: currency || 'USD',
     }).format(amount)
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     })
   }
 
@@ -311,512 +345,566 @@ export default function SubscriptionPage() {
     const end = new Date(endDate)
     const now = new Date()
     const diffTime = end.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
-  }
-  
-  // Current subscription data - only use real data, no mock data
-  const currentSubscription = subscription ? {
-    plan: subscription.plan.name,
-    status: subscription.isActive ? 'active' : 'inactive',
-    amount: subscription.plan.price,
-    currency: subscription.plan.currency,
-    billingDate: new Date(subscription.endDate).toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    }),
-    daysLeft: getDaysUntilExpiry(subscription.endDate),
-    usage: {
-      orders: { current: 847, limit: 1000 },
-      conversations: { current: 3240, limit: 5000 },
-      aiMessages: { current: 12580, limit: 20000 },
-    }
-  } : null
-
-  // Available plans - now fetched from API
-  // const plans = [ ... ] // Removed hardcoded plans
-
-  const getPrice = (plan: Plan) => {
-    // For monthly plans, show monthly price
-    // For yearly plans, show yearly price if available, otherwise calculate
-    if (plan.interval === 'yearly') {
-      return plan.annualPrice || plan.price
-    }
-    return plan.price
+    return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
   }
 
-  const getTotalPrice = (plan: Plan) => {
-    if (plan.interval === 'yearly') {
-      return plan.annualPrice || plan.price
-    }
-    // For monthly plans, calculate yearly equivalent
-    return plan.annualPrice || (plan.price * 12)
-  }
-
-  const getIconForPlan = (planName: string) => {
-    switch (planName.toLowerCase()) {
-      case 'starter':
-        return Zap
-      case 'professional':
-        return Crown
-      case 'enterprise':
-        return Shield
+  const getStatusBadge = (status: string) => {
+    switch (status.toUpperCase()) {
+      case 'ACTIVE':
+        return <Badge className="bg-success-soft text-success border-success/30">Active</Badge>
+      case 'TRIALING':
+        return <Badge className="bg-info-soft text-info border-info/30">Trial Period</Badge>
+      case 'CANCELED':
+      case 'CANCELLED':
+        return <Badge className="bg-destructive-soft text-destructive border-destructive/30">Canceled</Badge>
+      case 'PAST_DUE':
+        return <Badge className="bg-warning-soft text-warning border-warning/30">Past Due</Badge>
       default:
-        return Zap
+        return <Badge variant="outline">{status}</Badge>
+    }
+  }
+
+  const getInvoiceStatusBadge = (status: string) => {
+    switch (status.toUpperCase()) {
+      case 'PAID':
+        return (
+          <Badge className="bg-success-soft text-success border-success/30 flex items-center gap-1 text-xs">
+            <CheckCircle className="h-3 w-3" /> Paid
+          </Badge>
+        )
+      case 'PENDING':
+        return (
+          <Badge className="bg-warning-soft text-warning border-warning/30 flex items-center gap-1 text-xs">
+            <Clock className="h-3 w-3" /> Pending
+          </Badge>
+        )
+      case 'FAILED':
+        return (
+          <Badge className="bg-destructive-soft text-destructive border-destructive/30 flex items-center gap-1 text-xs">
+            <XCircle className="h-3 w-3" /> Failed
+          </Badge>
+        )
+      default:
+        return <Badge variant="outline">{status}</Badge>
     }
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      {/* <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Subscription</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Manage your plan and billing</p>
+          <h1 className="text-2xl font-bold text-foreground">Subscriptions & Billing</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage your subscription tier, billing period, and invoice transactions
+          </p>
         </div>
-        <Button variant="outline" size="sm" className="h-8">
-          <Settings className="h-3.5 w-3.5 mr-1.5" />
-          Manage Billing
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => {
+            fetchCurrentSubscription()
+            fetchPlans()
+            fetchInvoices(1)
+          }}
+          disabled={loading || plansLoading}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={cn("h-4 w-4", (loading || plansLoading) && "animate-spin")} />
+          <span>Refresh</span>
         </Button>
-      </div> */}
+      </div>
 
-      {/* Show message if no subscription */}
-      {!hasSubscription && subscription === null && (
-        <Card className="border-info/30 bg-info-soft">
-          <div className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-info-soft flex items-center justify-center">
-              <Crown className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-foreground">No active subscription</p>
-              <p className="text-xs text-muted-foreground">Choose a plan below to get started with premium features</p>
+      {/* No Subscription Alert */}
+      {!loading && !subscription && (
+        <Card className="border-info/30 bg-info-soft/40 p-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-info-soft flex items-center justify-center shrink-0">
+                <Crown className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">No active subscription found</p>
+                <p className="text-xs text-muted-foreground">
+                  Select a subscription plan below to unlock automated store tools and AI features.
+                </p>
+              </div>
             </div>
             <Button 
               size="sm" 
               className="bg-primary hover:bg-primary/90"
-              onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+              onClick={() => {
+                const el = document.getElementById('available-plans-section')
+                el?.scrollIntoView({ behavior: 'smooth' })
+              }}
             >
-              View Plans
-              <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+              Explore Plans <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
             </Button>
           </div>
         </Card>
       )}
 
-      {/* Current Subscription Overview - Only show when user has an active subscription */}
-      {hasSubscription && currentSubscription && (
-        <Card className="border-border overflow-hidden bg-card">
-          <div className="bg-card border-b border-border p-5">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-md bg-info-soft border border-info/30 flex items-center justify-center text-info">
-                  <Crown className="h-5 w-5" />
+      {/* Current Active Subscription Banner */}
+      {subscription && (
+        <Card className="border-border overflow-hidden bg-card shadow-sm">
+          <div className="bg-card border-b border-border p-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-info-soft border border-info/30 flex items-center justify-center text-info shrink-0">
+                  <Crown className="h-6 w-6" />
                 </div>
                 <div>
-                  <Badge className="bg-info-soft text-info border-info/30 mb-1 rounded">Active</Badge>
-                  <h2 className="text-xl font-bold text-foreground">{currentSubscription.plan} Plan</h2>
-                  <p className="text-sm text-pop">Your subscription is active and running smoothly</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    {getStatusBadge(subscription.status)}
+                    {subscription.cancelAtPeriodEnd && (
+                      <Badge className="bg-warning-soft text-warning border-warning/30 flex items-center gap-1 text-xs">
+                        <AlertTriangle className="h-3 w-3" /> Scheduled to Cancel
+                      </Badge>
+                    )}
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground">
+                    {subscription.plan?.name || "Active"} Plan
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {subscription.plan?.description || "Subscribed member"}
+                  </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-pop">Next billing</p>
-                <p className="text-lg font-bold text-foreground">{currentSubscription.billingDate}</p>
-                <p className="text-xs text-pop">{currentSubscription.daysLeft} days left</p>
+
+              <div className="flex flex-col md:items-end gap-1">
+                <p className="text-xs text-muted-foreground">Current Billing Cycle</p>
+                <p className="text-base font-semibold text-foreground">
+                  {formatDate(subscription.currentPeriodStart)} — {formatDate(subscription.currentPeriodEnd)}
+                </p>
+                <p className="text-xs text-primary font-medium">
+                  {getDaysUntilExpiry(subscription.currentPeriodEnd)} days remaining
+                </p>
               </div>
             </div>
           </div>
-          
 
+          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 bg-muted/20">
+            {/* Auto Renewal Card */}
+            <div className="p-4 rounded-lg bg-card border border-border flex flex-col justify-between">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Auto-Renewal
+                </p>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-sm font-medium text-foreground">
+                    {subscription.autoRenew ? 'Enabled (Recurring)' : 'Disabled (Will not renew)'}
+                  </span>
+                  <Switch 
+                    checked={subscription.autoRenew}
+                    disabled={actionLoading}
+                    onCheckedChange={(checked) => handleToggleAutoRenew(checked)}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {subscription.cancelAtPeriodEnd 
+                    ? 'Subscription will terminate at the end of the current period.' 
+                    : 'Your card will renew automatically at the end of billing cycle.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Plan Price & Interval */}
+            <div className="p-4 rounded-lg bg-card border border-border flex flex-col justify-between">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Rate & Interval
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {formatCurrency(subscription.plan?.price || 0, subscription.plan?.currency)}
+                  <span className="text-xs font-normal text-muted-foreground ml-1">
+                    /{subscription.plan?.interval?.toLowerCase() || 'month'}
+                  </span>
+                </p>
+                {subscription.lastRenewalAt && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Last renewed: {formatDate(subscription.lastRenewalAt)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Subscription Actions */}
+            <div className="p-4 rounded-lg bg-card border border-border flex flex-col justify-between">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Subscription Controls
+                </p>
+                <div className="flex flex-col gap-2 mt-2">
+                  {subscription.cancelAtPeriodEnd ? (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={handleResumeSubscription}
+                      disabled={actionLoading}
+                      className="w-full text-success border-success/30 hover:bg-success-soft"
+                    >
+                      {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
+                      Resume Auto-Renewal
+                    </Button>
+                  ) : (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => setCancelModalOpen(true)}
+                      disabled={actionLoading}
+                      className="w-full text-destructive border-destructive/30 hover:bg-destructive-soft"
+                    >
+                      Cancel Subscription
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </Card>
       )}
 
-      {/* Available Plans Section */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-bold text-foreground">Available Plans</h2>
-            <p className="text-sm text-muted-foreground">Choose the perfect plan for your business</p>
-          </div>
-          
-          {/* Billing Toggle */}
-          <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
-            <button
-              onClick={() => setBillingCycle('monthly')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                billingCycle === 'monthly'
-                  ? 'bg-card text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBillingCycle('yearly')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                billingCycle === 'yearly'
-                  ? 'bg-card text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Yearly
-              <Badge className="ml-1.5 bg-success-soft text-success text-xs px-1">Save 17%</Badge>
-            </button>
-          </div>
+      {/* Available Plans Catalog */}
+      <div id="available-plans-section" className="space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-foreground">Available Subscription Plans</h2>
+          <p className="text-xs text-muted-foreground">Select a pricing tier for your merchant workspace</p>
         </div>
 
-        {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {plans.map((plan) => {
-            const Icon = getIconForPlan(plan.name)
-            const isCurrentPlan = subscription?.planId === plan.id
-            
-            return (
-              <Card 
-                key={plan.id}
-                className={`relative border-2 transition-all hover:shadow-lg ${
-                  isCurrentPlan 
-                    ? 'border-pop bg-pop-soft' 
-                    : plan.isPopular 
-                      ? 'border-primary/30' 
-                      : 'border-border'
-                }`}
-              >
-                {plan.isPopular && !isCurrentPlan && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-pop text-white px-3 py-0.5 shadow-lg">
-                      <Star className="h-3 w-3 mr-1 fill-white" />
-                      Most Popular
-                    </Badge>
-                  </div>
-                )}
-                
-                {isCurrentPlan && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-success text-white px-3 py-0.5 shadow-lg">
-                      <Check className="h-3 w-3 mr-1" />
-                      Current Plan
-                    </Badge>
-                  </div>
-                )}
-
-                <div className="p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center">
-                      <Icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-foreground">{plan.name}</h3>
-                      <p className="text-xs text-muted-foreground">{plan.description}</p>
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-foreground">
-                        Tk {getPrice(plan)}
-                      </span>
-                      <span className="text-sm text-muted-foreground">/{plan.interval === 'yearly' ? 'year' : 'month'}</span>
-                    </div>
-                    {billingCycle === 'yearly' && plan.interval === 'monthly' && plan.annualPrice && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Tk {getTotalPrice(plan)} billed annually
-                      </p>
-                    )}
-                  </div>
-
-                  {isCurrentPlan ? (
-                    <Button
-                      className="w-full mb-4 bg-muted hover:bg-muted"
-                      variant="default"
-                      disabled
-                    >
-                      Current Plan
-                    </Button>
-                  ) : (
-                    <Link href={`/dashboard/purchase?planId=${plan.id}`}>
-                      <Button
-                        className="w-full mb-4"
-                        variant="default"
-                      >
-                        {!hasSubscription ? (
-                          <>Purchase <ArrowRight className="h-4 w-4 ml-1" /></>
-                        ) : (() => {
-                          const currentPlanPrice = subscription?.plan.price || 0
-                          const targetPlanPrice = plan.price
-
-                          if (targetPlanPrice > currentPlanPrice) {
-                            return <>Upgrade <ArrowRight className="h-4 w-4 ml-1" /></>
-                          } else if (targetPlanPrice < currentPlanPrice) {
-                            return <>Downgrade <ArrowRight className="h-4 w-4 ml-1" /></>
-                          } else {
-                            return <>Change Plan <ArrowRight className="h-4 w-4 ml-1" /></>
-                          }
-                        })()}
-                      </Button>
-                    </Link>
-                  )}
-
-                  <div className="space-y-2">
-                    {plan.features.slice(0, 4).map((feature, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
-                        <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
-                        <span className="text-xs text-foreground">{feature}</span>
-                      </div>
-                    ))}
-                    {plan.features.length > 4 && (
-                      <div className="text-xs text-muted-foreground">
-                        +{plan.features.length - 4} more features
-                      </div>
-                    )}
-                  </div>
+        {plansLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="p-6 border-border animate-pulse space-y-4">
+                <div className="h-6 w-1/2 bg-muted rounded"></div>
+                <div className="h-8 w-1/3 bg-muted rounded"></div>
+                <div className="space-y-2">
+                  <div className="h-4 w-full bg-muted rounded"></div>
+                  <div className="h-4 w-3/4 bg-muted rounded"></div>
                 </div>
               </Card>
-            )
-          })}
-        </div>
+            ))}
+          </div>
+        ) : plans.length === 0 ? (
+          <Card className="p-8 text-center border-border">
+            <p className="text-sm text-muted-foreground">No active subscription plans available at this moment.</p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {plans.map((plan) => {
+              const isCurrent = subscription?.planId === plan.id
+              const hasTrial = plan.trialDays > 0
+
+              return (
+                <Card 
+                  key={plan.id}
+                  className={cn(
+                    "relative border-2 transition-all p-6 flex flex-col justify-between hover:shadow-md",
+                    isCurrent ? "border-primary bg-primary/5" : "border-border bg-card"
+                  )}
+                >
+                  {isCurrent && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <Badge className="bg-primary text-primary-foreground px-3 py-0.5 shadow">
+                        <Check className="h-3 w-3 mr-1" />
+                        Current Plan
+                      </Badge>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="font-bold text-lg text-foreground">{plan.name}</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">{plan.description}</p>
+                      </div>
+                      <div className="h-10 w-10 rounded-lg bg-info-soft flex items-center justify-center shrink-0">
+                        {plan.price > 20 ? <Shield className="h-5 w-5 text-primary" /> : <Zap className="h-5 w-5 text-primary" />}
+                      </div>
+                    </div>
+
+                    <div className="my-4">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-extrabold text-foreground">
+                          {formatCurrency(plan.price, plan.currency)}
+                        </span>
+                        <span className="text-xs text-muted-foreground uppercase font-medium">
+                          /{plan.interval}
+                        </span>
+                      </div>
+                      {hasTrial && (
+                        <Badge className="mt-2 bg-success-soft text-success border-success/30 text-xs">
+                          <Sparkles className="h-3 w-3 mr-1" /> {plan.trialDays}-Day Free Trial
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="space-y-2.5 my-6 border-t border-border pt-4">
+                      {plan.features.map((feature, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-xs">
+                          <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                          <span className="text-foreground/90">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    {isCurrent ? (
+                      <Button className="w-full bg-muted text-muted-foreground hover:bg-muted" disabled>
+                        Subscribed
+                      </Button>
+                    ) : subscription ? (
+                      <Button 
+                        className="w-full"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedPlanForSwitch(plan)
+                          setSwitchPlanModalOpen(true)
+                        }}
+                      >
+                        Switch to {plan.name}
+                      </Button>
+                    ) : (
+                      <Link href={`/dashboard/purchase?planId=${plan.id}`} className="w-full block">
+                        <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                          Subscribe <ArrowRight className="h-4 w-4 ml-1.5" />
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Transaction History */}
+      {/* Invoice & Billing History */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-border">
-          <div className="p-4 border-b border-border">
-            <h3 className="font-semibold text-foreground">Transaction History</h3>
-            <p className="text-xs text-muted-foreground">View all your payment transactions and invoices</p>
+        <Card className="lg:col-span-2 border-border bg-card">
+          <div className="p-5 border-b border-border flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-foreground">Billing & Invoice History</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Past invoice settlement records and billing renewals
+              </p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => fetchInvoices(pagination.page)} 
+              disabled={invoicesLoading}
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", invoicesLoading && "animate-spin")} />
+            </Button>
           </div>
-          <div className="p-4">
-            {loading ? (
+
+          <div className="p-5">
+            {invoicesLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2 text-muted-foreground">Loading transactions...</span>
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="ml-2 text-xs text-muted-foreground">Loading invoices...</span>
               </div>
-            ) : error ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <AlertCircle className="h-8 w-8 text-destructive" />
-                <div className="mt-2 text-center">
-                  <p className="text-destructive font-medium">Error loading transactions</p>
-                  <p className="text-muted-foreground text-sm">{error}</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-3"
-                    onClick={fetchTransactions}
-                  >
-                    Try Again
-                  </Button>
-                </div>
-              </div>
-            ) : transactions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <FileText className="h-8 w-8 text-muted-foreground" />
-                <div className="mt-2 text-center">
-                  <p className="text-muted-foreground font-medium">No transactions found</p>
-                  <p className="text-muted-foreground text-sm">Your payment history will appear here</p>
-                </div>
+            ) : invoices.length === 0 ? (
+              <div className="text-center py-12">
+                <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
+                <p className="text-sm font-medium text-foreground">No invoices generated yet</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Invoices will appear here once your subscription billing executes.
+                </p>
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {transactions.map((transaction) => {
-                  const statusInfo = statusConfig[transaction.status]
-                  const StatusIcon = statusInfo.icon
-
-                  return (
-                    <div key={transaction.id} className="py-3 hover:bg-muted transition-colors">
-                      <div className="flex items-start justify-between gap-4">
-                        {/* Left Side - Icon and Details */}
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-sm font-semibold text-foreground">
-                                {transaction.subscription.plan.name}
-                              </p>
-                              <Badge className={cn('text-xs flex items-center gap-1', statusInfo.color)}>
-                                <StatusIcon className="h-3 w-3" />
-                                <span className="capitalize">{transaction.status}</span>
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground mb-0.5">
-                              TXN: {transaction.transactionId}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Account: ****{transaction.accountNumber.slice(-4)} • {formatDate(transaction.submittedAt)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {transaction.subscription.plan.interval} plan
-                            </p>
-                          </div>
+                {invoices.map((inv) => (
+                  <div key={inv.id} className="py-3.5 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground truncate">
+                            {inv.billingReason === 'INITIAL_PAYMENT' ? 'Initial Plan Enrollment' : 'Subscription Renewal'}
+                          </p>
+                          {getInvoiceStatusBadge(inv.status)}
                         </div>
-
-                        {/* Right Side - Amount and Actions */}
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-foreground">
-                              {formatCurrency(transaction.amount, transaction.currency)}
-                            </p>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => {
-                                toast({
-                                  variant: "info",
-                                  title: "Transaction Details",
-                                  description: `Viewing details for transaction ${transaction.transactionId}`,
-                                })
-                              }}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => {
-                                toast({
-                                  variant: "success",
-                                  title: "Receipt Downloaded",
-                                  description: `Receipt for ${formatCurrency(transaction.amount, transaction.currency)} is being downloaded`,
-                                })
-                              }}>
-                                <Download className="mr-2 h-4 w-4" />
-                                Download Receipt
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Period: {formatDate(inv.periodStart)} – {formatDate(inv.periodEnd)}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-mono">
+                          Invoice ID: {inv.id.substring(0, 18)}...
+                        </p>
                       </div>
                     </div>
-                  )
-                })}
+
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold text-foreground">
+                        {formatCurrency(inv.amount, inv.currency)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {formatDate(inv.paidAt || inv.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </Card>
 
-        {/* Payment Info */}
-        <Card className="border-border">
-          <div className="p-4 border-b border-border">
-            <h3 className="font-semibold text-foreground">Payment Method</h3>
-            <p className="text-xs text-muted-foreground">Manage your billing details</p>
+        {/* Premium Content & Route Guard Verification Card */}
+        <Card className="border-border bg-card">
+          <div className="p-5 border-b border-border">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Member Access Verification
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Verify your active subscription status with the backend route guard
+            </p>
           </div>
-          <div className="p-4 space-y-4">
-            {transactions.length > 0 ? (() => {
-              // Get the latest transaction (most recent submittedAt)
-              const latestTransaction = transactions.sort((a, b) => 
-                new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
-              )[0]
-              
-              // Determine payment method icon and label based on transaction type
-              const getPaymentMethodInfo = (type: string) => {
-                switch (type.toLowerCase()) {
-                  case 'bank_transfer':
-                  case 'bank-transfer':
-                    return {
-                      icon: Building2,
-                      label: 'Bank Transfer',
-                      color: 'text-primary'
-                    }
-                  case 'credit_card':
-                  case 'credit-card':
-                    return {
-                      icon: CreditCard,
-                      label: 'Credit Card',
-                      color: 'text-muted-foreground'
-                    }
-                  default:
-                    return {
-                      icon: CreditCard,
-                      label: 'Payment Method',
-                      color: 'text-muted-foreground'
-                    }
-                }
-              }
-              
-              const paymentMethod = getPaymentMethodInfo(latestTransaction.type)
-              const PaymentIcon = paymentMethod.icon
-              
-              return (
-                <div className="flex items-center gap-3 p-3 bg-background rounded-lg">
-                  <div className="h-10 w-10 rounded-lg bg-card border border-border flex items-center justify-center">
-                    <PaymentIcon className={`h-5 w-5 ${paymentMethod.color}`} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">
-                      •••• {latestTransaction.accountNumber.slice(-4)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {paymentMethod.label} • Last used {formatDate(latestTransaction.submittedAt)}
-                    </p>
-                  </div>
-                  <Badge className="text-xs bg-info-soft text-info">Default</Badge>
-                </div>
-              )
-            })() : (
-              <div className="flex items-center gap-3 p-3 bg-background rounded-lg">
-                <div className="h-10 w-10 rounded-lg bg-card border border-border flex items-center justify-center">
-                  <CreditCard className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">No payment method</p>
-                  <p className="text-xs text-muted-foreground">Add a payment method to get started</p>
+
+          <div className="p-5 space-y-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Protected endpoints use the backend subscription validator. Click below to test your access.
+            </p>
+
+            <Button 
+              className="w-full" 
+              variant="outline"
+              disabled={testingPremium}
+              onClick={handleTestPremiumContent}
+            >
+              {testingPremium ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Verifying...
+                </>
+              ) : (
+                <>
+                  <Unlock className="h-4 w-4 mr-2 text-primary" /> Test Premium Access
+                </>
+              )}
+            </Button>
+
+            {premiumData && (
+              <div className="p-3.5 rounded-lg bg-success-soft/50 border border-success/30 space-y-1.5 text-xs">
+                <p className="font-semibold text-success flex items-center gap-1.5">
+                  <CheckCircle className="h-4 w-4" /> Access Granted
+                </p>
+                <p className="text-foreground/90">{premiumData.content}</p>
+                <div className="pt-1 text-muted-foreground flex items-center justify-between border-t border-success/20">
+                  <span>Tier: <strong>{premiumData.tier}</strong></span>
+                  <span>Expires: {formatDate(premiumData.expiresAt)}</span>
                 </div>
               </div>
             )}
 
-            <div className="space-y-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full justify-start h-8"
-                onClick={() => {
-                  toast({
-                    variant: "info",
-                    title: "Update Payment Method",
-                    description: "Opening payment method settings...",
-                  })
-                }}
-              >
-                <CreditCard className="h-3.5 w-3.5 mr-2" />
-                Update Payment Method
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full justify-start h-8"
-                onClick={() => {
-                  toast({
-                    variant: "info",
-                    title: "Billing History",
-                    description: "Loading full billing history...",
-                  })
-                }}
-              >
-                <Calendar className="h-3.5 w-3.5 mr-2" />
-                Billing History
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full justify-start h-8"
-                onClick={() => {
-                  toast({
-                    variant: "success",
-                    title: "Usage Reports",
-                    description: "Generating usage reports...",
-                  })
-                }}
-              >
-                <TrendingUp className="h-3.5 w-3.5 mr-2" />
-                Usage Reports
-              </Button>
-            </div>
+            {premiumError && (
+              <div className="p-3.5 rounded-lg bg-destructive-soft/50 border border-destructive/30 space-y-1 text-xs">
+                <p className="font-semibold text-destructive flex items-center gap-1.5">
+                  <Lock className="h-4 w-4" /> Restricted Access
+                </p>
+                <p className="text-destructive/90">{premiumError}</p>
+              </div>
+            )}
           </div>
         </Card>
       </div>
+
+      {/* Cancel Subscription Dialog */}
+      <Dialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancel Subscription</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel your subscription?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label htmlFor="cancel-reason" className="text-xs font-medium text-foreground">
+                Reason for cancellation (optional)
+              </label>
+              <textarea
+                id="cancel-reason"
+                className="w-full min-h-[80px] p-2.5 text-xs rounded-md border border-border bg-muted/40 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="Let us know why you are canceling..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
+              <div className="space-y-0.5">
+                <p className="text-xs font-semibold text-foreground">Terminate access immediately</p>
+                <p className="text-xs text-muted-foreground">
+                  Default is to keep access until current billing period ends.
+                </p>
+              </div>
+              <Switch 
+                checked={cancelImmediate} 
+                onCheckedChange={setCancelImmediate}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setCancelModalOpen(false)}>
+              Keep Subscription
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleCancelSubscription}
+              disabled={actionLoading}
+            >
+              {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              Confirm Cancellation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Switch Plan Dialog */}
+      <Dialog open={switchPlanModalOpen} onOpenChange={setSwitchPlanModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Switch Subscription Plan</DialogTitle>
+            <DialogDescription>
+              Upgrade or downgrade your current subscription to {selectedPlanForSwitch?.name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedPlanForSwitch && (
+            <div className="space-y-3 py-2 text-xs">
+              <div className="p-3 rounded-lg bg-muted/40 border border-border space-y-1">
+                <p className="font-semibold text-sm text-foreground">{selectedPlanForSwitch.name}</p>
+                <p className="text-muted-foreground">{selectedPlanForSwitch.description}</p>
+                <p className="text-base font-bold text-foreground mt-2">
+                  {formatCurrency(selectedPlanForSwitch.price, selectedPlanForSwitch.currency)} / {selectedPlanForSwitch.interval}
+                </p>
+              </div>
+              <p className="text-muted-foreground">
+                Your new billing cycle will begin immediately upon confirmation.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setSwitchPlanModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              onClick={handleConfirmPlanChange}
+              disabled={actionLoading}
+            >
+              {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              Confirm Plan Switch
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

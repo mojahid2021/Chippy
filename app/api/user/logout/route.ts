@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server'
+import { AUTH_COOKIE_NAME } from '@/lib/cookie-utils'
 
 export async function POST() {
-  const res = NextResponse.json({ success: true, message: 'Logged out successfully' })
-  // The session cookie is httpOnly, so it can only be cleared from a
-  // server response, never from client-side document.cookie.
-  res.cookies.set('auth_token', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+  const res = NextResponse.json({
+    success: true,
+    message: 'Logged out successfully',
+    data: null,
+  })
+
+  res.cookies.set(AUTH_COOKIE_NAME, '', {
     path: '/',
     maxAge: 0,
   })
+
   return res
 }

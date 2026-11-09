@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useUserStore } from "@/lib/stores/userStore"
 import { useToast } from "@/hooks/use-toast"
@@ -15,20 +16,24 @@ import {
   Calendar,
   Shield,
   Hash,
-  AtSign,
   Loader2,
-  KeyRound
+  KeyRound,
+  CheckCircle2,
+  XCircle,
+  ShieldCheck
 } from "lucide-react"
 
 interface UserProfile {
   id: string
   email: string
-  username: string
   firstName: string
   lastName: string
-  phone: string
+  name: string
+  role: string
+  phone?: string
   createdAt: string
   isActive: boolean
+  isEmailVerified: boolean
 }
 
 export default function ProfilePage() {
@@ -69,7 +74,7 @@ export default function ProfilePage() {
         setNewPassword("")
         setConfirmPassword("")
       } else {
-        toast({ title: "Error", description: data.message || "Failed to change password", variant: "destructive" })
+        toast({ title: "Notice", description: data.message || "Password change service unavailable", variant: "destructive" })
       }
     } catch {
       toast({ title: "Error", description: "Network error. Please try again.", variant: "destructive" })
@@ -78,20 +83,15 @@ export default function ProfilePage() {
     }
   }
 
-  // Fetch user profile data
+  // Fetch user profile data from /api/v1/auth/me
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!token) return
-
       try {
         setLoading(true)
-        // Session is carried by the httpOnly cookie automatically; no
-        // Authorization header is needed (or trusted) on this route.
-        const response = await fetch('/api/user/profile')
-
+        const response = await fetch('/api/v1/auth/me')
         const data = await response.json()
 
-        if (data.success && data.data) {
+        if (response.ok && data.data) {
           setProfile(data.data)
         }
       } catch (error) {
@@ -132,9 +132,10 @@ export default function ProfilePage() {
     )
   }
 
+  const displayName = profile.name || `${profile.firstName} ${profile.lastName}`.trim()
+
   return (
     <div className="space-y-6">
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-fit">
         {/* Profile Overview */}
         <div className="lg:col-span-1">
@@ -149,9 +150,24 @@ export default function ProfilePage() {
                 </Avatar>
               </div>
               <CardTitle className="text-lg text-foreground">
-                {profile.firstName} {profile.lastName}
+                {displayName}
               </CardTitle>
-              <p className="text-sm text-muted-foreground">@{profile.username}</p>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                <Badge variant="outline" className="text-xs capitalize font-medium">
+                  {profile.role || 'USER'}
+                </Badge>
+                {profile.isEmailVerified ? (
+                  <Badge className="bg-success-soft text-success border-success/30 text-xs flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Verified
+                  </Badge>
+                ) : (
+                  <Badge className="bg-warning-soft text-warning border-warning/30 text-xs flex items-center gap-1">
+                    <XCircle className="w-3 h-3" />
+                    Unverified
+                  </Badge>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4 flex-1">
               {/* Account Status */}
@@ -172,7 +188,7 @@ export default function ProfilePage() {
                   <p className={`text-xs ${
                     profile.isActive ? 'text-success' : 'text-destructive'
                   }`}>
-                    {profile.isActive ? 'Verified and ready to use' : 'Account needs verification'}
+                    {profile.isActive ? 'Account in good standing' : 'Account needs attention'}
                   </p>
                 </div>
               </div>
@@ -202,8 +218,11 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="flex items-center space-x-3 text-sm">
-                  <Shield className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Account Security: High</span>
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-muted-foreground tracking-wide">Role & Permissions</p>
+                    <p className="text-foreground text-xs font-medium">{profile.role || 'USER'}</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -248,17 +267,16 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="username" className="flex items-center space-x-2 text-sm font-medium">
-                  <AtSign className="h-4 w-4 text-primary" />
-                  <span>Username</span>
+                <Label htmlFor="fullName" className="flex items-center space-x-2 text-sm font-medium">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <span>Display Name</span>
                 </Label>
                 <Input
-                  id="username"
-                  value={profile.username || ""}
+                  id="fullName"
+                  value={displayName}
                   disabled
                   className="bg-background border-border"
                 />
-                <p className="text-xs text-muted-foreground">Your unique username for identification</p>
               </div>
 
               <div className="space-y-2">
@@ -289,7 +307,6 @@ export default function ProfilePage() {
                   className="bg-background border-border"
                   placeholder="Not provided"
                 />
-                <p className="text-xs text-muted-foreground">Editing profile details isn&apos;t available yet. Contact support to update this information.</p>
               </div>
             </CardContent>
           </Card>

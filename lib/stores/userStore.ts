@@ -1,47 +1,27 @@
 import { create } from "zustand"
+import { AUTH_COOKIE_NAME, getClientCookie, setClientCookie, deleteClientCookie } from "@/lib/cookie-utils"
 
 export interface User {
   id: string
   email: string
   firstName: string
   lastName: string
+  name?: string
+  role?: string
+  phone?: string
+  isActive?: boolean
+  isEmailVerified?: boolean
   emailVerified?: boolean
-}
-
-export interface Tenant {
-  id: string
-  name: string
-  slug: string
-  role: string
-  status?: string
-  subscriptionStatus?: string
-  subscriptionEndsAt?: string | null
-}
-
-export interface TenantContext {
-  tenantId: string
-  slug: string
-  role: string
-  permissions: string[]
+  createdAt?: string
 }
 
 interface AuthState {
   user: User | null
-  // Not the real JWT - the session itself lives in an httpOnly cookie the
-  // client can never read (see app/api/user/login and /register). This is
-  // just a truthy marker so pages can gate rendering on "do we have a
-  // session" without ever holding the actual secret in JS-accessible state.
   token: string | null
-  activeTenantId: string | null
-  tenants: Tenant[]
-  currentRole: string | null
-  permissions: string[]
   isLoading: boolean
   error: string | null
   setUser: (user: User | null) => void
   setToken: (token: string | null) => void
-  setActiveTenantId: (tenantId: string | null) => void
-  setTenants: (tenants: Tenant[]) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>
@@ -51,97 +31,55 @@ interface AuthState {
     firstName: string
     lastName: string
     phone?: string
+    role?: string
   }) => Promise<boolean>
   logout: () => void
   initializeAuth: () => void
   getSavedEmail: () => string | null
   validateProfile: () => Promise<boolean>
-  switchTenant: (tenantId: string) => Promise<boolean>
-  loadTenantContext: () => Promise<void>
 }
 
-const SESSION_MARKER = 'session'
+function normalizeUser(userData: Record<string, unknown>): User {
+  const firstName = (userData.firstName as string) || ''
+  const lastName = (userData.lastName as string) || ''
+  const name = (userData.name as string) || `${firstName} ${lastName}`.trim()
+  const isEmailVerified = typeof userData.isEmailVerified === 'boolean' 
+    ? userData.isEmailVerified 
+    : typeof userData.emailVerified === 'boolean'
+    ? userData.emailVerified
+    : false
 
-export const useUserStore = create<AuthState>((set, get) => ({
+  return {
+    id: (userData.id as string) || '',
+    email: (userData.email as string) || '',
+    firstName,
+    lastName,
+    name,
+    role: (userData.role as string) || 'USER',
+    phone: (userData.phone as string) || undefined,
+    isActive: typeof userData.isActive === 'boolean' ? userData.isActive : true,
+    isEmailVerified,
+    emailVerified: isEmailVerified,
+    createdAt: (userData.createdAt as string) || undefined,
+  }
+}
+
+export const useUserStore = create<AuthState>((set) => ({
   user: null,
   token: null,
-  activeTenantId: null,
-  tenants: [],
-  currentRole: null,
-  permissions: [],
   isLoading: false,
   error: null,
 
   setUser: (user) => set({ user }),
   setToken: (token) => set({ token }),
-  setActiveTenantId: (activeTenantId) => set({ activeTenantId }),
-  setTenants: (tenants) => set({ tenants }),
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
-
-  loadTenantContext: async () => {
-    try {
-      const [tenantsRes, meRes] = await Promise.all([
-        fetch('/api/tenant', { method: 'GET' }).catch(() => null),
-        fetch('/api/tenant/me', { method: 'GET' }).catch(() => null),
-      ])
-
-      const updates: Partial<AuthState> = {}
-
-      if (tenantsRes && tenantsRes.ok) {
-        const tenantsData = await tenantsRes.json()
-        if (tenantsData.success && Array.isArray(tenantsData.data)) {
-          updates.tenants = tenantsData.data
-        }
-      }
-
-      if (meRes && meRes.ok) {
-        const meData = await meRes.json()
-        if (meData.success && meData.data) {
-          updates.activeTenantId = meData.data.tenantId
-          updates.currentRole = meData.data.role
-          updates.permissions = meData.data.permissions || []
-        }
-      }
-
-      if (Object.keys(updates).length > 0) {
-        set(updates)
-      }
-    } catch (err) {
-      console.error('Failed to load tenant context:', err)
-    }
-  },
-
-  switchTenant: async (tenantId: string) => {
-    set({ isLoading: true, error: null })
-    try {
-      const res = await fetch(`/api/tenant/${tenantId}/switch`, {
-        method: 'POST',
-      })
-      const data = await res.json()
-      if (data.success) {
-        set({
-          activeTenantId: data.data.tenantId || tenantId,
-          currentRole: data.data.role,
-          isLoading: false,
-        })
-        await get().loadTenantContext()
-        return true
-      } else {
-        set({ isLoading: false, error: data.message || 'Failed to switch workspace' })
-        return false
-      }
-    } catch {
-      set({ isLoading: false, error: 'Network error while switching workspace' })
-      return false
-    }
-  },
 
   login: async (email: string, password: string, rememberMe = false) => {
     set({ isLoading: true, error: null })
 
     try {
-      const response = await fetch('/api/user/login', {
+      const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -151,16 +89,19 @@ export const useUserStore = create<AuthState>((set, get) => ({
 
       const data = await response.json()
 
-      if (data.success) {
-        // The backend sets the real session as an httpOnly cookie - nothing
-        // sensitive comes back in the response body.
+      if (response.ok && data.data) {
+        const user = normalizeUser(data.data.user)
+        const token = data.data.token || getClientCookie(AUTH_COOKIE_NAME) || 'authenticated'
+
+        if (token && typeof window !== 'undefined') {
+          setClientCookie(AUTH_COOKIE_NAME, token, rememberMe ? 365 : 7)
+        }
+
         set({
-          user: data.data.user,
-          token: SESSION_MARKER,
-          activeTenantId: data.data.activeTenantId ?? null,
-          tenants: data.data.tenants ?? [],
+          user,
+          token,
           isLoading: false,
-          error: null
+          error: null,
         })
 
         if (typeof window !== 'undefined') {
@@ -173,20 +114,18 @@ export const useUserStore = create<AuthState>((set, get) => ({
           }
         }
 
-        // Asynchronously populate tenant permissions
-        void get().loadTenantContext()
         return true
       } else {
         set({
           isLoading: false,
-          error: data.message || 'Login failed'
+          error: data.message || 'Login failed',
         })
         return false
       }
     } catch {
       set({
         isLoading: false,
-        error: 'Network error. Please try again.'
+        error: 'Network error. Please try again.',
       })
       return false
     }
@@ -196,7 +135,7 @@ export const useUserStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null })
 
     try {
-      const response = await fetch('/api/user/register', {
+      const response = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,28 +145,34 @@ export const useUserStore = create<AuthState>((set, get) => ({
 
       const data = await response.json()
 
-      if (data.success) {
+      if (response.ok && data.data) {
+        const rawUser = data.data.user || data.data
+        const user = normalizeUser(rawUser)
+        const token = data.data.token || getClientCookie(AUTH_COOKIE_NAME) || 'authenticated'
+
+        if (token && typeof window !== 'undefined') {
+          setClientCookie(AUTH_COOKIE_NAME, token, 7)
+        }
+
         set({
-          user: data.data.user,
-          token: SESSION_MARKER,
-          activeTenantId: data.data.activeTenantId ?? null,
-          tenants: data.data.tenants ?? [],
+          user,
+          token,
           isLoading: false,
-          error: null
+          error: null,
         })
-        void get().loadTenantContext()
+
         return true
       } else {
         set({
           isLoading: false,
-          error: data.message || 'Registration failed'
+          error: data.message || 'Registration failed',
         })
         return false
       }
     } catch {
       set({
         isLoading: false,
-        error: 'Network error. Please try again.'
+        error: 'Network error. Please try again.',
       })
       return false
     }
@@ -237,15 +182,12 @@ export const useUserStore = create<AuthState>((set, get) => ({
     set({
       user: null,
       token: null,
-      activeTenantId: null,
-      tenants: [],
-      currentRole: null,
-      permissions: [],
-      error: null
+      error: null,
     })
     if (typeof window !== 'undefined') {
-      fetch('/api/user/logout', { method: 'POST' }).catch(() => {})
+      deleteClientCookie(AUTH_COOKIE_NAME)
       document.cookie = 'saved_email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+      fetch('/api/v1/auth/logout', { method: 'POST' }).catch(() => {})
     }
   },
 
@@ -253,22 +195,27 @@ export const useUserStore = create<AuthState>((set, get) => ({
     set({ isLoading: true })
 
     try {
-      const response = await fetch('/api/user/profile', { method: 'GET' })
+      const cookieToken = getClientCookie(AUTH_COOKIE_NAME)
+      const response = await fetch('/api/v1/auth/me', {
+        method: 'GET',
+        headers: cookieToken ? { 'Authorization': `Bearer ${cookieToken}` } : {},
+      })
       const data = await response.json()
 
-      if (data.success) {
+      if (response.ok && data.data) {
+        const user = normalizeUser(data.data)
         set({
-          user: data.data,
-          token: SESSION_MARKER,
+          user,
+          token: cookieToken || 'authenticated',
           isLoading: false,
-          error: null
+          error: null,
         })
-        await get().loadTenantContext()
       } else {
-        set({ user: null, token: null, activeTenantId: null, tenants: [], currentRole: null, permissions: [], isLoading: false })
+        deleteClientCookie(AUTH_COOKIE_NAME)
+        set({ user: null, token: null, isLoading: false })
       }
     } catch {
-      set({ user: null, token: null, activeTenantId: null, tenants: [], currentRole: null, permissions: [], isLoading: false })
+      set({ user: null, token: null, isLoading: false })
     }
   },
 
@@ -285,33 +232,31 @@ export const useUserStore = create<AuthState>((set, get) => ({
 
   validateProfile: async () => {
     try {
-      const response = await fetch('/api/user/profile', {
+      const cookieToken = getClientCookie(AUTH_COOKIE_NAME)
+      const response = await fetch('/api/v1/auth/me', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          ...(cookieToken ? { 'Authorization': `Bearer ${cookieToken}` } : {}),
         },
       })
 
       const data = await response.json()
 
-      if (data.success) {
+      if (response.ok && data.data) {
+        const user = normalizeUser(data.data)
         set({
-          user: data.data,
-          token: SESSION_MARKER,
+          user,
+          token: cookieToken || 'authenticated',
           isLoading: false,
-          error: null
+          error: null,
         })
-        await get().loadTenantContext()
         return true
       } else {
         set({
           user: null,
           token: null,
-          activeTenantId: null,
-          tenants: [],
-          currentRole: null,
-          permissions: [],
-          isLoading: false
+          isLoading: false,
         })
         return false
       }
@@ -319,11 +264,7 @@ export const useUserStore = create<AuthState>((set, get) => ({
       set({
         user: null,
         token: null,
-        activeTenantId: null,
-        tenants: [],
-        currentRole: null,
-        permissions: [],
-        isLoading: false
+        isLoading: false,
       })
       return false
     }

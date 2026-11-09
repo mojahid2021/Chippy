@@ -239,19 +239,9 @@ export default function SignIn() {
                   </div>
 
                   <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <label htmlFor="password" className="block text-xs font-medium text-foreground/80">
-                        Password <span className="text-destructive">*</span>
-                      </label>
-                      {isLogin && (
-                        <Link 
-                          href="/auth/forgot-password" 
-                          className="text-xs text-primary hover:text-primary transition-colors"
-                        >
-                          Forgot password?
-                        </Link>
-                      )}
-                    </div>
+                    <label htmlFor="password" className="block text-xs font-medium text-foreground/80">
+                      Password <span className="text-destructive">*</span>
+                    </label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                       <Input

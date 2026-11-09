@@ -1,48 +1,41 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getBackendUrl } from '@/lib/backend-url'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    const page = searchParams.get('page') || '1'
-    const limit = searchParams.get('limit') || '10'
-    const sortBy = searchParams.get('sortBy') || 'createdAt'
-    const sortOrder = searchParams.get('sortOrder') || 'desc'
-
     const baseUrl = getBackendUrl()
+    const externalUrl = `${baseUrl}/api/v1/subscriptions/plans`
 
-    // Construct the external API URL
-    const externalUrl = `${baseUrl}/api/public/plans?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`
-
-    // Forward the request to the external API
     const response = await fetch(externalUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        // Forward any authorization headers if needed
-        ...(request.headers.get('authorization') && {
-          'Authorization': request.headers.get('authorization')!
-        })
-      }
+      },
     })
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch plans', message: 'External API error' },
-        { status: response.status }
-      )
-    }
 
     const data = await response.json()
 
-    return NextResponse.json(data)
+    if (!response.ok) {
+      return NextResponse.json(data, { status: response.status })
+    }
+
+    // Support both format envelopes
+    return NextResponse.json({
+      success: true,
+      message: data.message,
+      data: {
+        plans: data.data || [],
+      },
+      raw: data.data,
+    })
   } catch (error) {
     console.error('Error proxying plans request:', error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to proxy request to external API'
+        statusCode: 500,
+        error: 'Internal Server Error',
+        message: 'Failed to proxy request to external API',
       },
       { status: 500 }
     )

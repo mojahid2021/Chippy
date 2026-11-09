@@ -1,128 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getBackendUrl } from '@/lib/backend-url'
+import { AUTH_COOKIE_NAME } from '@/lib/cookie-utils'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get token from the httpOnly session cookie
-    const token = request.cookies.get('auth_token')?.value
+    const cookieToken = request.cookies.get(AUTH_COOKIE_NAME)?.value
+    const authHeader = request.headers.get('authorization')
+    const token = cookieToken || (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null)
+
     if (!token) {
       return NextResponse.json(
         {
           success: false,
+          statusCode: 401,
           error: 'Unauthorized',
-          message: 'Authentication required',
-          timestamp: new Date().toISOString(),
+          message: 'Missing or invalid authentication token',
         },
         { status: 401 }
       )
     }
 
-    const apiBaseUrl = getBackendUrl()
-
-    // Extract query parameters
     const { searchParams } = new URL(request.url)
     const page = searchParams.get('page') || '1'
-    const limit = searchParams.get('limit') || '10'
-    const status = searchParams.get('status')
-    const sortBy = searchParams.get('sortBy')
-    const sortOrder = searchParams.get('sortOrder')
+    const limit = searchParams.get('limit') || '20'
 
-    // Validate query parameters
-    const pageNum = parseInt(page, 10)
-    const limitNum = parseInt(limit, 10)
+    const apiBaseUrl = getBackendUrl()
+    const query = new URLSearchParams({ page, limit }).toString()
+    const externalApiUrl = `${apiBaseUrl}/api/v1/subscriptions/history?${query}`
 
-    if (isNaN(pageNum) || pageNum < 1) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          message: 'Page must be a positive integer',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      )
-    }
-
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          message: 'Limit must be between 1 and 100',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      )
-    }
-
-    if (status && !['pending', 'verifying', 'completed', 'failed'].includes(status)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          message: 'Status must be one of: pending, verifying, completed, failed',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      )
-    }
-
-    if (sortBy && !['submittedAt', 'amount', 'status', 'createdAt'].includes(sortBy)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          message: 'sortBy must be one of: submittedAt, amount, status, createdAt',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      )
-    }
-
-    if (sortOrder && !['asc', 'desc'].includes(sortOrder)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          message: 'sortOrder must be one of: asc, desc',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      )
-    }
-
-    // Build the external API URL with query parameters
-    const queryParams = new URLSearchParams({
-      page: pageNum.toString(),
-      limit: limitNum.toString(),
-    })
-
-    if (status) queryParams.append('status', status)
-    if (sortBy) queryParams.append('sortBy', sortBy)
-    if (sortOrder) queryParams.append('sortOrder', sortOrder)
-
-    const externalApiUrl = `${apiBaseUrl}/api/user/transactions?${queryParams.toString()}`
-
-    // Forward the request to the external API
     const response = await fetch(externalApiUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
     })
 
     const data = await response.json()
 
-    // Return the response from the external API
-    return NextResponse.json(data, { status: response.status })
+    if (!response.ok) {
+      return NextResponse.json(data, { status: response.status })
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Subscription history retrieved successfully',
+      data: {
+        transactions: data.data || [],
+        pagination: data.pagination || {
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
+          total: data.data?.length || 0,
+          pages: 1,
+        },
+      },
+      raw: data,
+    })
   } catch (error) {
     console.error('Transactions API error:', error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Internal server error',
+        statusCode: 500,
+        error: 'Internal Server Error',
         message: 'An unexpected error occurred while processing your request',
-        timestamp: new Date().toISOString(),
       },
       { status: 500 }
     )

@@ -1,391 +1,373 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useUserStore } from "@/lib/stores/userStore"
-import { useEntitlements } from "@/hooks/use-entitlements"
-import { usePermissions } from "@/hooks/use-permissions"
 import {
-  AlertCircle,
-  AlertTriangle,
-  ArrowUpRight,
-  Bot,
-  Globe,
+  Crown,
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  Activity,
+  ArrowRight,
+  ShieldCheck,
+  FileText,
   Loader2,
-  Package,
-  Plus,
-  Users,
+  Sparkles,
+  Zap,
+  RefreshCw,
+  Clock,
+  CheckCircle,
 } from "lucide-react"
-
-// Message interfaces
-interface Message {
-  id: string
-  messageType: string
-  content: string
-  timestamp: string
-  isEcho: boolean
-  processed: boolean
-  aiResponse?: {
-    id: string
-    aiResponse: string
-    aiModel: string
-    tokensUsed: {
-      prompt: number
-      completion: number
-      total: number
-    }
-    responseTime: number
-    status: string
-    sentToFacebook: boolean
-    createdAt: string
-    sentAt: string
-  }
-}
-
-interface MessagesResponse {
-  success: boolean
-  data: Message[]
-}
-
-// Order interfaces
-interface OrderItem {
-  productId: string
-  productName: string
-  quantity: number
-  unitPrice: number
-  totalPrice: number
-}
-
-interface Order {
-  orderId: string
-  customerName: string
-  customerPhone: string
-  customerAddress: string
-  status: string
-  paymentStatus: string
-  totalAmount: number
-  currency: string
-  items: OrderItem[]
-  deliveryAddress: string
-  source: string
-  createdAt: string
-  updatedAt: string
-  notes?: string
-  deliveryTime?: string
-  instructions?: string
-}
-
-interface OrdersResponse {
-  success: boolean
-  data: {
-    orders: Order[]
-    pagination: {
-      page: number
-      limit: number
-      total: number
-      pages: number
-    }
-  }
-  message: string
-  timestamp: string
-}
+import type { UserSubscription, SubscriptionInvoice, HealthData } from "@/lib/types/woombat"
 
 export default function Dashboard() {
-  const { user, tenants, activeTenantId, currentRole } = useUserStore()
-  const { entitlements, isGracePeriod, planName, getUsageInfo } = useEntitlements()
-  const { canManageCatalog, canConfigureAI, canManageTeam } = usePermissions()
+  const { user } = useUserStore()
+  const [subscription, setSubscription] = useState<UserSubscription | null>(null)
+  const [invoices, setInvoices] = useState<SubscriptionInvoice[]>([])
+  const [health, setHealth] = useState<HealthData | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const [messages, setMessages] = useState<Message[]>([])
-  const [messagesLoading, setMessagesLoading] = useState(true)
-  const [messagesError, setMessagesError] = useState<string | null>(null)
-  const [recentOrders, setRecentOrders] = useState<Order[]>([])
-  const [recentOrdersLoading, setRecentOrdersLoading] = useState(true)
-  const [recentOrdersError, setRecentOrdersError] = useState<string | null>(null)
-  const [totalOrderCount, setTotalOrderCount] = useState(0)
-
-  const activeTenant = tenants.find((t) => t.id === activeTenantId) || tenants[0]
-
-  // Fetch messages from API
-  const fetchMessages = useCallback(async (showLoading = true) => {
-    if (showLoading) setMessagesLoading(true)
-    setMessagesError(null)
-
+  const fetchDashboardData = useCallback(async () => {
     try {
-      const params = new URLSearchParams({
-        limit: "15",
-        includeAIResponses: "true",
-      })
+      setLoading(true)
+      const [subRes, invRes, healthRes] = await Promise.all([
+        fetch('/api/v1/subscriptions/current').catch(() => null),
+        fetch('/api/v1/subscriptions/history?page=1&limit=5').catch(() => null),
+        fetch('/health').catch(() => null),
+      ])
 
-      const response = await fetch(`/api/user/messages?${params.toString()}`)
-      const data: MessagesResponse = await response.json()
-
-      if (!response.ok) throw new Error("Failed to fetch messages")
-
-      if (data.success && data.data) {
-        setMessages(data.data)
+      if (subRes && subRes.ok) {
+        const subJson = await subRes.json()
+        setSubscription(subJson.data || null)
       } else {
-        throw new Error("Invalid response format")
+        setSubscription(null)
+      }
+
+      if (invRes && invRes.ok) {
+        const invJson = await invRes.json()
+        setInvoices(invJson.data || [])
+      }
+
+      if (healthRes && healthRes.ok) {
+        const healthJson = await healthRes.json()
+        setHealth(healthJson.data || null)
       }
     } catch (err) {
-      setMessagesError(err instanceof Error ? err.message : "An error occurred while fetching messages")
+      console.error('Error fetching dashboard data:', err)
     } finally {
-      if (showLoading) setMessagesLoading(false)
-    }
-  }, [])
-
-  // Fetch recent orders from API
-  const fetchRecentOrders = useCallback(async () => {
-    try {
-      setRecentOrdersLoading(true)
-      setRecentOrdersError(null)
-
-      const params = new URLSearchParams({
-        limit: "10",
-        page: "1",
-      })
-
-      const response = await fetch(`/api/user/orders?${params.toString()}`)
-      const data: OrdersResponse = await response.json()
-
-      if (data.success && data.data) {
-        setRecentOrders(data.data.orders)
-        setTotalOrderCount(data.data.pagination?.total || data.data.orders.length)
-      } else {
-        throw new Error(data.message || "Failed to fetch orders")
-      }
-    } catch (err) {
-      setRecentOrdersError(err instanceof Error ? err.message : "An error occurred while fetching orders")
-    } finally {
-      setRecentOrdersLoading(false)
+      setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    void fetchMessages()
-    void fetchRecentOrders()
-  }, [fetchMessages, fetchRecentOrders, activeTenantId])
+    fetchDashboardData()
+  }, [fetchDashboardData])
 
-  // Periodic polling for live messages every 6 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchMessages(false)
-    }, 6000)
-    return () => clearInterval(interval)
-  }, [fetchMessages])
+  const formatCurrency = (amount: number, currency = "USD") => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "USD",
+    }).format(amount)
+  }
 
-  // Aggregate metrics from active orders
-  const metrics = useMemo(() => {
-    const totalRev = recentOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)
-    const pendingOrders = recentOrders.filter((o) => o.status === "pending" || o.status === "draft").length
-    const aiRespondedCount = messages.filter((m) => Boolean(m.aiResponse)).length
-    const aiRate = messages.length > 0 ? Math.round((aiRespondedCount / messages.length) * 100) : 100
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return "N/A"
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
+  }
 
-    return {
-      revenue: totalRev,
-      pendingCount: pendingOrders,
-      aiResponseRate: aiRate,
-      messagesCount: messages.length,
-    }
-  }, [recentOrders, messages])
-
-  const formatTimeAgo = (dateString: string) => {
+  const getDaysUntilExpiry = (endDate: string) => {
+    const end = new Date(endDate)
     const now = new Date()
-    const date = new Date(dateString)
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
-
-    if (diffInMinutes < 1) return "Just now"
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`
-    const diffInHours = Math.floor(diffInMinutes / 60)
-    if (diffInHours < 24) return `${diffInHours}h ago`
-    return date.toLocaleDateString()
+    const diffTime = end.getTime() - now.getTime()
+    return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "delivered":
-      case "completed":
-        return "bg-success-soft text-success border-success/30"
-      case "confirmed":
-      case "preparing":
-      case "ready":
-        return "bg-info-soft text-info border-info/30"
-      case "pending":
-      case "draft":
-        return "bg-warning-soft text-warning border-warning/30"
-      case "cancelled":
-        return "bg-destructive-soft text-destructive border-destructive/30"
-      default:
-        return "bg-background text-foreground border-border"
-    }
-  }
-
-  const productUsage = getUsageInfo("MAX_PRODUCTS")
-  const stats = [
-    { label: "Total orders", value: totalOrderCount.toLocaleString(), note: `${metrics.pendingCount} waiting for you` },
-    { label: "Order value", value: `৳${metrics.revenue.toLocaleString()}`, note: "From your last 10 orders" },
-    { label: "AI reply rate", value: `${metrics.aiResponseRate}%`, note: "Across recent messages" },
-    { label: planName, value: `${productUsage.used} / ${productUsage.limit ?? "∞"}`, note: "Products on your plan" },
-  ]
+  const displayName = user?.name || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User"
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      {isGracePeriod && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-warning-soft p-4 text-warning">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="size-5 shrink-0" />
-            <div>
-              <p className="font-semibold">Your subscription has ended</p>
-              <p className="text-xs">Renew your plan to keep the chatbot and catalog running.</p>
-            </div>
-          </div>
-          <Button asChild size="sm">
-            <Link href="/dashboard/purchase">Renew plan</Link>
-          </Button>
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      {/* Welcome Hero Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="display text-4xl sm:text-5xl">Hi, {user?.firstName}</h1>
-          <p className="mt-1 text-muted-foreground">
-            {activeTenant?.name || "Your workspace"} at a glance
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Welcome back, {displayName}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage your account, view your active subscription tier, and track billing renewals.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {canManageTeam && (
-            <Button asChild variant="outline" size="sm" className="h-10">
-              <Link href="/dashboard/team"><Users /> Team</Link>
-            </Button>
-          )}
-          <Button asChild variant="outline" size="sm" className="h-10">
-            <Link href="/dashboard/configure-page"><Globe /> Facebook page</Link>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchDashboardData()}
+            disabled={loading}
+            className="flex items-center gap-1.5"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            <span>Refresh</span>
           </Button>
-          {canConfigureAI && (
-            <Button asChild variant="outline" size="sm" className="h-10">
-              <Link href="/dashboard/configure-ai"><Bot /> AI settings</Link>
-            </Button>
-          )}
-          {canManageCatalog && (
-            <Button asChild size="sm" className="h-10">
-              <Link href="/dashboard/products"><Plus /> Add product</Link>
-            </Button>
-          )}
+          <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Link href="/dashboard/subscription">Manage Billing</Link>
+          </Button>
         </div>
       </div>
 
-      <dl className="grid grid-cols-2 divide-sidebar-border rounded-xl bg-sidebar text-white lg:grid-cols-4 lg:divide-x">
-        {stats.map((stat) => (
-          <div key={stat.label} className="p-5 lg:p-6">
-            <dt className="text-sm text-sidebar-foreground">{stat.label}</dt>
-            <dd className="display mt-1 text-3xl sm:text-4xl">{stat.value}</dd>
-            <dd className="mt-1 text-xs text-sidebar-foreground">{stat.note}</dd>
+      {/* Metrics Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Account Role & Verification */}
+        <Card className="border-border bg-card p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Account Role</p>
+            <ShieldCheck className="h-4 w-4 text-primary" />
           </div>
-        ))}
-      </dl>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <section className="rounded-xl border bg-card lg:col-span-2">
-          <div className="flex items-center justify-between border-b p-5">
-            <h2 className="text-xl">Recent orders</h2>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard/orders">View all <ArrowUpRight /></Link>
-            </Button>
-          </div>
-          {recentOrdersLoading ? (
-            <div className="flex items-center justify-center gap-2 p-12 text-muted-foreground">
-              <Loader2 className="size-5 animate-spin" /> Loading orders
-            </div>
-          ) : recentOrdersError ? (
-            <div className="p-8 text-center">
-              <AlertCircle className="mx-auto mb-2 size-6 text-destructive" />
-              <p className="font-medium">{recentOrdersError}</p>
-              <Button size="sm" variant="outline" onClick={() => fetchRecentOrders()} className="mt-3">
-                Try again
-              </Button>
-            </div>
-          ) : recentOrders.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground">
-              <Package className="mx-auto mb-2 size-8" />
-              <p className="font-medium text-foreground">No orders yet</p>
-              <p className="text-xs">Orders appear here as soon as customers place them.</p>
-            </div>
-          ) : (
-            <ul className="divide-y">
-              {recentOrders.slice(0, 6).map((order) => (
-                <li key={order.orderId} className="flex items-center justify-between gap-4 p-4 sm:px-5">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-[12px] rounded-bl-[3px] bg-secondary font-bold">
-                      {order.customerName?.[0] || "#"}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold">{order.customerName}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {order.items.length > 0 ? order.items[0].productName : "Product"}
-                        {order.items.length > 1 && ` +${order.items.length - 1} more`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <Badge variant="outline" className={`${getStatusColor(order.status)} capitalize`}>
-                      {order.status}
-                    </Badge>
-                    <div className="text-right">
-                      <p className="font-bold">
-                        {order.currency} {order.totalAmount.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{formatTimeAgo(order.createdAt)}</p>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="flex flex-col rounded-xl border bg-card">
-          <h2 className="border-b p-5 text-xl">Conversations</h2>
-          <div className="custom-scrollbar max-h-[460px] flex-1 overflow-y-auto">
-            {messagesLoading ? (
-              <div className="flex items-center justify-center gap-2 p-12 text-muted-foreground">
-                <Loader2 className="size-5 animate-spin" /> Loading messages
-              </div>
-            ) : messagesError && messages.length === 0 ? (
-              <div className="p-8 text-center">
-                <AlertCircle className="mx-auto mb-2 size-6 text-destructive" />
-                <p className="font-medium">{messagesError}</p>
-                <Button size="sm" variant="outline" onClick={() => fetchMessages()} className="mt-3">
-                  Try again
-                </Button>
-              </div>
-            ) : messages.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground">
-                <Bot className="mx-auto mb-2 size-8" />
-                <p className="font-medium text-foreground">No messages yet</p>
-                <p className="text-xs">Connect your Facebook page to start receiving messages.</p>
-              </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-foreground">{user?.role || "USER"}</span>
+            {user?.isEmailVerified ? (
+              <Badge className="bg-success-soft text-success border-success/30 text-xs flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Verified
+              </Badge>
             ) : (
-              <ul className="space-y-5 p-4">
-                {messages.slice(0, 8).map((msg) => (
-                  <li key={msg.id} className="space-y-1.5 text-sm">
-                    <div className="flex items-end gap-2">
-                      <p className="line-clamp-3 rounded-2xl rounded-bl-sm bg-muted px-3.5 pb-1.5 pt-2">
-                        {msg.content === "{}" ? "Sent an attachment" : msg.content}
-                      </p>
-                      <time className="shrink-0 text-xs text-muted-foreground">{formatTimeAgo(msg.timestamp)}</time>
-                    </div>
-                    {msg.aiResponse && (
-                      <p className="ml-auto line-clamp-3 w-fit max-w-[88%] rounded-2xl rounded-br-sm bg-primary px-3.5 pb-1.5 pt-2 text-primary-foreground">
-                        {msg.aiResponse.aiResponse}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <Badge className="bg-warning-soft text-warning border-warning/30 text-xs flex items-center gap-1">
+                <XCircle className="w-3 h-3" /> Unverified
+              </Badge>
             )}
           </div>
-        </section>
+          <p className="mt-1 text-xs text-muted-foreground truncate">{user?.email}</p>
+        </Card>
+
+        {/* Current Plan */}
+        <Card className="border-border bg-card p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Subscription Tier</p>
+            <Crown className="h-4 w-4 text-primary" />
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-foreground">
+              {subscription ? subscription.plan?.name : "Free / Inactive"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {subscription ? `Status: ${subscription.status}` : "No active subscription"}
+          </p>
+        </Card>
+
+        {/* Billing Cycle / Expiry */}
+        <Card className="border-border bg-card p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Billing Period</p>
+            <Calendar className="h-4 w-4 text-primary" />
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-foreground">
+              {subscription ? `${getDaysUntilExpiry(subscription.currentPeriodEnd)} days` : "—"}
+            </span>
+            {subscription && (
+              <span className="text-xs text-muted-foreground">left in cycle</span>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {subscription ? `Renews: ${formatDate(subscription.currentPeriodEnd)}` : "Select a plan to start"}
+          </p>
+        </Card>
+
+        {/* System Health */}
+        <Card className="border-border bg-card p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">System Service</p>
+            <Activity className="h-4 w-4 text-success" />
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-foreground capitalize">{health?.status || "Online"}</span>
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-success animate-pulse" />
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Uptime: {health ? `${Math.round(health.uptime)}s` : "Healthy"}
+          </p>
+        </Card>
+      </div>
+
+      {/* Main Grid: Active Subscription Overview + Recent Invoices */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column (2 Cols): Active Subscription Card */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="border-border bg-card shadow-sm">
+            <CardHeader className="border-b border-border pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-primary" />
+                  Subscription Details
+                </CardTitle>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/dashboard/subscription" className="text-xs flex items-center gap-1">
+                    Manage <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {loading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <span className="ml-2 text-xs text-muted-foreground">Loading subscription...</span>
+                </div>
+              ) : subscription ? (
+                <div className="space-y-5">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-muted/30 border border-border">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-xl font-bold text-foreground">{subscription.plan?.name}</h3>
+                        <Badge className="bg-success-soft text-success border-success/30 text-xs">
+                          {subscription.status}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{subscription.plan?.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-extrabold text-foreground">
+                        {formatCurrency(subscription.plan?.price || 0, subscription.plan?.currency)}
+                      </p>
+                      <p className="text-xs text-muted-foreground uppercase">
+                        /{subscription.plan?.interval}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div className="p-3 rounded-lg border border-border bg-card">
+                      <p className="text-muted-foreground">Current Billing Period</p>
+                      <p className="font-semibold text-foreground mt-0.5">
+                        {formatDate(subscription.currentPeriodStart)} – {formatDate(subscription.currentPeriodEnd)}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg border border-border bg-card">
+                      <p className="text-muted-foreground">Auto-Renewal Status</p>
+                      <p className="font-semibold text-foreground mt-0.5">
+                        {subscription.autoRenew ? "Enabled (Auto-renews)" : "Disabled (Cancels at period end)"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {subscription.plan?.features && subscription.plan.features.length > 0 && (
+                    <div className="space-y-2 pt-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Plan Features
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {subscription.plan.features.map((feature, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs text-foreground/90">
+                            <Zap className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span>{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <Link href="/dashboard/subscription">View Full Billing Details</Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href="/dashboard/purchase">Change Plan Tier</Link>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-10 space-y-3">
+                  <div className="h-12 w-12 rounded-xl bg-info-soft flex items-center justify-center mx-auto text-primary">
+                    <Sparkles className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">No active subscription</h3>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                      Enroll in one of our flexible subscription tiers to unlock all premium capabilities.
+                    </p>
+                  </div>
+                  <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground mt-2">
+                    <Link href="/dashboard/purchase">
+                      Explore Plans <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Recent Invoices & Quick Links */}
+        <div className="space-y-6">
+          <Card className="border-border bg-card shadow-sm">
+            <CardHeader className="border-b border-border pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Recent Invoices
+                </CardTitle>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/dashboard/subscription" className="text-xs">
+                    All
+                  </Link>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+              ) : invoices.length === 0 ? (
+                <div className="text-center py-8 text-xs text-muted-foreground">
+                  <FileText className="h-8 w-8 mx-auto mb-1.5 opacity-40" />
+                  No invoice transactions yet.
+                </div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {invoices.map((inv) => (
+                    <div key={inv.id} className="py-2.5 flex items-center justify-between text-xs">
+                      <div>
+                        <p className="font-semibold text-foreground">
+                          {inv.billingReason === "INITIAL_PAYMENT" ? "Initial Plan" : "Renewal"}
+                        </p>
+                        <p className="text-muted-foreground">{formatDate(inv.paidAt || inv.createdAt)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-foreground">
+                          {formatCurrency(inv.amount, inv.currency)}
+                        </p>
+                        <span className="inline-flex items-center gap-1 text-[11px] text-success">
+                          <CheckCircle className="h-3 w-3" /> {inv.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Profile Summary Card */}
+          <Card className="border-border bg-card shadow-sm p-5 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Account</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-sm text-foreground">{displayName}</p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
+              </div>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/dashboard/profile">Profile</Link>
+              </Button>
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   )

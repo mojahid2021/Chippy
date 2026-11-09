@@ -2,196 +2,269 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, ArrowRight } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Loader2, ArrowRight, Check, Sparkles, Shield, Zap, ArrowLeft } from 'lucide-react'
 import { useUserStore } from '@/lib/stores/userStore'
 import { toast } from '@/hooks/use-toast'
-
-// Minimal plan type used by purchase page
-type PlanType = {
-  id: string
-  name: string
-  description?: string
-  price: number
-  currency?: string
-  interval?: string
-  isActive?: boolean
-  isPopular?: boolean
-}
+import type { SubscriptionPlan, UserSubscription } from '@/lib/types/woombat'
 
 export default function PurchasePage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const planId = searchParams?.get('planId')
-  const { token } = useUserStore()
+  const { user } = useUserStore()
 
-  const [plan, setPlan] = useState<PlanType | null>(null)
+  const [plan, setPlan] = useState<SubscriptionPlan | null>(null)
+  const [currentSubscription, setCurrentSubscription] = useState<UserSubscription | null>(null)
   const [loading, setLoading] = useState(false)
-  const [method, setMethod] = useState<'bkash' | 'nagad' | 'rocket' | 'bank_transfer' | 'card'>('bank_transfer')
+  const [fetchingPlan, setFetchingPlan] = useState(true)
+  const [autoRenew, setAutoRenew] = useState(true)
 
   useEffect(() => {
-    // load plans and find matching plan
     const load = async () => {
       try {
-        const res = await fetch('/api/public/plans?sortBy=createdAt&sortOrder=desc')
-        const data = await res.json()
-          if (data?.success && data?.data?.plans) {
-            if (planId) {
-              const found = data.data.plans.find((p: PlanType) => p.id === planId)
-              setPlan(found || null)
-            }
+        setFetchingPlan(true)
+        const [plansRes, subRes] = await Promise.all([
+          fetch('/api/v1/subscriptions/plans'),
+          fetch('/api/v1/subscriptions/current').catch(() => null),
+        ])
+
+        const plansJson = await plansRes.json()
+        if (plansRes.ok && Array.isArray(plansJson.data)) {
+          if (planId) {
+            const found = plansJson.data.find((p: SubscriptionPlan) => p.id === planId)
+            setPlan(found || null)
+          } else if (plansJson.data.length > 0) {
+            setPlan(plansJson.data[0])
           }
+        }
+
+        if (subRes && subRes.ok) {
+          const subJson = await subRes.json()
+          if (subJson.data) {
+            setCurrentSubscription(subJson.data)
+          }
+        }
       } catch (err) {
-        console.error('Error loading plans on purchase page', err)
+        console.error('Error loading subscription details:', err)
+      } finally {
+        setFetchingPlan(false)
       }
     }
 
     load()
   }, [planId])
 
-  const confirmPurchase = async () => {
-    if (!planId) {
-      toast({ variant: 'destructive', title: 'Missing plan', description: 'No plan selected' })
-      return
-    }
-
-    if (!token) {
-      toast({ variant: 'destructive', title: 'Not authenticated', description: 'Please sign in to continue' })
+  const confirmSubscription = async () => {
+    if (!plan) {
+      toast({ variant: 'destructive', title: 'Missing Plan', description: 'Please select a valid plan' })
       return
     }
 
     try {
       setLoading(true)
-      const res = await fetch('/api/user/purchase-plan', {
+
+      const isPlanChange = !!currentSubscription && currentSubscription.status === 'ACTIVE'
+      const endpoint = isPlanChange ? '/api/v1/subscriptions/change-plan' : '/api/v1/subscriptions/subscribe'
+      const payload = isPlanChange
+        ? { newPlanId: plan.id, autoRenew }
+        : { planId: plan.id, autoRenew }
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ planId, paymentMethod: method }),
+        body: JSON.stringify(payload),
       })
 
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.message || data.error || 'Purchase request failed')
+        throw new Error(data.message || data.error || 'Failed to process subscription')
       }
 
-      if (data.success && data.data) {
-        // If backend returned a checkout/redirect URL, follow it
-        const redirectUrl = data.data.checkoutUrl || data.data.redirectUrl || data.data.url || data.data.paymentUrl
-        if (redirectUrl) {
-          window.location.href = redirectUrl
-          return
-        }
+      toast({
+        variant: 'success',
+        title: isPlanChange ? 'Plan Updated' : 'Subscription Created',
+        description: data.message || `Successfully enrolled into ${plan.name}.`,
+      })
 
-        // If the chosen method is bank_transfer, backend should provide a subscription id
-        // Try multiple possible fields that may contain the id
-        const subscriptionId = data.data.subscriptionId || data.data.subscription?.id || data.data.id || data.data.subscription?.subscriptionId
-
-        if (method === 'bank_transfer' && subscriptionId) {
-          // Navigate to internal bank transfer page which shows bank details and instructions
-          router.push(`/dashboard/bank-transfer/${subscriptionId}`)
-          return
-        }
-
-        // Otherwise show success and return to subscription page
-        toast({ variant: 'success', title: 'Purchase initiated', description: data.message || 'Purchase request submitted' })
-        router.push('/dashboard/subscription')
-      } else {
-        throw new Error(data.message || 'Purchase failed')
-      }
+      router.push('/dashboard/subscription')
     } catch (err) {
-      console.error('Purchase error', err)
-      toast({ variant: 'destructive', title: 'Purchase failed', description: err instanceof Error ? err.message : 'An error occurred' })
+      console.error('Subscription error:', err)
+      toast({
+        variant: 'destructive',
+        title: 'Subscription Failed',
+        description: err instanceof Error ? err.message : 'An unexpected error occurred.',
+      })
     } finally {
       setLoading(false)
     }
   }
 
+  const formatCurrency = (amount: number, currency: string = 'USD') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency || 'USD',
+    }).format(amount)
+  }
+
+  if (fetchingPlan) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading plan details...</span>
+      </div>
+    )
+  }
+
+  const isCurrentPlan = currentSubscription?.planId === plan?.id
+
   return (
-    <div className="space-y-6">
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle>Complete Purchase</CardTitle>
+    <div className="max-w-2xl mx-auto space-y-6 py-4">
+      <div className="flex items-center gap-2">
+        <Link 
+          href="/dashboard/subscription" 
+          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Subscriptions
+        </Link>
+      </div>
+
+      <Card className="border-border bg-card shadow-sm">
+        <CardHeader className="border-b border-border pb-4">
+          <CardTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
+            {currentSubscription ? 'Update Subscription' : 'Review & Confirm Subscription'}
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            {currentSubscription
+              ? 'Switch your billing plan to the selected tier.'
+              : 'Complete your subscription enrollment to access premium merchant features.'}
+          </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {plan ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-foreground">{plan.name}</h3>
-                  <p className="text-xs text-muted-foreground">{plan.description}</p>
+            <div className="space-y-6">
+              {/* Plan Overview Card */}
+              <div className="p-4 rounded-xl bg-muted/30 border border-border space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-11 w-11 rounded-lg bg-info-soft flex items-center justify-center text-primary shrink-0">
+                      {plan.price > 20 ? <Shield className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-base text-foreground">{plan.name}</h3>
+                      <p className="text-xs text-muted-foreground">{plan.description}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-extrabold text-foreground">
+                      {formatCurrency(plan.price, plan.currency)}
+                    </p>
+                    <p className="text-xs text-muted-foreground uppercase font-medium">
+                      /{plan.interval}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold">Tk {plan.price}</p>
-                  <p className="text-xs text-muted-foreground">/{plan.interval === 'yearly' ? 'year' : 'month'}</p>
+
+                {plan.trialDays > 0 && (
+                  <div className="pt-2 border-t border-border/60">
+                    <Badge className="bg-success-soft text-success border-success/30 text-xs">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Includes {plan.trialDays}-day free trial with initial $0 invoice
+                    </Badge>
+                  </div>
+                )}
+              </div>
+
+              {/* Plan Features */}
+              <div className="space-y-2.5">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Features Included
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  {plan.features.map((feature, idx) => (
+                    <div key={idx} className="flex items-start gap-2 text-xs">
+                      <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                      <span className="text-foreground/90">{feature}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div>
-                <p className="text-sm font-medium text-foreground">Choose payment method</p>
-                <div className="flex gap-2 mt-2">
-                  <button
-                    className={`px-3 py-2 rounded-md border ${method === 'bkash' ? 'border-primary bg-info-soft' : 'border-border'}`}
-                    onClick={() => setMethod('bkash')}
-                  >
-                    bKash
-                  </button>
-                  <button
-                    className={`px-3 py-2 rounded-md border ${method === 'nagad' ? 'border-primary bg-info-soft' : 'border-border'}`}
-                    onClick={() => setMethod('nagad')}
-                  >
-                    Nagad
-                  </button>
-                  <button
-                    className={`px-3 py-2 rounded-md border ${method === 'rocket' ? 'border-primary bg-info-soft' : 'border-border'}`}
-                    onClick={() => setMethod('rocket')}
-                  >
-                    Rocket
-                  </button>
-                  <button
-                    className={`px-3 py-2 rounded-md border ${method === 'bank_transfer' ? 'border-primary bg-info-soft' : 'border-border'}`}
-                    onClick={() => setMethod('bank_transfer')}
-                  >
-                    Bank Transfer
-                  </button>
-                  <button
-                    className={`px-3 py-2 rounded-md border ${method === 'card' ? 'border-primary bg-info-soft' : 'border-border'}`}
-                    onClick={() => setMethod('card')}
-                  >
-                    Card
-                  </button>
+              {/* Auto Renew Setting */}
+              <div className="flex items-center justify-between p-4 rounded-lg bg-card border border-border">
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-foreground">Enable Automatic Renewal</p>
+                  <p className="text-xs text-muted-foreground">
+                    Automatically renew billing at the end of each {plan.interval?.toLowerCase() || 'period'}.
+                  </p>
                 </div>
+                <Switch 
+                  checked={autoRenew} 
+                  onCheckedChange={setAutoRenew} 
+                />
               </div>
 
-              <div className="flex items-center gap-3">
+              {/* Summary note */}
+              <div className="text-xs text-muted-foreground bg-muted/20 p-3.5 rounded-lg border border-border">
+                {plan.trialDays > 0 ? (
+                  <p>
+                    Your subscription will start in <strong>TRIALING</strong> status for {plan.trialDays} days. An initial invoice of $0 will be generated immediately.
+                  </p>
+                ) : (
+                  <p>
+                    Your subscription will start immediately in <strong>ACTIVE</strong> status.
+                  </p>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-3 pt-2">
                 <Button
-                  className="flex-1"
-                  onClick={confirmPurchase}
-                  disabled={loading}
+                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                  onClick={confirmSubscription}
+                  disabled={loading || isCurrentPlan}
                 >
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...
                     </>
+                  ) : isCurrentPlan ? (
+                    'Already Subscribed to This Plan'
+                  ) : currentSubscription ? (
+                    <>
+                      Confirm Plan Change <ArrowRight className="h-4 w-4 ml-2" />
+                    </>
                   ) : (
                     <>
-                      Confirm & Continue <ArrowRight className="h-4 w-4 ml-2" />
+                      Start Subscription <ArrowRight className="h-4 w-4 ml-2" />
                     </>
                   )}
                 </Button>
-                <Button variant="outline" onClick={() => router.push('/dashboard/subscription')}>Cancel</Button>
-              </div>
-
-              <div className="text-xs text-muted-foreground">
-                <p>By continuing you will be redirected to complete payment via the selected provider.</p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => router.push('/dashboard/subscription')}
+                >
+                  Cancel
+                </Button>
               </div>
             </div>
           ) : (
-            <div className="py-12 text-center">
-              <p className="text-sm text-muted-foreground">No plan selected or plan not found.</p>
+            <div className="py-12 text-center space-y-3">
+              <p className="text-sm text-muted-foreground">Plan not found.</p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => router.push('/dashboard/subscription')}
+              >
+                Back to Plans
+              </Button>
             </div>
           )}
         </CardContent>

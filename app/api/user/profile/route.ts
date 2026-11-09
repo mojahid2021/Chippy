@@ -1,53 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getBackendUrl } from '@/lib/backend-url'
+import { AUTH_COOKIE_NAME } from '@/lib/cookie-utils'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get token from the httpOnly session cookie
-    const token = request.cookies.get('auth_token')?.value
+    const cookieToken = request.cookies.get(AUTH_COOKIE_NAME)?.value
+    const authHeader = request.headers.get('authorization')
+    const token = cookieToken || (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null)
 
     if (!token) {
       return NextResponse.json(
-        { success: false, message: 'No token provided' },
+        {
+          success: false,
+          statusCode: 401,
+          error: 'Unauthorized',
+          message: 'Missing or invalid authentication token',
+        },
         { status: 401 }
       )
     }
 
     const backendUrl = getBackendUrl()
 
-    try {
-      const response = await fetch(`${backendUrl}/api/user/profile`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
+    const response = await fetch(`${backendUrl}/api/v1/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
-      if (response.ok) {
-        const userData = await response.json()
-        return NextResponse.json({
-          success: true,
-          data: userData.data
-        })
-      } else {
-        return NextResponse.json(
-          { success: false, message: 'Invalid token' },
-          { status: 401 }
-        )
-      }
-    } catch (error) {
-      // Backend unreachable: fail closed. Never fabricate a logged-in
-      // identity just because the token couldn't be verified.
-      console.error('Profile validation: backend unavailable:', error)
-      return NextResponse.json(
-        { success: false, message: 'Unable to reach authentication service' },
-        { status: 502 }
-      )
+    const data = await response.json()
+
+    if (!response.ok) {
+      return NextResponse.json(data, { status: response.status })
     }
-  } catch {
+
+    return NextResponse.json({
+      success: true,
+      message: data.message,
+      data: data.data,
+    })
+  } catch (error) {
+    console.error('Profile validation error:', error)
     return NextResponse.json(
-      { success: false, message: 'Profile validation failed' },
+      {
+        success: false,
+        statusCode: 500,
+        error: 'Internal Server Error',
+        message: 'Profile validation failed',
+      },
       { status: 500 }
     )
   }

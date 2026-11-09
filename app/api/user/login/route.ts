@@ -1,50 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getBackendUrl } from '@/lib/backend-url'
+import { AUTH_COOKIE_NAME } from '@/lib/cookie-utils'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-
-    // Validate required fields
     const { email, password, rememberMe } = body
 
     if (!email || !password) {
       return NextResponse.json(
         {
           success: false,
+          statusCode: 400,
+          error: 'Bad Request',
           message: 'Missing required fields: email, password',
-          timestamp: new Date().toISOString()
         },
         { status: 400 }
       )
     }
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Invalid email format',
-          timestamp: new Date().toISOString()
-        },
-        { status: 400 }
-      )
-    }
-
-    // Backend URL from environment
     const BACKEND_URL = getBackendUrl()
 
-    // Forward the request to your backend
-    const response = await fetch(`${BACKEND_URL}/api/user/login`, {
+    const response = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        email,
-        password
-      })
+      body: JSON.stringify({ email, password }),
     })
 
     const data = await response.json()
@@ -55,36 +37,38 @@ export async function POST(request: NextRequest) {
 
     const token: string | undefined = data?.data?.token
     const user = data?.data?.user
-    const activeTenantId = data?.data?.activeTenantId ?? null
-    const tenants = data?.data?.tenants ?? []
 
-    // Never send the raw JWT to the browser - keep it in an httpOnly cookie
-    // the client can't read, so an XSS can't steal the session token.
     const res = NextResponse.json(
-      { success: true, data: { user, activeTenantId, tenants }, message: data.message, timestamp: new Date().toISOString() },
+      {
+        success: true,
+        message: data.message,
+        data: {
+          token,
+          user,
+        },
+      },
       { status: 200 }
     )
 
     if (token) {
       const daysToExpire = rememberMe ? 365 : 7
-      res.cookies.set('auth_token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+      res.cookies.set(AUTH_COOKIE_NAME, token, {
         path: '/',
         maxAge: daysToExpire * 24 * 60 * 60,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
       })
     }
 
     return res
-
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json(
       {
         success: false,
+        statusCode: 500,
+        error: 'Internal Server Error',
         message: 'Internal server error',
-        timestamp: new Date().toISOString()
       },
       { status: 500 }
     )
