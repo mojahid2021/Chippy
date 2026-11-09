@@ -49,39 +49,29 @@ import type {
 } from "@/lib/types/woombat"
 
 function getDisplayWebhookUrl(webhookUrl?: string | null, userId?: string, webhookId?: string): string {
-  if (typeof window === "undefined") {
-    return webhookUrl || ""
+  // If the backend already provided a complete URL (e.g. http://localhost:3001/api/... or https://api.woombat.com/...)
+  if (webhookUrl && (webhookUrl.startsWith("http://") || webhookUrl.startsWith("https://"))) {
+    return webhookUrl
   }
 
-  const origin = window.location.origin
+  // Base URL for the backend service
+  const backendBase =
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    (typeof window !== "undefined" && window.location.port === "3000"
+      ? `${window.location.protocol}//${window.location.hostname}:3001`
+      : "http://localhost:3001")
 
-  if (!webhookUrl) {
-    if (userId && webhookId) {
-      return `${origin}/api/v1/webhooks/messenger/user/${userId}/${webhookId}`
-    }
-    return ""
+  // If the backend returned a relative path starting with /
+  if (webhookUrl && webhookUrl.startsWith("/")) {
+    return `${backendBase}${webhookUrl}`
   }
 
-  // If webhookUrl is already an absolute URL (e.g. from backend response like http://localhost:3001/api/...)
-  if (webhookUrl.startsWith("http://") || webhookUrl.startsWith("https://")) {
-    try {
-      const parsed = new URL(webhookUrl)
-      // If it points to localhost / 127.0.0.1, adapt it to the user's current origin (e.g. localhost:3000, ngrok, or production domain)
-      if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
-        return `${origin}${parsed.pathname}${parsed.search}`
-      }
-      return webhookUrl
-    } catch {
-      return webhookUrl
-    }
+  // Fallback if webhookUrl is empty
+  if (userId && webhookId) {
+    return `${backendBase}/api/v1/webhooks/messenger/user/${userId}/${webhookId}`
   }
 
-  // If it's a relative path starting with /
-  if (webhookUrl.startsWith("/")) {
-    return `${origin}${webhookUrl}`
-  }
-
-  return `${origin}/${webhookUrl}`
+  return webhookUrl || ""
 }
 
 export default function MessengerWebhooksPage() {
