@@ -39,6 +39,7 @@ import {
   Sparkles,
   ArrowRight,
   Shield,
+  MessageSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -48,6 +49,12 @@ const navigationSections = [
     title: "Overview",
     items: [
       { name: "Dashboard", href: "/dashboard", icon: Home },
+    ],
+  },
+  {
+    title: "Messenger",
+    items: [
+      { name: "Meta Webhooks", href: "/dashboard/messenger", icon: MessageSquare },
     ],
   },
   {
@@ -224,8 +231,8 @@ export default function DashboardLayout({
 
   const allRoutes = [
     { title: "Dashboard Overview", href: "/dashboard", desc: "View account and subscription overview", icon: Home },
+    { title: "Meta Messenger Webhooks", href: "/dashboard/messenger", desc: "Manage Facebook Messenger webhooks and audit events", icon: MessageSquare },
     { title: "Subscription & Billing", href: "/dashboard/subscription", desc: "Manage billing, renewals, and history", icon: Calendar },
-    { title: "Purchase or Change Plan", href: "/dashboard/purchase", desc: "Enroll or switch subscription plans", icon: Crown },
     { title: "User Profile", href: "/dashboard/profile", desc: "View account info and credentials", icon: User },
   ]
 

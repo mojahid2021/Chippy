@@ -103,3 +103,82 @@ export interface PremiumContentData {
   expiresAt: string
 }
 
+
+export interface MessengerWebhook {
+  id: string
+  userId: string
+  name: string
+  pageId?: string | null
+  pageName?: string | null
+  pageCategory?: string | null
+  pagePictureUrl?: string | null
+  pageLink?: string | null
+  pageSubscribedAt?: string | null
+  verifyToken: string
+  webhookUrl: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MessengerWebhooksResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: MessengerWebhook[]
+}
+
+export interface MessengerWebhookEvent {
+  id: string
+  userId: string
+  webhookId: string
+  pageId: string
+  eventType: string
+  senderId: string
+  recipientId: string
+  metaTimestamp: number
+  status: 'PROCESSED' | 'DUPLICATE' | 'ERROR' | string
+  errorMessage?: string | null
+  rawPayload?: Record<string, unknown>
+  eventData?: {
+    message?: {
+      mid: string
+      text?: string
+      attachments?: unknown[]
+    }
+    postback?: {
+      title: string
+      payload: string
+    }
+    [key: string]: unknown
+  }
+  createdAt: string
+}
+
+export interface MessengerEventsResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: MessengerWebhookEvent[]
+}
+
+export interface SyncPageResponse {
+  message: string
+  data: {
+    webhook: MessengerWebhook
+    pageDetails: {
+      id: string
+      name: string
+      category?: string
+      link?: string
+      pictureUrl?: string
+    }
+    isSubscribed: boolean
+  }
+}
