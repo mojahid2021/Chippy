@@ -77,15 +77,15 @@ export default function BankTransferConfirmationPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
-              <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <CheckCircle className="mx-auto h-12 w-12 text-success mb-4" />
+              <h2 className="text-xl font-semibold text-foreground mb-2">
                 Payment Confirmed!
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-muted-foreground mb-6">
                 Your bank transfer details have been submitted successfully.
                 Your subscription will be activated shortly.
               </p>
@@ -100,7 +100,7 @@ export default function BankTransferConfirmationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto py-8 px-4">
         <div className="mb-6">
           <Button
@@ -111,10 +111,10 @@ export default function BankTransferConfirmationPage() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-foreground">
             Bank Transfer Payment
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-muted-foreground mt-2">
             Complete your payment by transferring funds to the account below, then submit your transfer details.
           </p>
         </div>
@@ -123,7 +123,7 @@ export default function BankTransferConfirmationPage() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-blue-500" />
+              <AlertCircle className="h-5 w-5 text-primary" />
               Payment Information
             </CardTitle>
             <CardDescription>
@@ -133,25 +133,25 @@ export default function BankTransferConfirmationPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="text-sm font-medium text-gray-700">Bank Name</Label>
-                <p className="text-sm text-gray-900 mt-1">Your Bank Name</p>
+                <Label className="text-sm font-medium text-foreground">Bank Name</Label>
+                <p className="text-sm text-foreground mt-1">Your Bank Name</p>
               </div>
               <div>
-                <Label className="text-sm font-medium text-gray-700">Account Name</Label>
-                <p className="text-sm text-gray-900 mt-1">Your Company Name</p>
+                <Label className="text-sm font-medium text-foreground">Account Name</Label>
+                <p className="text-sm text-foreground mt-1">Your Company Name</p>
               </div>
               <div>
-                <Label className="text-sm font-medium text-gray-700">Account Number</Label>
-                <p className="text-sm text-gray-900 mt-1 font-mono">1234567890</p>
+                <Label className="text-sm font-medium text-foreground">Account Number</Label>
+                <p className="text-sm text-foreground mt-1 font-mono">1234567890</p>
               </div>
               <div>
-                <Label className="text-sm font-medium text-gray-700">Routing Number</Label>
-                <p className="text-sm text-gray-900 mt-1 font-mono">123456789</p>
+                <Label className="text-sm font-medium text-foreground">Routing Number</Label>
+                <p className="text-sm text-foreground mt-1 font-mono">123456789</p>
               </div>
             </div>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <p className="text-sm text-yellow-800">
-                <strong>Important:</strong> Include your subscription ID <code className="bg-yellow-100 px-1 rounded">{subscriptionId}</code> in the transfer reference to ensure proper processing.
+            <div className="bg-warning-soft border border-warning/30 rounded-md p-4">
+              <p className="text-sm text-warning">
+                <strong>Important:</strong> Include your subscription ID <code className="bg-warning-soft px-1 rounded">{subscriptionId}</code> in the transfer reference to ensure proper processing.
               </p>
             </div>
           </CardContent>
@@ -187,7 +187,7 @@ export default function BankTransferConfirmationPage() {
                   required
                   className="mt-1"
                 />
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   The account number from which the transfer was made
                 </p>
               </div>
@@ -206,7 +206,7 @@ export default function BankTransferConfirmationPage() {
                   required
                   className="mt-1"
                 />
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   The unique transaction reference from your bank
                 </p>
               </div>
@@ -230,7 +230,7 @@ export default function BankTransferConfirmationPage() {
         </Card>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Need help? Contact our support team for assistance with your payment.
           </p>
         </div>

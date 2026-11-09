@@ -9,31 +9,7 @@ import { useUserStore } from "@/lib/stores/userStore"
 import { useEntitlements } from "@/hooks/use-entitlements"
 import { usePermissions } from "@/hooks/use-permissions"
 import { FeatureGateCard } from "@/components/feature-gate-card"
-import {
-  Bot,
-  Settings as SettingsIcon,
-  Brain,
-  AlertCircle,
-  MessageSquare,
-  Zap,
-  Globe,
-  Palette,
-  Code,
-  Star,
-  Plus,
-  Edit3,
-  Trash2,
-  CheckCircle2,
-  X,
-  Loader2,
-  Crown,
-  Users,
-  Lightbulb,
-  Sparkles,
-  Send,
-  Wand2,
-  Play
-} from "lucide-react"
+import { Bot, Settings as SettingsIcon, AlertCircle, MessageSquare, Zap, Globe, Palette, Code, Star, Plus, Edit3, Trash2, CheckCircle2, X, Loader2, Crown, Users, Lightbulb, Sparkles, Send, Wand2, Play } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 
 interface AIProfile {
@@ -413,12 +389,8 @@ export default function ConfigureAIPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-medium text-blue-400 mb-1.5">
-            <Brain className="w-3.5 h-3.5" />
-            <span>AI Brain & Conversational Personality</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">AI Assistant Settings</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">AI Assistant Settings</h1>
+          <p className="text-sm text-muted-foreground">
             Define tone, personality, and instructions for how the bilingual AI sells products in Facebook Messenger.
           </p>
         </div>
@@ -429,7 +401,7 @@ export default function ConfigureAIPage() {
               setEditingProfile(null)
               setShowCreateForm(!showCreateForm)
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs h-9 px-4 rounded-md"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs h-9 px-4 rounded-md"
           >
             {showCreateForm ? <X className="w-4 h-4 mr-1.5" /> : <Plus className="w-4 h-4 mr-1.5" />}
             <span>{showCreateForm ? "Close Form" : "Create AI Profile"}</span>
@@ -449,55 +421,55 @@ export default function ConfigureAIPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm">
+        <div className="p-4 rounded-lg bg-card border border-border">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Active Profiles</span>
-            <div className="w-8 h-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <span className="text-xs font-medium text-muted-foreground">Active Profiles</span>
+            <div className="w-8 h-8 rounded-md bg-success-soft border border-success/30 text-success flex items-center justify-center">
               <Bot className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white mt-2">{activeCount}</p>
-          <p className="text-[11px] text-slate-400 mt-1">Live in deployment</p>
+          <p className="text-2xl font-bold text-foreground mt-2">{activeCount}</p>
+          <p className="text-xs text-muted-foreground mt-1">Live in deployment</p>
         </div>
 
-        <div className="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm">
+        <div className="p-4 rounded-lg bg-card border border-border">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Total Created</span>
-            <div className="w-8 h-8 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+            <span className="text-xs font-medium text-muted-foreground">Total Created</span>
+            <div className="w-8 h-8 rounded-md bg-info-soft border border-info/30 text-info flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white mt-2">{aiProfiles.length}</p>
-          <p className="text-[11px] text-slate-400 mt-1">Personality configurations</p>
+          <p className="text-2xl font-bold text-foreground mt-2">{aiProfiles.length}</p>
+          <p className="text-xs text-muted-foreground mt-1">Personality configurations</p>
         </div>
 
-        <div className="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm">
+        <div className="p-4 rounded-lg bg-card border border-border">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Default Responder</span>
-            <div className="w-8 h-8 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+            <span className="text-xs font-medium text-muted-foreground">Default Responder</span>
+            <div className="w-8 h-8 rounded-md bg-warning-soft border border-warning/30 text-warning flex items-center justify-center">
               <Crown className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-base font-bold text-amber-300 mt-2 truncate">
+          <p className="text-base font-bold text-warning mt-2 truncate">
             {defaultProfile?.name || "None Selected"}
           </p>
-          <p className="text-[11px] text-slate-400 mt-1">Answers customer inbox</p>
+          <p className="text-xs text-muted-foreground mt-1">Answers customer inbox</p>
         </div>
       </div>
 
       {/* Create / Edit Form Drawer */}
       {showCreateForm && (
-        <div className="p-6 rounded-lg bg-slate-900 border border-blue-500/30 shadow-xl space-y-6">
-          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+        <div className="p-6 rounded-lg bg-card border border-primary/30 shadow-xl space-y-6">
+          <div className="flex items-center justify-between border-b border-border pb-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-info-soft border border-info/30 text-info flex items-center justify-center">
                 {editingProfile ? <Edit3 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">
+                <h3 className="text-base font-bold text-foreground">
                   {editingProfile ? `Edit Profile: ${editingProfile.name}` : "Create New AI Personality Profile"}
                 </h3>
-                <p className="text-xs text-slate-400">Configure language, tone, and specific selling rules.</p>
+                <p className="text-xs text-muted-foreground">Configure language, tone, and specific selling rules.</p>
               </div>
             </div>
             <button
@@ -505,7 +477,7 @@ export default function ConfigureAIPage() {
                 setShowCreateForm(false)
                 setEditingProfile(null)
               }}
-              className="text-slate-400 hover:text-white"
+              className="text-muted-foreground hover:text-foreground"
             >
               <X className="w-5 h-5" />
             </button>
@@ -514,8 +486,8 @@ export default function ConfigureAIPage() {
           {/* Quick Preset Chips */}
           {!editingProfile && (
             <div className="space-y-2">
-              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <Wand2 className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-xs font-semibold text-foreground/80 flex items-center gap-1.5">
+                <Wand2 className="w-3.5 h-3.5 text-info" />
                 <span>Quick-Start Presets (Click to autofill):</span>
               </span>
               <div className="flex flex-wrap gap-2">
@@ -537,7 +509,7 @@ export default function ConfigureAIPage() {
                         }
                       }))
                     }}
-                    className="text-xs px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 hover:border-blue-500/40 hover:bg-blue-500/10 text-slate-300 hover:text-white transition-all duration-200"
+                    className="text-xs px-3 py-1.5 rounded-xl bg-muted border border-border hover:border-primary/30 hover:bg-info-soft text-foreground/80 hover:text-foreground transition-all duration-200"
                   >
                     {tpl.title}
                   </button>
@@ -549,49 +521,49 @@ export default function ConfigureAIPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             {!editingProfile && (
               <div className="space-y-1.5">
-                <Label className="text-slate-300">
-                  Profile Identifier (Unique slug) <span className="text-rose-400">*</span>
+                <Label className="text-foreground/80">
+                  Profile Identifier (Unique slug) <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   placeholder="e.g. sales-agent-v1"
                   value={newProfile.id}
                   onChange={(e) => setNewProfile({ ...newProfile, id: e.target.value })}
-                  className="bg-slate-950/70 border-white/10 text-white font-mono text-xs h-10"
+                  className="bg-background border-border text-foreground font-mono text-xs h-10"
                 />
               </div>
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-slate-300">
-                Display Name <span className="text-rose-400">*</span>
+              <Label className="text-foreground/80">
+                Display Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 placeholder="e.g. Rahim - Lead Sales Bot"
                 value={newProfile.name}
                 onChange={(e) => setNewProfile({ ...newProfile, name: e.target.value })}
-                className="bg-slate-950/70 border-white/10 text-white text-xs h-10"
+                className="bg-background border-border text-foreground text-xs h-10"
               />
             </div>
 
             <div className="space-y-1.5 md:col-span-2">
-              <Label className="text-slate-300">Description</Label>
+              <Label className="text-foreground/80">Description</Label>
               <Input
                 placeholder="Brief summary of what this bot handles..."
                 value={newProfile.description}
                 onChange={(e) => setNewProfile({ ...newProfile, description: e.target.value })}
-                className="bg-slate-950/70 border-white/10 text-white text-xs h-10"
+                className="bg-background border-border text-foreground text-xs h-10"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-slate-300">Primary Language</Label>
+              <Label className="text-foreground/80">Primary Language</Label>
               <select
                 value={newProfile.preferences.language}
                 onChange={(e) => setNewProfile({
                   ...newProfile,
                   preferences: { ...newProfile.preferences, language: e.target.value }
                 })}
-                className="w-full h-10 px-3 bg-slate-950/70 border border-white/10 rounded-xl text-white text-xs"
+                className="w-full h-10 px-3 bg-background border border-border rounded-xl text-foreground text-xs"
               >
                 <option value="bn">🇧🇩 Bengali / Banglish (Natural Bangladesh)</option>
                 <option value="en">🇺🇸 English</option>
@@ -601,14 +573,14 @@ export default function ConfigureAIPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-slate-300">Tone of Voice</Label>
+              <Label className="text-foreground/80">Tone of Voice</Label>
               <select
                 value={newProfile.preferences.tone}
                 onChange={(e) => setNewProfile({
                   ...newProfile,
                   preferences: { ...newProfile.preferences, tone: e.target.value }
                 })}
-                className="w-full h-10 px-3 bg-slate-950/70 border border-white/10 rounded-xl text-white text-xs"
+                className="w-full h-10 px-3 bg-background border border-border rounded-xl text-foreground text-xs"
               >
                 <option value="friendly">🤝 Friendly & Courteous</option>
                 <option value="professional">👔 Professional & Polite</option>
@@ -618,38 +590,38 @@ export default function ConfigureAIPage() {
             </div>
 
             <div className="space-y-1.5 md:col-span-2">
-              <Label className="text-slate-300">Personality Traits</Label>
+              <Label className="text-foreground/80">Personality Traits</Label>
               <textarea
                 rows={3}
                 placeholder="Describe how the assistant carries itself (e.g. Enthusiastic, polite, always suggests complementary products)..."
                 value={newProfile.personality}
                 onChange={(e) => setNewProfile({ ...newProfile, personality: e.target.value })}
-                className="w-full p-3 bg-slate-950/70 border border-white/10 rounded-xl text-white text-xs resize-none"
+                className="w-full p-3 bg-background border border-border rounded-xl text-foreground text-xs resize-none"
               />
             </div>
 
             <div className="space-y-1.5 md:col-span-2">
-              <Label className="text-slate-300">Specific Business Instructions</Label>
+              <Label className="text-foreground/80">Specific Business Instructions</Label>
               <textarea
                 rows={3}
                 placeholder="Rules: Return policy is 7 days, delivery fee is 80 tk in Dhaka, ask for phone number before confirming order..."
                 value={newProfile.instructions}
                 onChange={(e) => setNewProfile({ ...newProfile, instructions: e.target.value })}
-                className="w-full p-3 bg-slate-950/70 border border-white/10 rounded-xl text-white text-xs resize-none"
+                className="w-full p-3 bg-background border border-border rounded-xl text-foreground text-xs resize-none"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-white/5">
+          <div className="flex items-center justify-between pt-2 border-t border-border">
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={newProfile.isDefault}
                 onChange={(e) => setNewProfile({ ...newProfile, isDefault: e.target.checked })}
-                className="rounded border-white/20 bg-slate-950 text-blue-600 w-4 h-4"
+                className="rounded border-border bg-background text-primary w-4 h-4"
               />
-              <span className="text-xs text-slate-300 flex items-center gap-1 font-medium">
-                <Star className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-xs text-foreground/80 flex items-center gap-1 font-medium">
+                <Star className="w-3.5 h-3.5 text-warning" />
                 <span>Make Default Active Responder</span>
               </span>
             </label>
@@ -662,14 +634,14 @@ export default function ConfigureAIPage() {
                   setShowCreateForm(false)
                   setEditingProfile(null)
                 }}
-                className="text-xs text-slate-400 hover:text-white"
+                className="text-xs text-muted-foreground hover:text-foreground"
               >
                 Cancel
               </Button>
               <Button
                 onClick={editingProfile ? handleUpdateProfile : handleCreateProfile}
                 disabled={editingProfile ? updatingProfile : creatingProfile}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-9 px-5 rounded-md font-medium"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-9 px-5 rounded-md font-medium"
               >
                 {(editingProfile ? updatingProfile : creatingProfile) ? (
                   <span className="flex items-center gap-1.5">
@@ -691,26 +663,26 @@ export default function ConfigureAIPage() {
         {/* Profiles List (Left) */}
         <div className="lg:col-span-7 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <Bot className="w-4 h-4 text-blue-400" />
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Bot className="w-4 h-4 text-primary" />
               <span>Configured AI Profiles ({aiProfiles.length})</span>
             </h3>
           </div>
 
           {aiProfilesLoading ? (
-            <div className="p-12 text-center space-y-2 rounded-lg bg-slate-900 border border-slate-800">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" />
-              <p className="text-xs text-slate-400">Loading AI profiles...</p>
+            <div className="p-12 text-center space-y-2 rounded-lg bg-card border border-border">
+              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
+              <p className="text-xs text-muted-foreground">Loading AI profiles...</p>
             </div>
           ) : aiProfilesError ? (
-            <div className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
+            <div className="p-4 rounded-lg bg-destructive-soft border border-destructive/30 text-xs text-destructive">
               {aiProfilesError}
             </div>
           ) : aiProfiles.length === 0 ? (
-            <div className="p-10 rounded-lg bg-slate-900 border border-slate-800 text-center space-y-3">
-              <Bot className="w-8 h-8 text-slate-500 mx-auto" />
-              <p className="text-sm font-semibold text-white">No Profiles Yet</p>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto">
+            <div className="p-10 rounded-lg bg-card border border-border text-center space-y-3">
+              <Bot className="w-8 h-8 text-muted-foreground mx-auto" />
+              <p className="text-sm font-semibold text-foreground">No Profiles Yet</p>
+              <p className="text-xs text-muted-foreground max-w-xs mx-auto">
                 Create your first AI profile above to customize how BDChatPro interacts with your customers.
               </p>
             </div>
@@ -720,29 +692,29 @@ export default function ConfigureAIPage() {
                 key={profile.id}
                 className={`p-5 rounded-lg border transition-colors space-y-4 ${
                   profile.isDefault
-                    ? "bg-slate-900 border-amber-500/40 shadow-sm"
-                    : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                    ? "bg-card border-warning/30"
+                    : "bg-card border-border hover:border-border"
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-md flex items-center justify-center font-bold text-xs ${
                       profile.isDefault
-                        ? "bg-amber-500 text-slate-950 font-semibold"
-                        : "bg-slate-800 border border-slate-700 text-slate-300"
+                        ? "bg-marigold text-foreground font-semibold"
+                        : "bg-muted border border-border text-foreground/80"
                     }`}>
                       {profile.isDefault ? <Crown className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-white">{profile.name}</h4>
+                        <h4 className="text-sm font-bold text-foreground">{profile.name}</h4>
                         {profile.isDefault && (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 font-semibold flex items-center gap-1">
+                          <span className="text-xs px-2 py-0.5 rounded bg-warning-soft border border-warning/30 text-warning font-semibold flex items-center gap-1">
                             <Crown className="w-3 h-3" /> Active Default
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] font-mono text-slate-400">ID: {profile.id}</span>
+                      <span className="text-xs font-mono text-muted-foreground">ID: {profile.id}</span>
                     </div>
                   </div>
 
@@ -752,7 +724,7 @@ export default function ConfigureAIPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleSetDefaultProfile(profile.id)}
-                        className="text-xs border-amber-500/20 text-amber-400 hover:bg-amber-500/10 h-8 px-2.5 rounded-lg"
+                        className="text-xs border-warning/30 text-warning hover:bg-warning-soft h-8 px-2.5 rounded-lg"
                       >
                         <Star className="w-3 h-3 mr-1" />
                         Set Default
@@ -762,7 +734,7 @@ export default function ConfigureAIPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEditProfile(profile)}
-                      className="text-slate-400 hover:text-white h-8 w-8 p-0"
+                      className="text-muted-foreground hover:text-foreground h-8 w-8 p-0"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </Button>
@@ -772,7 +744,7 @@ export default function ConfigureAIPage() {
                         size="sm"
                         onClick={() => handleDeleteProfile(profile.id)}
                         disabled={deletingProfile === profile.id}
-                        className="text-slate-400 hover:text-rose-400 h-8 w-8 p-0"
+                        className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
                       >
                         {deletingProfile === profile.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                       </Button>
@@ -781,22 +753,22 @@ export default function ConfigureAIPage() {
                 </div>
 
                 {profile.description && (
-                  <p className="text-xs text-slate-300">{profile.description}</p>
+                  <p className="text-xs text-foreground/80">{profile.description}</p>
                 )}
 
-                <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 space-y-1">
-                    <span className="text-slate-400 font-medium">Personality</span>
-                    <p className="text-slate-200 line-clamp-2">{profile.personality || "Standard assistant"}</p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-background border border-border space-y-1">
+                    <span className="text-muted-foreground font-medium">Personality</span>
+                    <p className="text-foreground line-clamp-2">{profile.personality || "Standard assistant"}</p>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 space-y-1">
-                    <span className="text-slate-400 font-medium">Instructions</span>
-                    <p className="text-slate-200 line-clamp-2">{profile.instructions || "General rules"}</p>
+                  <div className="p-2.5 rounded-xl bg-background border border-border space-y-1">
+                    <span className="text-muted-foreground font-medium">Instructions</span>
+                    <p className="text-foreground line-clamp-2">{profile.instructions || "General rules"}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 pt-1 border-t border-white/5 text-[11px] text-slate-400">
-                  <span className="px-2 py-0.5 rounded bg-white/5 border border-white/5 uppercase font-medium">
+                <div className="flex items-center gap-2 pt-1 border-t border-border text-xs text-muted-foreground">
+                  <span className="px-2 py-0.5 rounded bg-muted border border-border font-medium">
                     {profile.preferences.language}
                   </span>
                   <span className="capitalize">{profile.preferences.tone} tone</span>
@@ -808,55 +780,55 @@ export default function ConfigureAIPage() {
 
         {/* Live Playground / Simulator (Right) */}
         <div className="lg:col-span-5 sticky top-24">
-          <div className="p-5 rounded-lg bg-slate-900 border border-slate-800 shadow-sm space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="p-5 rounded-lg bg-card border border-border space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <h3 className="text-sm font-bold text-white">AI Simulator Playground</h3>
+                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                <h3 className="text-sm font-bold text-foreground">AI Simulator Playground</h3>
               </div>
-              <span className="text-[10px] text-slate-400 font-mono">Real-time Preview</span>
+              <span className="text-xs text-muted-foreground font-mono">Real-time Preview</span>
             </div>
 
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               Test how your active default profile responds to real customer questions in Facebook Messenger.
             </p>
 
             {/* Simulated Messenger Box */}
-            <div className="p-4 rounded-lg bg-slate-950/80 border border-slate-800 space-y-3 min-h-[220px] flex flex-col justify-between">
+            <div className="p-4 rounded-lg bg-background border border-border space-y-3 min-h-[220px] flex flex-col justify-between">
               <div className="space-y-3">
                 {/* User Message */}
                 <div className="flex justify-end">
-                  <div className="bg-blue-600 text-white text-xs px-3.5 py-2 rounded-lg rounded-tr-sm max-w-[85%]">
+                  <div className="bg-primary text-primary-foreground text-xs px-3.5 py-2 rounded-lg rounded-tr-sm max-w-[85%]">
                     {simulatorInput || "Customer query..."}
                   </div>
                 </div>
 
                 {/* AI Response */}
                 {isSimulating ? (
-                  <div className="flex items-center gap-2 text-xs text-slate-400 p-2">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground p-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
                     <span>AI generating response with active rules...</span>
                   </div>
                 ) : simulatedReply ? (
                   <div className="flex justify-start">
-                    <div className="bg-slate-800 text-slate-100 border border-slate-700 text-xs px-3.5 py-2.5 rounded-lg rounded-tl-sm max-w-[90%] space-y-1">
+                    <div className="bg-muted text-foreground border border-border text-xs px-3.5 py-2.5 rounded-lg rounded-tl-sm max-w-[90%] space-y-1">
                       <p className="leading-relaxed">{simulatedReply}</p>
-                      <div className="pt-1 text-[10px] text-slate-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      <div className="pt-1 text-xs text-muted-foreground flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-success" />
                         <span>Profile: {defaultProfile?.name || "Active Default"}</span>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-6 text-xs text-slate-500">
+                  <div className="text-center py-6 text-xs text-muted-foreground">
                     Click &quot;Simulate Reply&quot; to test your prompt rules
                   </div>
                 )}
               </div>
 
               {/* Sample Queries */}
-              <div className="pt-2 border-t border-slate-800">
-                <span className="text-[10px] text-slate-500 block mb-1">Try example customer inquiries:</span>
+              <div className="pt-2 border-t border-border">
+                <span className="text-xs text-muted-foreground block mb-1">Try example customer inquiries:</span>
                 <div className="flex flex-wrap gap-1">
                   {[
                     "Price koto? Delivery fee ache?",
@@ -866,7 +838,7 @@ export default function ConfigureAIPage() {
                     <button
                       key={idx}
                       onClick={() => setSimulatorInput(sample)}
-                      className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                      className="text-xs px-2 py-0.5 rounded bg-card border border-border text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
                     >
                       {sample}
                     </button>
@@ -881,12 +853,12 @@ export default function ConfigureAIPage() {
                 value={simulatorInput}
                 onChange={(e) => setSimulatorInput(e.target.value)}
                 placeholder="Type customer message..."
-                className="bg-slate-950/70 border-slate-700 text-white text-xs h-9 rounded-md"
+                className="bg-background border-border text-foreground text-xs h-9 rounded-md"
               />
               <Button
                 onClick={handleSimulate}
                 disabled={isSimulating || !simulatorInput}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-9 px-4 rounded-md shrink-0 font-medium"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-9 px-4 rounded-md shrink-0 font-medium"
               >
                 <Play className="w-3.5 h-3.5 mr-1" />
                 Simulate

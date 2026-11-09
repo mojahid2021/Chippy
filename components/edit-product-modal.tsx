@@ -421,11 +421,11 @@ export function EditProductModal({ product, categories, open, onOpenChange, onPr
             {/* Custom image selection area */}
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+              className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary hover:bg-info-soft transition-colors"
             >
               {imagePreview ? (
                 <div className="space-y-2">
-                  <div className="relative w-full max-w-xs mx-auto h-24 border border-gray-200 rounded-md overflow-hidden">
+                  <div className="relative w-full max-w-xs mx-auto h-24 border border-border rounded-md overflow-hidden">
                     <Image
                       src={imagePreview}
                       alt="Product image"
@@ -433,21 +433,21 @@ export function EditProductModal({ product, categories, open, onOpenChange, onPr
                       className="object-contain"
                     />
                   </div>
-                  <p className="text-xs text-gray-500">Click to change image</p>
+                  <p className="text-xs text-muted-foreground">Click to change image</p>
                 </div>
               ) : (
                 <div className="space-y-1">
-                  <div className="w-8 h-8 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
-                    <Upload className="w-4 h-4 text-gray-400" />
+                  <div className="w-8 h-8 mx-auto bg-muted rounded-full flex items-center justify-center">
+                    <Upload className="w-4 h-4 text-muted-foreground" />
                   </div>
-                  <p className="text-xs text-gray-600">Select product image</p>
+                  <p className="text-xs text-muted-foreground">Select product image</p>
                 </div>
               )}
             </div>
           </div>
 
-          <Card className="p-4 border border-gray-200">
-            <h4 className="text-sm font-medium text-gray-900 mb-3">Product Details</h4>
+          <Card className="p-4 border border-border">
+            <h4 className="text-sm font-medium text-foreground mb-3">Product Details</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-brand">Brand</Label>
@@ -491,7 +491,7 @@ export function EditProductModal({ product, categories, open, onOpenChange, onPr
                 placeholder='{"cpu": "Intel i7-13700H", "ram": "32GB", "storage": "1TB SSD"}'
                 rows={3}
               />
-              <p className="text-xs text-gray-500">Enter specifications as JSON object or leave empty</p>
+              <p className="text-xs text-muted-foreground">Enter specifications as JSON object or leave empty</p>
             </div>
           </Card>
 
@@ -508,7 +508,7 @@ export function EditProductModal({ product, categories, open, onOpenChange, onPr
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90">
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Update Product
             </Button>

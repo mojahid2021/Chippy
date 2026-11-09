@@ -1,17 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { Anek_Bangla, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
-const jakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+const anekBangla = Anek_Bangla({
+  variable: "--font-anek",
+  subsets: ["latin", "bengali"],
+  axes: ["wdth"],
   display: "swap",
 });
 
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
+  variable: "--font-jetbrains",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   display: "swap",
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#090d16",
+  themeColor: "#00422F",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -58,9 +58,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark scroll-smooth">
+    <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth">
       <body
-        className={`${jakartaSans.variable} ${jetbrainsMono.variable} font-sans antialiased bg-slate-950 text-slate-100 selection:bg-blue-600 selection:text-white`}
+        className={`${anekBangla.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         {children}
         <Toaster />

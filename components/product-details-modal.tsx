@@ -96,7 +96,7 @@ export function ProductDetailsModal({ product, open, onOpenChange, loading, onPr
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-border"></div>
           </div>
         ) : product ? (
           <div className="space-y-6">
@@ -109,22 +109,22 @@ export function ProductDetailsModal({ product, open, onOpenChange, loading, onPr
                     alt={product.name}
                     width={120}
                     height={120}
-                    className="rounded-lg object-cover border border-slate-200"
+                    className="rounded-lg object-cover border border-border"
                   />
                 ) : (
-                  <div className="w-30 h-30 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200">
-                    <Package className="h-8 w-8 text-slate-400" />
+                  <div className="w-30 h-30 bg-muted rounded-lg flex items-center justify-center border border-border">
+                    <Package className="h-8 w-8 text-muted-foreground" />
                   </div>
                 )}
               </div>
 
               <div className="flex-1 min-w-0">
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">{product.name}</h2>
-                <p className="text-slate-600 mb-4">{product.description}</p>
+                <h2 className="text-2xl font-bold text-foreground mb-2">{product.name}</h2>
+                <p className="text-muted-foreground mb-4">{product.description}</p>
 
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex items-center gap-1">
-                    <span className="font-semibold text-lg text-green-600">
+                    <span className="font-semibold text-lg text-success">
                       Tk {typeof product.price === 'number' ? product.price.toFixed(2) : 'N/A'}
                     </span>
                   </div>
@@ -138,7 +138,7 @@ export function ProductDetailsModal({ product, open, onOpenChange, loading, onPr
                   </Badge>
                 </div>
 
-                <div className="flex items-center gap-4 text-sm text-slate-600">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Hash className="h-4 w-4" />
                     <span>ID: {product.id}</span>
@@ -152,7 +152,7 @@ export function ProductDetailsModal({ product, open, onOpenChange, loading, onPr
               </div>
             </div>
 
-            <div className="border-t border-slate-200" />
+            <div className="border-t border-border" />
 
             {/* Product Details Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -166,36 +166,36 @@ export function ProductDetailsModal({ product, open, onOpenChange, loading, onPr
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Name:</span>
+                    <span className="text-muted-foreground">Name:</span>
                     <span className="font-medium">{product.name}</span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Price:</span>
+                    <span className="text-muted-foreground">Price:</span>
                     <span className="font-medium">
                       Tk {typeof product.price === 'number' ? product.price.toFixed(2) : 'N/A'}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Category:</span>
+                    <span className="text-muted-foreground">Category:</span>
                     <span className="font-medium">{product.categoryName || 'No Category'}</span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Status:</span>
+                    <span className="text-muted-foreground">Status:</span>
                     <Badge variant={product.isActive ? "default" : "secondary"}>
                       {product.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Created:</span>
+                    <span className="text-muted-foreground">Created:</span>
                     <span className="font-medium">{new Date(product.createdAt).toLocaleDateString()}</span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Updated:</span>
+                    <span className="text-muted-foreground">Updated:</span>
                     <span className="font-medium">{new Date(product.updatedAt).toLocaleDateString()}</span>
                   </div>
                 </CardContent>
@@ -214,7 +214,7 @@ export function ProductDetailsModal({ product, open, onOpenChange, loading, onPr
                     <div className="space-y-3">
                       {Object.entries(product.metadata).map(([key, value]) => (
                         <div key={key} className="flex justify-between">
-                          <span className="text-slate-600 capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
+                          <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
                           <span className="font-medium">
                             {typeof value === 'boolean' ? (value ? 'Yes' : 'No') :
                              typeof value === 'number' ? value.toString() :
@@ -224,7 +224,7 @@ export function ProductDetailsModal({ product, open, onOpenChange, loading, onPr
                       ))}
                     </div>
                   ) : (
-                    <p className="text-slate-500 text-center py-4">No additional information available</p>
+                    <p className="text-muted-foreground text-center py-4">No additional information available</p>
                   )}
                 </CardContent>
               </Card>
@@ -233,20 +233,20 @@ export function ProductDetailsModal({ product, open, onOpenChange, loading, onPr
             {/* Description */}
             {product.description && (
               <>
-                <div className="border-t border-slate-200" />
+                <div className="border-t border-border" />
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Description</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-slate-700 whitespace-pre-wrap">{product.description}</p>
+                    <p className="text-foreground whitespace-pre-wrap">{product.description}</p>
                   </CardContent>
                 </Card>
               </>
             )}
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Close
               </Button>

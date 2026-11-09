@@ -27,11 +27,11 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-gray-200 bg-white/95 text-gray-900",
-        destructive: "border-red-200 bg-red-50/95 text-red-900",
-        success: "border-emerald-200 bg-emerald-50/95 text-emerald-900",
-        warning: "border-amber-200 bg-amber-50/95 text-amber-900",
-        info: "border-blue-200 bg-blue-50/95 text-blue-900",
+        default: "border-border bg-card text-foreground",
+        destructive: "border-destructive/30 bg-destructive-soft text-destructive",
+        success: "border-success/30 bg-success-soft text-success",
+        warning: "border-warning/30 bg-warning-soft text-warning",
+        info: "border-info/30 bg-info-soft text-info",
       },
     },
     defaultVariants: {
@@ -43,13 +43,13 @@ const toastVariants = cva(
 const getToastIcon = (variant: VariantProps<typeof toastVariants>["variant"]) => {
   switch (variant) {
     case "success":
-      return <CheckCircle className="h-5 w-5 text-emerald-600" />
+      return <CheckCircle className="h-5 w-5 text-success" />
     case "destructive":
-      return <AlertCircle className="h-5 w-5 text-red-600" />
+      return <AlertCircle className="h-5 w-5 text-destructive" />
     case "warning":
-      return <AlertTriangle className="h-5 w-5 text-amber-600" />
+      return <AlertTriangle className="h-5 w-5 text-warning" />
     case "info":
-      return <Info className="h-5 w-5 text-blue-600" />
+      return <Info className="h-5 w-5 text-primary" />
     default:
       return null
   }
@@ -98,7 +98,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-2 top-2 rounded-md p-1 text-gray-500 opacity-0 transition-opacity hover:text-gray-700 hover:bg-gray-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 group-hover:opacity-100",
+      "absolute right-2 top-2 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:text-foreground hover:bg-muted focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-border group-hover:opacity-100",
       className
     )}
     toast-close=""

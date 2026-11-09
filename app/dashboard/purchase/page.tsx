@@ -112,7 +112,7 @@ export default function PurchasePage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader>
           <CardTitle>Complete Purchase</CardTitle>
         </CardHeader>
@@ -121,44 +121,44 @@ export default function PurchasePage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-slate-900">{plan.name}</h3>
-                  <p className="text-xs text-slate-600">{plan.description}</p>
+                  <h3 className="font-bold text-foreground">{plan.name}</h3>
+                  <p className="text-xs text-muted-foreground">{plan.description}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold">Tk {plan.price}</p>
-                  <p className="text-xs text-slate-500">/{plan.interval === 'yearly' ? 'year' : 'month'}</p>
+                  <p className="text-xs text-muted-foreground">/{plan.interval === 'yearly' ? 'year' : 'month'}</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-700">Choose payment method</p>
+                <p className="text-sm font-medium text-foreground">Choose payment method</p>
                 <div className="flex gap-2 mt-2">
                   <button
-                    className={`px-3 py-2 rounded-md border ${method === 'bkash' ? 'border-blue-600 bg-blue-50' : 'border-slate-200'}`}
+                    className={`px-3 py-2 rounded-md border ${method === 'bkash' ? 'border-primary bg-info-soft' : 'border-border'}`}
                     onClick={() => setMethod('bkash')}
                   >
                     bKash
                   </button>
                   <button
-                    className={`px-3 py-2 rounded-md border ${method === 'nagad' ? 'border-blue-600 bg-blue-50' : 'border-slate-200'}`}
+                    className={`px-3 py-2 rounded-md border ${method === 'nagad' ? 'border-primary bg-info-soft' : 'border-border'}`}
                     onClick={() => setMethod('nagad')}
                   >
                     Nagad
                   </button>
                   <button
-                    className={`px-3 py-2 rounded-md border ${method === 'rocket' ? 'border-blue-600 bg-blue-50' : 'border-slate-200'}`}
+                    className={`px-3 py-2 rounded-md border ${method === 'rocket' ? 'border-primary bg-info-soft' : 'border-border'}`}
                     onClick={() => setMethod('rocket')}
                   >
                     Rocket
                   </button>
                   <button
-                    className={`px-3 py-2 rounded-md border ${method === 'bank_transfer' ? 'border-blue-600 bg-blue-50' : 'border-slate-200'}`}
+                    className={`px-3 py-2 rounded-md border ${method === 'bank_transfer' ? 'border-primary bg-info-soft' : 'border-border'}`}
                     onClick={() => setMethod('bank_transfer')}
                   >
                     Bank Transfer
                   </button>
                   <button
-                    className={`px-3 py-2 rounded-md border ${method === 'card' ? 'border-blue-600 bg-blue-50' : 'border-slate-200'}`}
+                    className={`px-3 py-2 rounded-md border ${method === 'card' ? 'border-primary bg-info-soft' : 'border-border'}`}
                     onClick={() => setMethod('card')}
                   >
                     Card
@@ -185,13 +185,13 @@ export default function PurchasePage() {
                 <Button variant="outline" onClick={() => router.push('/dashboard/subscription')}>Cancel</Button>
               </div>
 
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-muted-foreground">
                 <p>By continuing you will be redirected to complete payment via the selected provider.</p>
               </div>
             </div>
           ) : (
             <div className="py-12 text-center">
-              <p className="text-sm text-slate-600">No plan selected or plan not found.</p>
+              <p className="text-sm text-muted-foreground">No plan selected or plan not found.</p>
             </div>
           )}
         </CardContent>

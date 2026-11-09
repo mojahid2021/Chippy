@@ -161,10 +161,10 @@ interface PlansResponse {
 }
 
 const statusConfig = {
-  completed: { color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
-  pending: { color: 'bg-yellow-100 text-yellow-700', icon: Clock },
-  verifying: { color: 'bg-blue-100 text-blue-700', icon: Clock },
-  failed: { color: 'bg-red-100 text-red-700', icon: XCircle },
+  completed: { color: 'bg-success-soft text-success', icon: CheckCircle },
+  pending: { color: 'bg-warning-soft text-warning', icon: Clock },
+  verifying: { color: 'bg-info-soft text-info', icon: Clock },
+  failed: { color: 'bg-destructive-soft text-destructive', icon: XCircle },
 }
 
 export default function SubscriptionPage() {
@@ -367,26 +367,13 @@ export default function SubscriptionPage() {
     }
   }
 
-  const getColorForPlan = (planName: string) => {
-    switch (planName.toLowerCase()) {
-      case 'starter':
-        return 'blue'
-      case 'professional':
-        return 'violet'
-      case 'enterprise':
-        return 'emerald'
-      default:
-        return 'blue'
-    }
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
       {/* <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Subscription</h1>
-          <p className="text-sm text-slate-600 mt-0.5">Manage your plan and billing</p>
+          <h1 className="text-2xl font-bold text-foreground">Subscription</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage your plan and billing</p>
         </div>
         <Button variant="outline" size="sm" className="h-8">
           <Settings className="h-3.5 w-3.5 mr-1.5" />
@@ -396,18 +383,18 @@ export default function SubscriptionPage() {
 
       {/* Show message if no subscription */}
       {!hasSubscription && subscription === null && (
-        <Card className="border-blue-200 bg-blue-50/50 shadow-sm">
+        <Card className="border-info/30 bg-info-soft">
           <div className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Crown className="h-5 w-5 text-blue-600" />
+            <div className="h-10 w-10 rounded-lg bg-info-soft flex items-center justify-center">
+              <Crown className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-900">No active subscription</p>
-              <p className="text-xs text-slate-600">Choose a plan below to get started with premium features</p>
+              <p className="text-sm font-semibold text-foreground">No active subscription</p>
+              <p className="text-xs text-muted-foreground">Choose a plan below to get started with premium features</p>
             </div>
             <Button 
               size="sm" 
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/90"
               onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
             >
               View Plans
@@ -419,23 +406,23 @@ export default function SubscriptionPage() {
 
       {/* Current Subscription Overview - Only show when user has an active subscription */}
       {hasSubscription && currentSubscription && (
-        <Card className="border-slate-800 shadow-sm overflow-hidden bg-slate-900">
-          <div className="bg-slate-900 border-b border-slate-800 p-5">
+        <Card className="border-border overflow-hidden bg-card">
+          <div className="bg-card border-b border-border p-5">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-md bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                <div className="h-10 w-10 rounded-md bg-info-soft border border-info/30 flex items-center justify-center text-info">
                   <Crown className="h-5 w-5" />
                 </div>
                 <div>
-                  <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 mb-1 rounded">Active</Badge>
-                  <h2 className="text-xl font-bold text-white">{currentSubscription.plan} Plan</h2>
-                  <p className="text-sm text-violet-100">Your subscription is active and running smoothly</p>
+                  <Badge className="bg-info-soft text-info border-info/30 mb-1 rounded">Active</Badge>
+                  <h2 className="text-xl font-bold text-foreground">{currentSubscription.plan} Plan</h2>
+                  <p className="text-sm text-pop">Your subscription is active and running smoothly</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-violet-100">Next billing</p>
-                <p className="text-lg font-bold text-white">{currentSubscription.billingDate}</p>
-                <p className="text-xs text-violet-100">{currentSubscription.daysLeft} days left</p>
+                <p className="text-sm text-pop">Next billing</p>
+                <p className="text-lg font-bold text-foreground">{currentSubscription.billingDate}</p>
+                <p className="text-xs text-pop">{currentSubscription.daysLeft} days left</p>
               </div>
             </div>
           </div>
@@ -448,18 +435,18 @@ export default function SubscriptionPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Available Plans</h2>
-            <p className="text-sm text-slate-600">Choose the perfect plan for your business</p>
+            <h2 className="text-lg font-bold text-foreground">Available Plans</h2>
+            <p className="text-sm text-muted-foreground">Choose the perfect plan for your business</p>
           </div>
           
           {/* Billing Toggle */}
-          <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
+          <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
             <button
               onClick={() => setBillingCycle('monthly')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                 billingCycle === 'monthly'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-card text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Monthly
@@ -468,12 +455,12 @@ export default function SubscriptionPage() {
               onClick={() => setBillingCycle('yearly')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                 billingCycle === 'yearly'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-card text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Yearly
-              <Badge className="ml-1.5 bg-emerald-100 text-emerald-700 text-[10px] px-1">Save 17%</Badge>
+              <Badge className="ml-1.5 bg-success-soft text-success text-xs px-1">Save 17%</Badge>
             </button>
           </div>
         </div>
@@ -482,7 +469,6 @@ export default function SubscriptionPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map((plan) => {
             const Icon = getIconForPlan(plan.name)
-            const planColor = getColorForPlan(plan.name)
             const isCurrentPlan = subscription?.planId === plan.id
             
             return (
@@ -490,15 +476,15 @@ export default function SubscriptionPage() {
                 key={plan.id}
                 className={`relative border-2 transition-all hover:shadow-lg ${
                   isCurrentPlan 
-                    ? 'border-violet-500 bg-violet-50/30' 
+                    ? 'border-pop bg-pop-soft' 
                     : plan.isPopular 
-                      ? 'border-violet-200 shadow-md' 
-                      : 'border-slate-200'
+                      ? 'border-primary/30' 
+                      : 'border-border'
                 }`}
               >
                 {plan.isPopular && !isCurrentPlan && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-violet-600 text-white px-3 py-0.5 shadow-lg">
+                    <Badge className="bg-pop text-white px-3 py-0.5 shadow-lg">
                       <Star className="h-3 w-3 mr-1 fill-white" />
                       Most Popular
                     </Badge>
@@ -507,7 +493,7 @@ export default function SubscriptionPage() {
                 
                 {isCurrentPlan && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-emerald-600 text-white px-3 py-0.5 shadow-lg">
+                    <Badge className="bg-success text-white px-3 py-0.5 shadow-lg">
                       <Check className="h-3 w-3 mr-1" />
                       Current Plan
                     </Badge>
@@ -516,24 +502,24 @@ export default function SubscriptionPage() {
 
                 <div className="p-5">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className={`h-10 w-10 rounded-lg bg-${planColor}-50 flex items-center justify-center`}>
-                      <Icon className={`h-5 w-5 text-${planColor}-600`} />
+                    <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center">
+                      <Icon className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900">{plan.name}</h3>
-                      <p className="text-xs text-slate-600">{plan.description}</p>
+                      <h3 className="font-bold text-foreground">{plan.name}</h3>
+                      <p className="text-xs text-muted-foreground">{plan.description}</p>
                     </div>
                   </div>
 
                   <div className="mb-4">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-slate-900">
+                      <span className="text-3xl font-bold text-foreground">
                         Tk {getPrice(plan)}
                       </span>
-                      <span className="text-sm text-slate-600">/{plan.interval === 'yearly' ? 'year' : 'month'}</span>
+                      <span className="text-sm text-muted-foreground">/{plan.interval === 'yearly' ? 'year' : 'month'}</span>
                     </div>
                     {billingCycle === 'yearly' && plan.interval === 'monthly' && plan.annualPrice && (
-                      <p className="text-xs text-slate-600 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Tk {getTotalPrice(plan)} billed annually
                       </p>
                     )}
@@ -541,7 +527,7 @@ export default function SubscriptionPage() {
 
                   {isCurrentPlan ? (
                     <Button
-                      className="w-full mb-4 bg-slate-600 hover:bg-slate-700"
+                      className="w-full mb-4 bg-muted hover:bg-muted"
                       variant="default"
                       disabled
                     >
@@ -550,7 +536,7 @@ export default function SubscriptionPage() {
                   ) : (
                     <Link href={`/dashboard/purchase?planId=${plan.id}`}>
                       <Button
-                        className={`w-full mb-4 ${`bg-${planColor}-600 hover:bg-${planColor}-700`}`}
+                        className="w-full mb-4"
                         variant="default"
                       >
                         {!hasSubscription ? (
@@ -574,12 +560,12 @@ export default function SubscriptionPage() {
                   <div className="space-y-2">
                     {plan.features.slice(0, 4).map((feature, idx) => (
                       <div key={idx} className="flex items-start gap-2">
-                        <Check className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
-                        <span className="text-xs text-slate-700">{feature}</span>
+                        <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
+                        <span className="text-xs text-foreground">{feature}</span>
                       </div>
                     ))}
                     {plan.features.length > 4 && (
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-muted-foreground">
                         +{plan.features.length - 4} more features
                       </div>
                     )}
@@ -593,23 +579,23 @@ export default function SubscriptionPage() {
 
       {/* Transaction History */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-slate-200 shadow-sm">
-          <div className="p-4 border-b border-slate-200">
-            <h3 className="font-semibold text-slate-900">Transaction History</h3>
-            <p className="text-xs text-slate-600">View all your payment transactions and invoices</p>
+        <Card className="lg:col-span-2 border-border">
+          <div className="p-4 border-b border-border">
+            <h3 className="font-semibold text-foreground">Transaction History</h3>
+            <p className="text-xs text-muted-foreground">View all your payment transactions and invoices</p>
           </div>
           <div className="p-4">
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                <span className="ml-2 text-slate-600">Loading transactions...</span>
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2 text-muted-foreground">Loading transactions...</span>
               </div>
             ) : error ? (
               <div className="flex flex-col items-center justify-center py-12">
-                <AlertCircle className="h-8 w-8 text-red-600" />
+                <AlertCircle className="h-8 w-8 text-destructive" />
                 <div className="mt-2 text-center">
-                  <p className="text-red-600 font-medium">Error loading transactions</p>
-                  <p className="text-slate-600 text-sm">{error}</p>
+                  <p className="text-destructive font-medium">Error loading transactions</p>
+                  <p className="text-muted-foreground text-sm">{error}</p>
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -622,43 +608,43 @@ export default function SubscriptionPage() {
               </div>
             ) : transactions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12">
-                <FileText className="h-8 w-8 text-slate-400" />
+                <FileText className="h-8 w-8 text-muted-foreground" />
                 <div className="mt-2 text-center">
-                  <p className="text-slate-600 font-medium">No transactions found</p>
-                  <p className="text-slate-500 text-sm">Your payment history will appear here</p>
+                  <p className="text-muted-foreground font-medium">No transactions found</p>
+                  <p className="text-muted-foreground text-sm">Your payment history will appear here</p>
                 </div>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-border">
                 {transactions.map((transaction) => {
                   const statusInfo = statusConfig[transaction.status]
                   const StatusIcon = statusInfo.icon
 
                   return (
-                    <div key={transaction.id} className="py-3 hover:bg-slate-50 transition-colors">
+                    <div key={transaction.id} className="py-3 hover:bg-muted transition-colors">
                       <div className="flex items-start justify-between gap-4">
                         {/* Left Side - Icon and Details */}
                         <div className="flex items-start gap-3 flex-1">
-                          <div className="h-9 w-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-                            <FileText className="h-4 w-4 text-slate-600" />
+                          <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <p className="text-sm font-semibold text-slate-900">
+                              <p className="text-sm font-semibold text-foreground">
                                 {transaction.subscription.plan.name}
                               </p>
-                              <Badge className={cn('text-[10px] flex items-center gap-1', statusInfo.color)}>
+                              <Badge className={cn('text-xs flex items-center gap-1', statusInfo.color)}>
                                 <StatusIcon className="h-3 w-3" />
                                 <span className="capitalize">{transaction.status}</span>
                               </Badge>
                             </div>
-                            <p className="text-xs text-slate-600 mb-0.5">
+                            <p className="text-xs text-muted-foreground mb-0.5">
                               TXN: {transaction.transactionId}
                             </p>
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-muted-foreground">
                               Account: ****{transaction.accountNumber.slice(-4)} • {formatDate(transaction.submittedAt)}
                             </p>
-                            <p className="text-xs text-slate-400">
+                            <p className="text-xs text-muted-foreground">
                               {transaction.subscription.plan.interval} plan
                             </p>
                           </div>
@@ -667,7 +653,7 @@ export default function SubscriptionPage() {
                         {/* Right Side - Amount and Actions */}
                         <div className="flex items-center gap-3">
                           <div className="text-right">
-                            <p className="text-sm font-bold text-slate-900">
+                            <p className="text-sm font-bold text-foreground">
                               {formatCurrency(transaction.amount, transaction.currency)}
                             </p>
                           </div>
@@ -712,10 +698,10 @@ export default function SubscriptionPage() {
         </Card>
 
         {/* Payment Info */}
-        <Card className="border-slate-200 shadow-sm">
-          <div className="p-4 border-b border-slate-200">
-            <h3 className="font-semibold text-slate-900">Payment Method</h3>
-            <p className="text-xs text-slate-600">Manage your billing details</p>
+        <Card className="border-border">
+          <div className="p-4 border-b border-border">
+            <h3 className="font-semibold text-foreground">Payment Method</h3>
+            <p className="text-xs text-muted-foreground">Manage your billing details</p>
           </div>
           <div className="p-4 space-y-4">
             {transactions.length > 0 ? (() => {
@@ -732,20 +718,20 @@ export default function SubscriptionPage() {
                     return {
                       icon: Building2,
                       label: 'Bank Transfer',
-                      color: 'text-blue-600'
+                      color: 'text-primary'
                     }
                   case 'credit_card':
                   case 'credit-card':
                     return {
                       icon: CreditCard,
                       label: 'Credit Card',
-                      color: 'text-slate-600'
+                      color: 'text-muted-foreground'
                     }
                   default:
                     return {
                       icon: CreditCard,
                       label: 'Payment Method',
-                      color: 'text-slate-600'
+                      color: 'text-muted-foreground'
                     }
                 }
               }
@@ -754,29 +740,29 @@ export default function SubscriptionPage() {
               const PaymentIcon = paymentMethod.icon
               
               return (
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="h-10 w-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center">
+                <div className="flex items-center gap-3 p-3 bg-background rounded-lg">
+                  <div className="h-10 w-10 rounded-lg bg-card border border-border flex items-center justify-center">
                     <PaymentIcon className={`h-5 w-5 ${paymentMethod.color}`} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold text-foreground">
                       •••• {latestTransaction.accountNumber.slice(-4)}
                     </p>
-                    <p className="text-xs text-slate-600">
+                    <p className="text-xs text-muted-foreground">
                       {paymentMethod.label} • Last used {formatDate(latestTransaction.submittedAt)}
                     </p>
                   </div>
-                  <Badge className="text-[10px] bg-blue-100 text-blue-700">Default</Badge>
+                  <Badge className="text-xs bg-info-soft text-info">Default</Badge>
                 </div>
               )
             })() : (
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                <div className="h-10 w-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center">
-                  <CreditCard className="h-5 w-5 text-slate-600" />
+              <div className="flex items-center gap-3 p-3 bg-background rounded-lg">
+                <div className="h-10 w-10 rounded-lg bg-card border border-border flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-900">No payment method</p>
-                  <p className="text-xs text-slate-600">Add a payment method to get started</p>
+                  <p className="text-sm font-semibold text-foreground">No payment method</p>
+                  <p className="text-xs text-muted-foreground">Add a payment method to get started</p>
                 </div>
               </div>
             )}

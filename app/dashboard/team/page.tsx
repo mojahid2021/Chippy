@@ -89,11 +89,11 @@ interface Entitlements {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  OWNER: "bg-amber-100 text-amber-800 border-amber-200",
-  ADMIN: "bg-purple-100 text-purple-800 border-purple-200",
-  MANAGER: "bg-blue-100 text-blue-800 border-blue-200",
-  AGENT: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  VIEWER: "bg-slate-100 text-slate-700 border-slate-200",
+  OWNER: "bg-warning-soft text-warning border-warning/30",
+  ADMIN: "bg-pop-soft text-pop border-pop/30",
+  MANAGER: "bg-info-soft text-info border-info/30",
+  AGENT: "bg-success-soft text-success border-success/30",
+  VIEWER: "bg-muted text-foreground border-border",
 }
 
 export default function TeamManagementPage() {
@@ -384,22 +384,22 @@ export default function TeamManagementPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-4 lg:p-6">
       {/* Workspace Header Card */}
-      <div className="bg-slate-900 rounded-lg p-6 text-white shadow-sm border border-slate-800">
+      <div className="bg-card rounded-lg p-6 text-foreground border border-border">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
-            <div className="h-12 w-12 rounded-md bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+            <div className="h-12 w-12 rounded-md bg-info-soft border border-info/30 flex items-center justify-center text-info">
               <Building2 className="h-6 w-6" />
             </div>
             <div>
               <div className="flex items-center space-x-3">
-                <h1 className="text-xl font-bold text-white tracking-tight">
+                <h1 className="text-xl font-bold text-foreground tracking-tight">
                   {activeTenant?.name || "My Workspace"}
                 </h1>
                 <Badge variant="outline" className={`${ROLE_COLORS[currentRole || "OWNER"]} text-xs font-semibold px-2.5 py-0.5 rounded`}>
                   {currentRole || "MEMBER"}
                 </Badge>
               </div>
-              <p className="text-slate-400 text-xs mt-1 font-mono">
+              <p className="text-muted-foreground text-xs mt-1 font-mono">
                 Slug: {activeTenant?.slug || "personal"} • ID: {activeTenantId}
               </p>
             </div>
@@ -414,7 +414,7 @@ export default function TeamManagementPage() {
                   setRenameWorkspaceName(activeTenant?.name || "")
                   setShowRenameModal(true)
                 }}
-                className="bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 text-xs"
+                className="bg-muted border-border text-foreground hover:bg-muted text-xs"
               >
                 <Edit2 className="h-3.5 w-3.5 mr-1.5" /> Rename
               </Button>
@@ -423,7 +423,7 @@ export default function TeamManagementPage() {
               variant="outline"
               size="sm"
               onClick={() => setShowCreateModal(true)}
-              className="bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 text-xs"
+              className="bg-muted border-border text-foreground hover:bg-muted text-xs"
             >
               <Building2 className="h-3.5 w-3.5 mr-1.5" /> New Workspace
             </Button>
@@ -434,7 +434,7 @@ export default function TeamManagementPage() {
                   setLatestInviteLink(null)
                   setShowInviteModal(true)
                 }}
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/30 text-xs"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
               >
                 <UserPlus className="h-3.5 w-3.5 mr-1.5" /> Invite Teammate
               </Button>
@@ -455,18 +455,18 @@ export default function TeamManagementPage() {
 
       {/* Plan Entitlements & Usage Overview */}
       {entitlements && (
-        <Card className="border-slate-200 shadow-sm bg-white">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-amber-500" /> Active Plan & Limits
+                <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-warning" /> Active Plan & Limits
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-500">
+                <CardDescription className="text-xs text-muted-foreground">
                   Plan entitlements and real-time usage for this workspace
                 </CardDescription>
               </div>
-              <Badge className={entitlements.active ? "bg-emerald-500 text-white" : "bg-red-500 text-white"}>
+              <Badge className={entitlements.active ? "bg-success text-white" : "bg-destructive text-white"}>
                 {entitlements.plan || "Free / Base"} • {entitlements.active ? "Active" : "Expired"}
               </Badge>
             </div>
@@ -474,13 +474,13 @@ export default function TeamManagementPage() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {Object.entries(entitlements.usage || {}).map(([key, u]) => (
-                <div key={key} className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider block mb-1">
+                <div key={key} className="p-3 rounded-xl bg-background border border-border">
+                  <span className="text-xs font-medium text-muted-foreground block mb-1">
                     {key.replace(/_/g, " ")}
                   </span>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-slate-900">{u.used}</span>
-                    <span className="text-xs text-slate-500">/ {u.limit === null ? "Unlimited" : u.limit}</span>
+                    <span className="text-xl font-bold text-foreground">{u.used}</span>
+                    <span className="text-xs text-muted-foreground">/ {u.limit === null ? "Unlimited" : u.limit}</span>
                   </div>
                 </div>
               ))}
@@ -490,14 +490,14 @@ export default function TeamManagementPage() {
       )}
 
       {/* Members Section */}
-      <Card className="border-slate-200 shadow-sm bg-white">
-        <CardHeader className="pb-3 border-b border-slate-100">
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3 border-b border-border">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Users className="h-5 w-5 text-blue-600" /> Team Members ({members.length})
+              <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" /> Team Members ({members.length})
               </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
+              <CardDescription className="text-xs text-muted-foreground">
                 People with access to manage products, categories, orders, and AI profiles in this workspace.
               </CardDescription>
             </div>
@@ -505,15 +505,15 @@ export default function TeamManagementPage() {
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-8 text-center text-slate-500 flex items-center justify-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> Loading members...
+            <div className="p-8 text-center text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading members...
             </div>
           ) : members.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 text-sm">No members found in this workspace.</div>
+            <div className="p-8 text-center text-muted-foreground text-sm">No members found in this workspace.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-600 text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
+                <thead className="bg-background text-muted-foreground text-xs font-semibold border-b border-border">
                   <tr>
                     <th className="py-3 px-4">Member</th>
                     <th className="py-3 px-4">Email</th>
@@ -522,30 +522,30 @@ export default function TeamManagementPage() {
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {members.map((member) => {
                     const isSelf = member.userId === user?.id
                     return (
-                      <tr key={member.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-4 font-medium text-slate-900 flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs">
+                      <tr key={member.id} className="hover:bg-muted transition-colors">
+                        <td className="py-3 px-4 font-medium text-foreground flex items-center gap-2.5">
+                          <div className="h-8 w-8 rounded-full bg-info-soft text-info font-bold flex items-center justify-center text-xs">
                             {member.user.firstName?.[0] || member.user.email[0].toUpperCase()}
                           </div>
                           <div>
                             <div>
-                              {member.user.firstName} {member.user.lastName} {isSelf && <span className="text-xs text-blue-600 font-semibold">(You)</span>}
+                              {member.user.firstName} {member.user.lastName} {isSelf && <span className="text-xs text-primary font-semibold">(You)</span>}
                             </div>
-                            <div className="text-[11px] text-slate-400">@{member.user.username}</div>
+                            <div className="text-xs text-muted-foreground">@{member.user.username}</div>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-slate-600 text-xs">{member.user.email}</td>
+                        <td className="py-3 px-4 text-muted-foreground text-xs">{member.user.email}</td>
                         <td className="py-3 px-4">
-                          <Badge variant="outline" className={`${ROLE_COLORS[member.role]} text-[11px] font-semibold px-2 py-0.5`}>
+                          <Badge variant="outline" className={`${ROLE_COLORS[member.role]} text-xs font-semibold px-2 py-0.5`}>
                             {member.role}
                           </Badge>
                         </td>
                         <td className="py-3 px-4">
-                          <Badge variant={member.status === "ACTIVE" ? "outline" : "secondary"} className={member.status === "ACTIVE" ? "text-emerald-700 bg-emerald-50 border-emerald-200 text-[11px]" : "text-slate-500 text-[11px]"}>
+                          <Badge variant={member.status === "ACTIVE" ? "outline" : "secondary"} className={member.status === "ACTIVE" ? "text-success bg-success-soft border-success/30 text-xs" : "text-muted-foreground text-xs"}>
                             {member.status}
                           </Badge>
                         </td>
@@ -554,7 +554,7 @@ export default function TeamManagementPage() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <MoreVertical className="h-4 w-4 text-slate-500" />
+                                  <MoreVertical className="h-4 w-4 text-muted-foreground" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48 text-xs">
@@ -569,13 +569,13 @@ export default function TeamManagementPage() {
                                 {isOwner && (
                                   <>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => setTransferMember(member)} className="text-amber-600 font-medium">
+                                    <DropdownMenuItem onClick={() => setTransferMember(member)} className="text-warning font-medium">
                                       <Crown className="h-3.5 w-3.5 mr-2" /> Transfer Ownership
                                     </DropdownMenuItem>
                                   </>
                                 )}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleRemoveMember(member.id)} className="text-red-600 font-medium">
+                                <DropdownMenuItem onClick={() => handleRemoveMember(member.id)} className="text-destructive font-medium">
                                   <Trash2 className="h-3.5 w-3.5 mr-2" /> Remove from Team
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -594,14 +594,14 @@ export default function TeamManagementPage() {
 
       {/* Pending Invites Section */}
       {canManageMembers && (
-        <Card className="border-slate-200 shadow-sm bg-white">
-          <CardHeader className="pb-3 border-b border-slate-100">
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-3 border-b border-border">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-amber-600" /> Pending Invitations ({invites.length})
+                <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-warning" /> Pending Invitations ({invites.length})
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-500">
+                <CardDescription className="text-xs text-muted-foreground">
                   Invitations waiting to be accepted by recipient email addresses.
                 </CardDescription>
               </div>
@@ -609,11 +609,11 @@ export default function TeamManagementPage() {
           </CardHeader>
           <CardContent className="p-0">
             {invites.length === 0 ? (
-              <div className="p-6 text-center text-slate-400 text-xs">No pending invitations.</div>
+              <div className="p-6 text-center text-muted-foreground text-xs">No pending invitations.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-slate-600 text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
+                  <thead className="bg-background text-muted-foreground text-xs font-semibold border-b border-border">
                     <tr>
                       <th className="py-3 px-4">Invited Email</th>
                       <th className="py-3 px-4">Role</th>
@@ -621,16 +621,16 @@ export default function TeamManagementPage() {
                       <th className="py-3 px-4 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {invites.map((invite) => (
-                      <tr key={invite.id} className="hover:bg-slate-50/80">
-                        <td className="py-3 px-4 text-xs font-medium text-slate-800">{invite.email}</td>
+                      <tr key={invite.id} className="hover:bg-muted">
+                        <td className="py-3 px-4 text-xs font-medium text-foreground">{invite.email}</td>
                         <td className="py-3 px-4">
-                          <Badge variant="outline" className={`${ROLE_COLORS[invite.role]} text-[11px]`}>
+                          <Badge variant="outline" className={`${ROLE_COLORS[invite.role]} text-xs`}>
                             {invite.role}
                           </Badge>
                         </td>
-                        <td className="py-3 px-4 text-xs text-slate-500">
+                        <td className="py-3 px-4 text-xs text-muted-foreground">
                           {new Date(invite.expiresAt).toLocaleDateString()}
                         </td>
                         <td className="py-3 px-4 text-right">
@@ -638,7 +638,7 @@ export default function TeamManagementPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleRevokeInvite(invite.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs h-7 px-2"
+                            className="text-destructive hover:text-destructive hover:bg-destructive-soft text-xs h-7 px-2"
                           >
                             Revoke
                           </Button>
@@ -655,38 +655,38 @@ export default function TeamManagementPage() {
 
       {/* Invite Member Dialog */}
       <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
-        <DialogContent className="sm:max-w-md bg-white">
+        <DialogContent className="sm:max-w-md bg-card">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-slate-900">Invite Team Member</DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
+            <DialogTitle className="text-lg font-bold text-foreground">Invite Team Member</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
               Send an email invitation to join <strong>{activeTenant?.name}</strong>.
             </DialogDescription>
           </DialogHeader>
 
           {latestInviteLink ? (
             <div className="space-y-4 py-3">
-              <Alert className="bg-emerald-50 border-emerald-200 text-emerald-800">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <Alert className="bg-success-soft border-success/30 text-success">
+                <CheckCircle2 className="h-4 w-4 text-success" />
                 <AlertDescription className="text-xs">
                   Invitation created! Outside production, you can copy the direct invitation link:
                 </AlertDescription>
               </Alert>
-              <div className="flex items-center gap-2 bg-slate-100 p-2 rounded-lg border border-slate-200">
+              <div className="flex items-center gap-2 bg-muted p-2 rounded-lg border border-border">
                 <input
                   readOnly
                   value={latestInviteLink}
-                  className="bg-transparent text-xs text-slate-700 flex-1 outline-none font-mono"
+                  className="bg-transparent text-xs text-foreground flex-1 outline-none font-mono"
                 />
                 <Button
                   size="sm"
                   onClick={() => copyToClipboard(latestInviteLink)}
-                  className="h-7 px-2 text-xs bg-slate-800 hover:bg-slate-900 text-white"
+                  className="h-7 px-2 text-xs bg-muted hover:bg-muted text-foreground"
                 >
-                  {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copiedLink ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
                 </Button>
               </div>
               <DialogFooter>
-                <Button onClick={() => setShowInviteModal(false)} className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs">
+                <Button onClick={() => setShowInviteModal(false)} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs">
                   Done
                 </Button>
               </DialogFooter>
@@ -694,7 +694,7 @@ export default function TeamManagementPage() {
           ) : (
             <form onSubmit={handleSendInvite} className="space-y-4 py-2">
               <div className="space-y-1.5">
-                <Label htmlFor="inviteEmail" className="text-xs font-semibold text-slate-700">Email Address</Label>
+                <Label htmlFor="inviteEmail" className="text-xs font-semibold text-foreground">Email Address</Label>
                 <Input
                   id="inviteEmail"
                   type="email"
@@ -707,7 +707,7 @@ export default function TeamManagementPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="inviteRole" className="text-xs font-semibold text-slate-700">Role & Access Level</Label>
+                <Label htmlFor="inviteRole" className="text-xs font-semibold text-foreground">Role & Access Level</Label>
                 <Select value={inviteRole} onValueChange={setInviteRole}>
                   <SelectTrigger id="inviteRole" className="text-xs">
                     <SelectValue placeholder="Select role" />
@@ -725,7 +725,7 @@ export default function TeamManagementPage() {
                 <Button type="button" variant="outline" size="sm" onClick={() => setShowInviteModal(false)} className="text-xs">
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={inviting} className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
+                <Button type="submit" size="sm" disabled={inviting} className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs">
                   {inviting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <UserPlus className="h-3.5 w-3.5 mr-1.5" />}
                   Send Invitation
                 </Button>
@@ -737,16 +737,16 @@ export default function TeamManagementPage() {
 
       {/* Rename Workspace Dialog */}
       <Dialog open={showRenameModal} onOpenChange={setShowRenameModal}>
-        <DialogContent className="sm:max-w-md bg-white">
+        <DialogContent className="sm:max-w-md bg-card">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-slate-900">Rename Workspace</DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
+            <DialogTitle className="text-lg font-bold text-foreground">Rename Workspace</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
               Update the display name of your workspace.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleRenameWorkspace} className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="renameName" className="text-xs font-semibold text-slate-700">Workspace Name</Label>
+              <Label htmlFor="renameName" className="text-xs font-semibold text-foreground">Workspace Name</Label>
               <Input
                 id="renameName"
                 required
@@ -761,7 +761,7 @@ export default function TeamManagementPage() {
               <Button type="button" variant="outline" size="sm" onClick={() => setShowRenameModal(false)} className="text-xs">
                 Cancel
               </Button>
-              <Button type="submit" size="sm" disabled={renaming} className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
+              <Button type="submit" size="sm" disabled={renaming} className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs">
                 {renaming ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null} Save Changes
               </Button>
             </DialogFooter>
@@ -771,16 +771,16 @@ export default function TeamManagementPage() {
 
       {/* Create Workspace Dialog */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="sm:max-w-md bg-white">
+        <DialogContent className="sm:max-w-md bg-card">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-slate-900">Create New Workspace</DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
+            <DialogTitle className="text-lg font-bold text-foreground">Create New Workspace</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
               Create an additional workspace/store under your account. You will be its Owner.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateWorkspace} className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="wsName" className="text-xs font-semibold text-slate-700">Workspace Name</Label>
+              <Label htmlFor="wsName" className="text-xs font-semibold text-foreground">Workspace Name</Label>
               <Input
                 id="wsName"
                 required
@@ -796,7 +796,7 @@ export default function TeamManagementPage() {
               <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateModal(false)} className="text-xs">
                 Cancel
               </Button>
-              <Button type="submit" size="sm" disabled={creatingWorkspace} className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
+              <Button type="submit" size="sm" disabled={creatingWorkspace} className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs">
                 {creatingWorkspace ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null} Create Workspace
               </Button>
             </DialogFooter>
@@ -806,12 +806,12 @@ export default function TeamManagementPage() {
 
       {/* Transfer Ownership Dialog */}
       <Dialog open={Boolean(transferMember)} onOpenChange={(open) => !open && setTransferMember(null)}>
-        <DialogContent className="sm:max-w-md bg-white">
+        <DialogContent className="sm:max-w-md bg-card">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-amber-600 flex items-center gap-2">
+            <DialogTitle className="text-lg font-bold text-warning flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" /> Transfer Workspace Ownership
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
+            <DialogDescription className="text-xs text-muted-foreground">
               Are you sure you want to transfer ownership of <strong>{activeTenant?.name}</strong> to{" "}
               <strong>{transferMember?.user.firstName} {transferMember?.user.lastName}</strong>? You will no longer be the Owner.
             </DialogDescription>
@@ -825,7 +825,7 @@ export default function TeamManagementPage() {
               size="sm"
               disabled={transferring}
               onClick={handleTransferOwnership}
-              className="text-xs bg-amber-600 hover:bg-amber-700 text-white"
+              className="text-xs bg-marigold hover:bg-marigold/85 text-ink"
             >
               {transferring ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null} Confirm Transfer
             </Button>

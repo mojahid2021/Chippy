@@ -3,20 +3,7 @@
 import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { 
-  Boxes, 
-  Search, 
-  Edit3, 
-  Trash2, 
-  Package, 
-  Loader2, 
-  Plus, 
-  FolderTree, 
-  Tag, 
-  Sparkles,
-  Layers,
-  ArrowRight
-} from "lucide-react"
+import { Boxes, Search, Edit3, Trash2, Package, Loader2, Plus, Tag, Sparkles, Layers, ArrowRight } from "lucide-react"
 import Image from "next/image"
 import { CreateCategoryModal } from "@/components/create-category-modal"
 import { EditCategoryModal } from "@/components/edit-category-modal"
@@ -127,12 +114,8 @@ export default function CategoriesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-medium text-blue-400 mb-1.5">
-            <FolderTree className="w-3.5 h-3.5" />
-            <span>Storefront Taxonomies</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Product Categories</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Product Categories</h1>
+          <p className="text-sm text-muted-foreground">
             Structure your catalog into collections to help your AI agent recommend relevant alternatives.
           </p>
         </div>
@@ -147,14 +130,14 @@ export default function CategoriesPage() {
 
       {/* Plan limit warning */}
       {isLimitReached("MAX_CATEGORIES") && (
-        <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-warning-soft border border-warning/30 text-xs text-warning flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Tag className="w-4 h-4 text-amber-400 shrink-0" />
+            <Tag className="w-4 h-4 text-warning shrink-0" />
             <span>
               Category limit reached ({getUsageInfo("MAX_CATEGORIES").used} / {getUsageInfo("MAX_CATEGORIES").limit}). Upgrade your plan to create more collections.
             </span>
           </div>
-          <Button asChild size="sm" className="bg-amber-600 hover:bg-amber-700 text-white text-xs h-8 px-3 rounded-md">
+          <Button asChild size="sm" className="bg-marigold hover:bg-marigold/85 text-ink text-xs h-8 px-3 rounded-md">
             <Link href="/dashboard/purchase">Upgrade</Link>
           </Button>
         </div>
@@ -162,50 +145,50 @@ export default function CategoriesPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm">
+        <div className="p-4 rounded-lg bg-card border border-border">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Total Categories</span>
-            <div className="w-8 h-8 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+            <span className="text-xs font-medium text-muted-foreground">Total Categories</span>
+            <div className="w-8 h-8 rounded-md bg-info-soft border border-info/30 text-info flex items-center justify-center">
               <Boxes className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white mt-2">{totalCategories}</p>
-          <p className="text-[11px] text-slate-400 mt-1">Catalog divisions</p>
+          <p className="text-2xl font-bold text-foreground mt-2">{totalCategories}</p>
+          <p className="text-xs text-muted-foreground mt-1">Catalog divisions</p>
         </div>
 
-        <div className="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm">
+        <div className="p-4 rounded-lg bg-card border border-border">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Active Collections</span>
-            <div className="w-8 h-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <span className="text-xs font-medium text-muted-foreground">Active Collections</span>
+            <div className="w-8 h-8 rounded-md bg-success-soft border border-success/30 text-success flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-emerald-400 mt-2">{activeCategories}</p>
-          <p className="text-[11px] text-slate-400 mt-1">Visible to AI recommendations</p>
+          <p className="text-2xl font-bold text-success mt-2">{activeCategories}</p>
+          <p className="text-xs text-muted-foreground mt-1">Visible to AI recommendations</p>
         </div>
 
-        <div className="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm">
+        <div className="p-4 rounded-lg bg-card border border-border">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Categorized Products</span>
-            <div className="w-8 h-8 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+            <span className="text-xs font-medium text-muted-foreground">Categorized Products</span>
+            <div className="w-8 h-8 rounded-md bg-info-soft border border-info/30 text-info flex items-center justify-center">
               <Package className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white mt-2">{totalProducts}</p>
-          <p className="text-[11px] text-slate-400 mt-1">Assigned products</p>
+          <p className="text-2xl font-bold text-foreground mt-2">{totalProducts}</p>
+          <p className="text-xs text-muted-foreground mt-1">Assigned products</p>
         </div>
       </div>
 
       {/* Search */}
-      <div className="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm">
+      <div className="p-4 rounded-lg bg-card border border-border">
         <div className="relative">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search categories by name or description..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-950/70 border border-slate-700 rounded-md text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+            className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
           />
         </div>
       </div>
@@ -213,24 +196,24 @@ export default function CategoriesPage() {
       {/* Main Content */}
       {loading ? (
         <div className="py-20 text-center space-y-3">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto" />
-          <p className="text-xs text-slate-400">Loading categories...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+          <p className="text-xs text-muted-foreground">Loading categories...</p>
         </div>
       ) : error ? (
-        <div className="p-6 rounded-lg bg-rose-500/10 border border-rose-500/20 text-center space-y-3">
-          <p className="text-sm text-rose-300">{error}</p>
-          <Button onClick={fetchCategories} size="sm" className="bg-rose-600 hover:bg-rose-700 text-white text-xs rounded-md">
+        <div className="p-6 rounded-lg bg-destructive-soft border border-destructive/30 text-center space-y-3">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button onClick={fetchCategories} size="sm" className="bg-destructive hover:bg-destructive/90 text-white text-xs rounded-md">
             Retry
           </Button>
         </div>
       ) : filteredCategories.length === 0 ? (
-        <div className="p-12 rounded-lg bg-slate-900 border border-slate-800 text-center space-y-4">
-          <div className="w-14 h-14 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto text-blue-400">
+        <div className="p-12 rounded-lg bg-card border border-border text-center space-y-4">
+          <div className="w-14 h-14 rounded-lg bg-info-soft border border-info/30 flex items-center justify-center mx-auto text-info">
             <Boxes className="w-7 h-7" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-base font-semibold text-white">No categories found</h3>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto">
+            <h3 className="text-base font-semibold text-foreground">No categories found</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
               {searchTerm ? "No category matches your search filter." : "Create your first category (e.g. Panjabi, Saree, Western) to organize your catalog."}
             </p>
           </div>
@@ -246,11 +229,11 @@ export default function CategoriesPage() {
           {filteredCategories.map((category) => (
             <div
               key={category.id}
-              className="p-5 rounded-lg bg-slate-900 border border-slate-800 shadow-sm hover:border-slate-700 transition-colors flex flex-col justify-between space-y-4"
+              className="p-5 rounded-lg bg-card border border-border hover:border-border transition-colors flex flex-col justify-between space-y-4"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-md bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center shrink-0">
+                  <div className="w-11 h-11 rounded-md bg-background border border-border overflow-hidden flex items-center justify-center shrink-0">
                     {getImageUrl(category.image) ? (
                       <Image
                         src={getImageUrl(category.image)!}
@@ -260,51 +243,51 @@ export default function CategoriesPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <Boxes className="w-6 h-6 text-blue-400" />
+                      <Boxes className="w-6 h-6 text-primary" />
                     )}
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-base">{category.name}</h3>
+                    <h3 className="font-bold text-foreground text-base">{category.name}</h3>
                     {category.parentId && (
-                      <p className="text-[11px] text-slate-400">
-                        Subcategory of: <span className="text-cyan-300">{categories.find(c => c.id === category.parentId)?.name || category.parentId}</span>
+                      <p className="text-xs text-muted-foreground">
+                        Subcategory of: <span className="text-info">{categories.find(c => c.id === category.parentId)?.name || category.parentId}</span>
                       </p>
                     )}
                   </div>
                 </div>
 
-                <Badge className={`text-[10px] font-semibold border ${
+                <Badge className={`text-xs font-semibold border ${
                   category.isActive
-                    ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                    : "bg-slate-800 border-white/10 text-slate-400"
+                    ? "bg-success-soft border-success/30 text-success"
+                    : "bg-muted border-border text-muted-foreground"
                 }`}>
                   {category.isActive ? "Active" : "Inactive"}
                 </Badge>
               </div>
 
               {category.description && (
-                <p className="text-xs text-slate-400 line-clamp-2">{category.description}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2">{category.description}</p>
               )}
 
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 space-y-0.5">
-                  <span className="text-[10px] text-slate-400 font-medium">Products</span>
-                  <p className="text-white font-bold text-sm">
+                <div className="p-2.5 rounded-xl bg-background border border-border space-y-0.5">
+                  <span className="text-xs text-muted-foreground font-medium">Products</span>
+                  <p className="text-foreground font-bold text-sm">
                     {typeof category.metadata?.products === 'number' ? category.metadata.products : 0}
                   </p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 space-y-0.5">
-                  <span className="text-[10px] text-slate-400 font-medium">Subcategories</span>
-                  <p className="text-white font-bold text-sm">{getSubcategoriesCount(category.id)}</p>
+                <div className="p-2.5 rounded-xl bg-background border border-border space-y-0.5">
+                  <span className="text-xs text-muted-foreground font-medium">Subcategories</span>
+                  <p className="text-foreground font-bold text-sm">{getSubcategoriesCount(category.id)}</p>
                 </div>
               </div>
 
               {canManageCatalog && (
-                <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                <div className="flex items-center gap-2 pt-2 border-t border-border">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 border-white/10 text-slate-300 hover:text-white hover:bg-white/5 text-xs h-8"
+                    className="flex-1 border-border text-foreground/80 hover:text-foreground hover:bg-muted text-xs h-8"
                     onClick={() => {
                       setEditingCategory(category)
                       setEditModalOpen(true)
@@ -316,7 +299,7 @@ export default function CategoriesPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 w-8 p-0 border-white/10 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10"
+                    className="h-8 w-8 p-0 border-border text-muted-foreground hover:text-destructive hover:bg-destructive-soft"
                     onClick={() => handleDeleteCategory(category)}
                     disabled={deletingId === category.id}
                   >

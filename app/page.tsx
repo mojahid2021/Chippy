@@ -2,604 +2,262 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  ArrowRight,
-  Bot,
-  MessageSquare,
-  Zap,
-  Shield,
-  Star,
-  Check,
-  Menu,
-  X,
-  Globe,
-  Sparkles,
-  ShoppingBag,
-  Users,
-  Building2,
-  TrendingUp,
-  Layers,
-  Send,
-  Lock,
-  ChevronDown,
-  ExternalLink,
-  Cpu,
-  CheckCircle2,
-  Activity,
-  Headphones,
-  FileText,
-  CreditCard,
-  LifeBuoy,
-  PhoneCall,
-  ShieldCheck,
-  CheckCircle
-} from "lucide-react"
+import { Logo } from "@/components/logo"
+import { cn } from "@/lib/utils"
+
+const askedAllDay = [
+  "Price koto?",
+  "XL ache?",
+  "Delivery charge koto?",
+  "COD hobe?",
+  "কবে পাবো?",
+  "Dhaka-r baire jabe?",
+  "আর কালার আছে?",
+  "Inbox please",
+]
+
+const steps = [
+  { title: "Connect your Facebook page", body: "Link the page your customers already message. Nothing changes for them." },
+  { title: "Add your products", body: "Enter names, prices, sizes, and stock. The bot only sells what you list." },
+  { title: "Let it reply", body: "It answers, quotes the price, collects the address, and creates the order." },
+]
+
+const plans = [
+  {
+    name: "Starter",
+    audience: "For a single Facebook page",
+    monthly: "৳১,৮৫০",
+    yearly: "৳১,৫০০",
+    features: ["Up to 50 products", "1 Facebook page", "1,500 AI conversations a month", "Order management and receipts"],
+  },
+  {
+    name: "Growth Pro",
+    audience: "For shops growing past one person",
+    monthly: "৳৩,৯৫০",
+    yearly: "৳৩,২০০",
+    featured: true,
+    features: ["Unlimited products and categories", "Unlimited AI conversations", "5 team seats with roles", "Custom AI personalities and prompts", "Priority bKash and WhatsApp support"],
+  },
+  {
+    name: "Enterprise Scale",
+    audience: "For agencies and multi-brand sellers",
+    monthly: "৳৮,৯০০",
+    yearly: "৳৭,২০০",
+    features: ["Multiple brands and workspaces", "Unlimited team seats", "AI trained on your catalog", "Dedicated message queue"],
+  },
+]
+
+const orders = [
+  { name: "Nusrat J.", item: "Cotton Panjabi, Black XL", status: "New", tone: "bg-marigold text-ink" },
+  { name: "Tanvir A.", item: "Jamdani Saree, Teal", status: "Confirmed", tone: "bg-info-soft text-info" },
+  { name: "Sadia R.", item: "Kids Kurti, Size 6", status: "Delivered", tone: "bg-success-soft text-success" },
+]
+
+const startCta = "bg-marigold text-ink hover:bg-marigold/85"
 
 export default function Home() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly")
 
   return (
-    <div className="min-h-screen bg-[#090D16] text-slate-100 selection:bg-blue-600 selection:text-white font-sans relative">
-      
-      {/* Top Notice Strip - Solid Dark Bar */}
-      <div className="relative z-50 bg-[#0F172A] border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 overflow-hidden truncate">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-900/60 text-blue-300 font-semibold text-[10px] uppercase border border-blue-700/60">
-              <Sparkles className="w-3 h-3 text-blue-400" />
-              <span>v2.4 Enterprise</span>
-            </span>
-            <span className="text-slate-300 truncate">
-              Multi-Tenant Workspaces, Banglish AI Sales Bot & Instant Meta Webhook Engine are now live!
-            </span>
+    <div className="min-h-screen overflow-x-clip bg-background">
+      <section className="scallop bg-sidebar text-white">
+        <header className="mx-auto flex h-20 max-w-[1500px] items-center justify-between px-4 sm:px-8">
+          <Link href="/" aria-label="BDChatPro home"><Logo /></Link>
+          <nav className="hidden items-center gap-8 font-medium md:flex">
+            <a href="#how" className="hover:text-marigold">How it works</a>
+            <a href="#features" className="hover:text-marigold">Features</a>
+            <a href="#pricing" className="hover:text-marigold">Pricing</a>
+          </nav>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" className="hover:bg-white/15 hover:text-white">
+              <Link href="/auth/signin">Sign in</Link>
+            </Button>
+            <Button asChild className={cn(startCta, "hidden sm:inline-flex")}>
+              <Link href="/auth/signin">Start free trial</Link>
+            </Button>
+          </div>
+        </header>
+
+        <div className="mx-auto max-w-[1500px] px-4 pb-16 pt-4 sm:px-8 lg:pb-20">
+          {/* The conversation is the hero: it plays once, then the page explains it. */}
+          <div aria-hidden className="display relative flex flex-col gap-3 text-[clamp(2.5rem,min(8.5vw,14vh),8rem)]">
+            <p className="bubble-in self-start rounded-[0.38em] rounded-bl-[0.06em] bg-white px-[0.4em] pb-[0.1em] pt-[0.16em] text-ink">
+              Price koto?
+            </p>
+            <p style={{ "--at": "600ms" } as React.CSSProperties} className="bubble-in max-w-full self-end rounded-[0.38em] rounded-br-[0.06em] bg-marigold px-[0.4em] pb-[0.1em] pt-[0.16em] text-ink">
+              ৳১,৮৫০. XL ache.
+            </p>
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+              <p style={{ "--at": "1200ms" } as React.CSSProperties} className="bubble-in rounded-[0.38em] rounded-bl-[0.06em] bg-white px-[0.4em] pb-[0.1em] pt-[0.16em] text-ink">
+                1 ta nibo!
+              </p>
+              <p style={{ "--at": "1800ms" } as React.CSSProperties} className="stamp-in -rotate-6 rounded-lg border-4 border-white bg-pink px-5 pb-2 pt-3 text-[clamp(1.1rem,2.6vw,2.5rem)] text-white">
+                Order confirmed
+              </p>
+            </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-4 text-slate-400 shrink-0">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-[11px] text-slate-300 font-medium">Meta Verified Provider</span>
+          <div className="mt-12 grid items-end gap-8 lg:grid-cols-[1.5fr_1fr] lg:gap-16">
+            <h1 className="display text-[clamp(2rem,4.4vw,4.25rem)]">
+              Your Facebook page now takes orders by itself.
+            </h1>
+            <div>
+              <p className="max-w-[46ch] text-lg leading-relaxed text-sidebar-foreground">
+                BDChatPro replies to Messenger customers in Bangla and Banglish, checks your stock, and creates the order.
+              </p>
+              <Button asChild size="lg" className={cn(startCta, "mt-6 w-full sm:w-auto")}>
+                <Link href="/auth/signin">Start 14-day free trial</Link>
+              </Button>
             </div>
-            <span className="text-slate-700">|</span>
-            <a 
-              href="#pricing" 
-              className="text-[11px] text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 group"
-            >
-              <span>Explore Plans</span>
-              <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-            </a>
           </div>
+        </div>
+      </section>
+
+      <div aria-hidden className="overflow-hidden bg-marigold pb-4 pt-9 text-ink">
+        <div className="marquee flex w-max gap-10 whitespace-nowrap text-2xl font-bold [font-stretch:115%]">
+          {[...askedAllDay, ...askedAllDay].map((text, i) => (
+            <span key={i}>{text}</span>
+          ))}
         </div>
       </div>
 
-      {/* Solid Enterprise Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-[#090D16]/95 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          
-          {/* Brand Logo */}
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm">
-                <Bot className="w-5 h-5" />
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-lg font-bold tracking-tight text-white">
-                    BDChat<span className="text-blue-500">Pro</span>
-                  </span>
-                  <Badge className="bg-blue-950 text-blue-400 border border-blue-800 text-[9px] px-1 py-0 font-semibold rounded">
-                    ENTERPRISE
-                  </Badge>
-                </div>
-              </div>
-            </Link>
+      <section id="how" className="mx-auto max-w-[1500px] scroll-mt-8 px-4 py-20 sm:px-8 lg:py-28">
+        <h2 className="display max-w-[16ch] text-[clamp(2.25rem,5vw,4.5rem)]">Live on your page in three steps.</h2>
+        <ol className="mt-14 grid gap-10 md:grid-cols-3">
+          {steps.map((step, i) => (
+            <li key={step.title} className="border-t-4 border-ink pt-5">
+              <span className="display text-6xl text-primary">{i + 1}</span>
+              <h3 className="mt-4 text-2xl">{step.title}</h3>
+              <p className="mt-2 max-w-[38ch] text-lg leading-relaxed text-muted-foreground">{step.body}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold text-slate-300">
-              <a href="#features" className="hover:text-blue-400 transition-colors">Features</a>
-              <a href="#demo" className="hover:text-blue-400 transition-colors flex items-center gap-1.5">
-                <span>Live Simulator</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              </a>
-              <a href="#solutions" className="hover:text-blue-400 transition-colors">Solutions</a>
-              <a href="#pricing" className="hover:text-blue-400 transition-colors">Pricing</a>
-              <Link href="/dashboard" className="text-slate-400 hover:text-white transition-colors">
-                Console
-              </Link>
-            </nav>
+      <section id="features" className="mx-auto grid max-w-[1500px] scroll-mt-8 gap-5 px-4 sm:px-8 lg:grid-cols-12">
+        <article className="rounded-2xl border-2 border-ink bg-marigold p-7 text-ink sm:p-10 lg:col-span-7">
+          <h2 className="display text-[clamp(1.9rem,3.4vw,3.25rem)]">Understands how your customers really type.</h2>
+          <div className="mt-8 flex flex-wrap gap-2 text-lg font-semibold">
+            {["dam koto", "price?", "কত টাকা", "koto porbe", "taka koto"].map((text) => (
+              <span key={text} className="rounded-2xl rounded-bl-sm bg-white px-4 pb-1.5 pt-2.5">{text}</span>
+            ))}
           </div>
-
-          {/* Right Action Bar */}
-          <div className="hidden sm:flex items-center gap-3">
-            <div className="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded bg-[#0F172A] border border-slate-800 text-[11px] text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>99.98% Uptime</span>
-              <span className="text-slate-600">•</span>
-              <span className="text-slate-300 font-mono">Dhaka Edge</span>
-            </div>
-
-            <Button asChild variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold h-9 px-3.5 rounded-md">
-              <Link href="/auth/signin">Sign In</Link>
-            </Button>
-
-            <Button asChild className="h-9 px-4 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors">
-              <Link href="/auth/signin" className="flex items-center gap-1.5">
-                <span>Start Free Trial</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </Button>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-md border border-slate-800 text-slate-400 hover:text-white bg-[#0F172A]"
-            aria-label="Toggle navigation"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
-
-        {/* Mobile Slide-out Menu */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden px-4 pt-3 pb-6 border-t border-slate-800 bg-[#090D16] space-y-3">
-            <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-slate-300 hover:text-white">Features</a>
-            <a href="#demo" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-slate-300 hover:text-white">Live Simulator</a>
-            <a href="#solutions" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-slate-300 hover:text-white">Solutions</a>
-            <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-slate-300 hover:text-white">Pricing</a>
-            <div className="pt-3 border-t border-slate-800 flex flex-col gap-2">
-              <Button asChild variant="outline" className="w-full border-slate-800 text-slate-200 rounded-md">
-                <Link href="/auth/signin">Sign In</Link>
-              </Button>
-              <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-md">
-                <Link href="/auth/signin">Get Started Free</Link>
-              </Button>
-            </div>
-          </div>
-        )}
-      </header>
-
-      {/* Hero Section */}
-      <section className="relative pt-16 pb-20 lg:pt-24 lg:pb-32 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-[#0F172A] border border-slate-800 text-xs font-medium text-slate-300 mb-6">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
-            <span className="text-white font-semibold">Bangladesh F-Commerce Platform</span>
-            <span className="text-slate-600">•</span>
-            <span className="text-blue-400">Natural Banglish LLM</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-tight">
-            Turn Facebook Messenger Into Your Highest-Converting Sales Team
-          </h1>
-
-          <p className="mt-5 text-sm sm:text-base lg:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            Stop losing customer orders overnight. BDChatPro connects to your Facebook Page, answers inquiries in conversational Bengali and Banglish, verifies inventory, and creates confirmed orders directly.
+          <p className="mt-6 max-w-[48ch] text-lg leading-relaxed">
+            Five ways to ask one question, all answered with the right price. Spelling mistakes and mixed Bangla are fine.
           </p>
+        </article>
 
-          {/* Action CTAs */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Button asChild size="lg" className="w-full sm:w-auto h-11 px-6 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm">
-              <Link href="/auth/signin" className="flex items-center gap-2">
-                <span>Start Free 14-Day Trial</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="w-full sm:w-auto h-11 px-5 rounded-md border-slate-800 bg-[#0F172A] hover:bg-slate-800 text-slate-200 text-xs font-semibold">
-              <a href="#demo" className="flex items-center gap-2">
-                <span>Test Live Simulator</span>
-                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-              </a>
-            </Button>
-          </div>
-
-          {/* Enterprise Metrics Strip - Solid Cards */}
-          <div className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-4xl mx-auto p-4 rounded-lg bg-[#0F172A] border border-slate-800">
-            <div className="p-3 text-left border-r border-slate-800">
-              <p className="text-2xl font-bold text-white tracking-tight">5,200,000+</p>
-              <p className="text-xs text-slate-400 mt-0.5">Automated Chats Handled</p>
-            </div>
-            <div className="p-3 text-left border-r border-slate-800">
-              <p className="text-2xl font-bold text-emerald-400 tracking-tight">99.8%</p>
-              <p className="text-xs text-slate-400 mt-0.5">Order Placement Accuracy</p>
-            </div>
-            <div className="p-3 text-left border-r border-slate-800">
-              <p className="text-2xl font-bold text-blue-400 tracking-tight">4.2x</p>
-              <p className="text-xs text-slate-400 mt-0.5">Average Conversion Lift</p>
-            </div>
-            <div className="p-3 text-left">
-              <p className="text-2xl font-bold text-slate-200 tracking-tight">&lt; 1.2s</p>
-              <p className="text-xs text-slate-400 mt-0.5">Median Response Latency</p>
+        <article className="flex flex-col justify-between rounded-2xl bg-pink p-7 text-white sm:p-10 lg:col-span-5">
+          <h2 className="display text-[clamp(1.9rem,3.4vw,3.25rem)]">Never sells what you don’t have.</h2>
+          <div className="mt-8 rounded-xl bg-white p-5 text-ink">
+            <p className="text-sm text-muted-foreground">Cotton Panjabi, Black XL</p>
+            <p className="display mt-1 text-4xl">4 left</p>
+            <div className="mt-3 h-2.5 rounded-full bg-muted">
+              <div className="h-full w-1/4 rounded-full bg-pink" />
             </div>
           </div>
-        </div>
-      </section>
+        </article>
 
-      {/* Interactive Chatbot Demo Section */}
-      <section id="demo" className="py-20 bg-[#070B13] border-b border-slate-800 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0F172A] border border-slate-800 text-xs font-semibold text-blue-400 mb-2">
-              <Activity className="w-3.5 h-3.5" />
-              <span>Real-Time Messenger Experience</span>
-            </div>
-            <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
-              Watch BDChatPro Close an Order in 20 Seconds
-            </h2>
-            <p className="text-slate-400 text-xs sm:text-sm mt-2">
-              See how the bot understands customer intent, checks inventory, quotes sizes, and captures the delivery address automatically.
-            </p>
-          </div>
-
-          {/* Interactive Chat Window Mockup */}
-          <div className="max-w-xl mx-auto bg-[#0F172A] rounded-lg border border-slate-800 shadow-xl overflow-hidden">
-            {/* Chat Header */}
-            <div className="p-3.5 bg-[#1E293B] border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#1E293B]" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-white">Dhaka Fashion Boutique (BDChatPro AI)</p>
-                  <p className="text-[10px] text-emerald-400 font-medium">
-                    Active on Facebook Messenger
-                  </p>
-                </div>
-              </div>
-              <Badge className="bg-[#0F172A] border border-slate-700 text-[10px] text-slate-400 rounded">
-                Live Simulation
-              </Badge>
-            </div>
-
-            {/* Conversation Flow */}
-            <div className="p-4 space-y-3 text-xs">
-              <div className="flex justify-end">
-                <div className="bg-blue-600 text-white px-3.5 py-2 rounded-lg rounded-tr-none max-w-[85%]">
-                  Apu, ei Cotton Panjabi tar Black XL size ki available ache? Price koto?
-                </div>
-              </div>
-
-              <div className="flex justify-start">
-                <div className="bg-[#1E293B] text-slate-100 border border-slate-700 px-3.5 py-2.5 rounded-lg rounded-tl-none max-w-[85%] space-y-1.5">
-                  <p className="font-medium text-white">
-                    Ji bhai! Black XL size stock-e ache.
-                  </p>
-                  <p className="text-slate-300 text-[11px]">
-                    Premium Cotton Semi-Long Panjabi • Price ৳১,৮৫০ (Dhaka city delivery charge matro ৮০ taka).
-                  </p>
-                  <div className="p-2 rounded bg-[#0F172A] border border-slate-800 flex items-center justify-between text-[11px]">
-                    <span className="text-emerald-400 font-semibold">✓ In Stock (4 pcs left)</span>
-                    <span className="text-blue-400 font-semibold">Cash On Delivery</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <div className="bg-blue-600 text-white px-3.5 py-2 rounded-lg rounded-tr-none max-w-[85%]">
-                  Ami 1 piece nibo. Delivery kobe pabo? Address: House 12, Road 5, Dhanmondi, Dhaka. Phone: 01711223344
-                </div>
-              </div>
-
-              <div className="flex justify-start">
-                <div className="bg-[#1E293B] text-slate-100 border border-slate-700 px-3.5 py-2.5 rounded-lg rounded-tl-none max-w-[85%] space-y-1.5">
-                  <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Order Confirmed (#ORD-8821)</span>
-                  </div>
-                  <p className="text-[11px] text-slate-300">
-                    Dhaka shohore 24-48 hours-er bhetore delivery peye jaben. Total: ৳১,৯৩০ (Delivery charge shoho). Rider delivery-r age call korbe. Thank you!
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 bg-[#1E293B] border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span>Captured directly into your Orders dashboard</span>
-              </span>
-              <Link href="/auth/signin" className="text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1">
-                <span>Try with your page</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Solutions / Features Bento Grid */}
-      <section id="features" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-b border-slate-800">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <Badge className="bg-blue-950 text-blue-400 border border-blue-800 text-xs mb-2 rounded">
-            Core Architecture
-          </Badge>
-          <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
-            Built for High-Growth Bangladeshi Merchants
-          </h2>
-          <p className="text-slate-400 text-xs sm:text-sm mt-2">
-            Everything your business needs to scale Facebook and Instagram sales effortlessly.
+        <article className="flex flex-col rounded-2xl border-2 border-ink bg-card p-7 sm:p-10 lg:col-span-5">
+          <h2 className="display text-[clamp(1.9rem,3.4vw,3.25rem)]">Your whole team, one login.</h2>
+          <p className="mt-4 max-w-[40ch] text-lg leading-relaxed text-muted-foreground">
+            Run several pages from one account. Give each person only the access they need.
           </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-5 rounded-lg bg-[#0F172A] border border-slate-800 space-y-3">
-            <div className="w-10 h-10 rounded-md bg-blue-600 flex items-center justify-center text-white">
-              <Bot className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-bold text-white">Natural Banglish Sales LLM</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Trained specifically on Bangladeshi consumer chat habits. Understands colloquial expressions, product inquiries, and address formatting.
-            </p>
+          <div className="mt-6 flex flex-wrap gap-2 pt-4 font-semibold lg:mt-auto">
+            {["Owner", "Admin", "Manager", "Agent"].map((role) => (
+              <span key={role} className="rounded-full bg-secondary px-4 pb-1 pt-2">{role}</span>
+            ))}
           </div>
+        </article>
 
-          <div className="p-5 rounded-lg bg-[#0F172A] border border-slate-800 space-y-3">
-            <div className="w-10 h-10 rounded-md bg-blue-600 flex items-center justify-center text-white">
-              <ShoppingBag className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-bold text-white">Vector Catalog & Real-time Stock</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Semantic embeddings index your products instantly. The bot searches descriptions, sizes, and stock limits so you never oversell.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-lg bg-[#0F172A] border border-slate-800 space-y-3">
-            <div className="w-10 h-10 rounded-md bg-blue-600 flex items-center justify-center text-white">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-bold text-white">Multi-Tenant Team Workspaces</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Manage multiple pages and brands from one login. Assign roles (Owner, Admin, Manager, Agent) with granular RBAC permissions.
-            </p>
-          </div>
-        </div>
+        <article className="rounded-2xl bg-sidebar p-7 text-white sm:p-10 lg:col-span-7">
+          <h2 className="display text-[clamp(1.9rem,3.4vw,3.25rem)]">Every order lands in one list.</h2>
+          <ul className="mt-8 divide-y divide-border overflow-hidden rounded-xl bg-white text-ink">
+            {orders.map((order) => (
+              <li key={order.name} className="flex items-center justify-between gap-4 p-4">
+                <div className="min-w-0">
+                  <p className="font-semibold">{order.name}</p>
+                  <p className="truncate text-sm text-muted-foreground">{order.item}</p>
+                </div>
+                <span className={cn("shrink-0 rounded-full px-3 pb-0.5 pt-1.5 text-sm font-semibold", order.tone)}>{order.status}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-[#070B13] border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <Badge className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs mb-2 rounded">
-              Simple BDT Pricing
-            </Badge>
-            <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
-              Predictable Plans for Every Merchant
-            </h2>
-            <p className="text-slate-400 text-xs sm:text-sm mt-2">
-              Pay locally using bKash, Nagad, or Bank Transfer. Cancel or upgrade anytime.
-            </p>
-
-            {/* Toggle */}
-            <div className="mt-6 inline-flex items-center p-1 rounded-md bg-[#0F172A] border border-slate-800">
-              <button
-                onClick={() => setBillingCycle("monthly")}
-                className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-                  billingCycle === "monthly" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setBillingCycle("yearly")}
-                className={`px-3 py-1 rounded text-xs font-semibold transition-colors flex items-center gap-1 ${
-                  billingCycle === "yearly" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                <span>Yearly</span>
-                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950 px-1 rounded">Save 20%</span>
-              </button>
-            </div>
+      <section id="pricing" className="mx-auto max-w-[1500px] scroll-mt-8 px-4 py-20 sm:px-8 lg:py-28">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <h2 className="display text-[clamp(2.25rem,5vw,4.5rem)]">Priced in taka.</h2>
+            <p className="mt-3 text-lg text-muted-foreground">Pay with bKash, Nagad, or bank transfer. Change plans anytime.</p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
-            {/* Starter */}
-            <div className="p-6 rounded-lg bg-[#0F172A] border border-slate-800 flex flex-col justify-between space-y-5">
-              <div>
-                <h3 className="text-base font-bold text-white">Starter</h3>
-                <p className="text-xs text-slate-400 mt-0.5">For single page merchants & startups</p>
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-white">
-                    {billingCycle === "yearly" ? "৳১,৫০০" : "৳১,৮৫০"}
-                  </span>
-                  <span className="text-xs text-slate-400">/ month</span>
-                </div>
-                <ul className="mt-5 space-y-2 text-xs text-slate-300">
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Up to 50 Products in Catalog</li>
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 1 Facebook Page Connected</li>
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 1,500 AI Conversations / mo</li>
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Order Management & Receipts</li>
-                </ul>
-              </div>
-              <Button asChild variant="outline" className="w-full border-slate-800 text-white hover:bg-slate-800 text-xs h-9 rounded-md">
-                <Link href="/auth/signin">Get Started</Link>
-              </Button>
-            </div>
-
-            {/* Growth Pro */}
-            <div className="p-6 rounded-lg bg-[#0F172A] border-2 border-blue-600 flex flex-col justify-between space-y-5 relative">
-              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded bg-blue-600 text-[10px] font-bold text-white tracking-wider uppercase">
-                Most Popular
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">Growth Pro</h3>
-                <p className="text-xs text-slate-400 mt-0.5">For scaling Facebook shops & brands</p>
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-white">
-                    {billingCycle === "yearly" ? "৳৩,২০০" : "৳৩,৯৫০"}
-                  </span>
-                  <span className="text-xs text-slate-400">/ month</span>
-                </div>
-                <ul className="mt-5 space-y-2 text-xs text-slate-200">
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Unlimited Products & Categories</li>
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Unlimited AI Sales Conversations</li>
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 5 Team Member Seats (RBAC)</li>
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Custom AI Personalities & Prompts</li>
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Priority bKash / WhatsApp Support</li>
-                </ul>
-              </div>
-              <Button asChild className="w-full h-9 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs">
-                <Link href="/auth/signin">Start 14-Day Free Trial</Link>
-              </Button>
-            </div>
-
-            {/* Enterprise */}
-            <div className="p-6 rounded-lg bg-[#0F172A] border border-slate-800 flex flex-col justify-between space-y-5">
-              <div>
-                <h3 className="text-base font-bold text-white">Enterprise Scale</h3>
-                <p className="text-xs text-slate-400 mt-0.5">For multi-brand agencies & franchises</p>
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-white">
-                    {billingCycle === "yearly" ? "৳৭,২০০" : "৳৮,৯০০"}
-                  </span>
-                  <span className="text-xs text-slate-400">/ month</span>
-                </div>
-                <ul className="mt-5 space-y-2 text-xs text-slate-300">
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Multiple Brands & Tenancy</li>
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Unlimited Team Seats</li>
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Custom LLM Training on Catalog</li>
-                  <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 99.99% SLA Dedicated Webhook Queue</li>
-                </ul>
-              </div>
-              <Button asChild variant="outline" className="w-full border-slate-800 text-white hover:bg-slate-800 text-xs h-9 rounded-md">
-                <Link href="/auth/signin">Contact Enterprise</Link>
-              </Button>
-            </div>
+          <div role="group" aria-label="Billing period" className="inline-flex rounded-full border-2 border-ink bg-card p-1 font-semibold">
+            {(["monthly", "yearly"] as const).map((cycle) => (
+              <button
+                key={cycle}
+                aria-pressed={billingCycle === cycle}
+                onClick={() => setBillingCycle(cycle)}
+                className={cn("rounded-full px-5 pb-1.5 pt-2.5", billingCycle === cycle && "bg-ink text-white")}
+              >
+                {cycle === "monthly" ? "Monthly" : "Yearly, save about 20%"}
+              </button>
+            ))}
           </div>
         </div>
-      </section>
 
-      {/* Enterprise Multi-Column Footer - Solid Slate */}
-      <footer className="border-t border-slate-800 bg-[#090D16] pt-14 pb-10 text-slate-400 text-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          {/* Main 5-Column Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 pb-12 border-b border-slate-800">
-            
-            {/* Column 1: Brand & Mission */}
-            <div className="lg:col-span-2 space-y-3">
-              <Link href="/" className="flex items-center gap-2 group">
-                <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center text-white">
-                  <Bot className="w-4 h-4" />
-                </div>
-                <span className="text-base font-bold text-white tracking-tight">
-                  BDChat<span className="text-blue-500">Pro</span>
-                </span>
-              </Link>
-              <p className="text-xs text-slate-400 leading-relaxed pr-4">
-                The premier conversational AI platform for Bangladesh Facebook Commerce. Automatically turns Messenger inquiries into delivered orders 24/7 with native Banglish comprehension.
+        <div className="mt-12 grid items-start gap-5 lg:grid-cols-3">
+          {plans.map((plan) => (
+            <div
+              key={plan.name}
+              className={cn(
+                "flex flex-col rounded-2xl border-2 border-ink p-7",
+                plan.featured ? "bg-marigold text-ink shadow-hard lg:-mt-4" : "bg-card"
+              )}
+            >
+              <h3 className="text-2xl">{plan.name}</h3>
+              <p className={cn("mt-1", !plan.featured && "text-muted-foreground")}>{plan.audience}</p>
+              <p className="mt-6">
+                <span className="display text-5xl">{billingCycle === "yearly" ? plan.yearly : plan.monthly}</span>
+                <span className="ml-1">/ month</span>
               </p>
-              
-              <div className="flex flex-col gap-1.5 pt-1">
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Meta Tech Provider Verified</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
-                  <Lock className="w-4 h-4 text-blue-400 shrink-0" />
-                  <span>256-Bit SSL Encrypted & Data Protected</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Column 2: Platform */}
-            <div className="space-y-2.5">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Platform</h4>
-              <ul className="space-y-1.5">
-                <li><a href="#features" className="hover:text-white transition-colors">AI Sales Agent</a></li>
-                <li><a href="#demo" className="hover:text-white transition-colors">Interactive Simulator</a></li>
-                <li><Link href="/dashboard/orders" className="hover:text-white transition-colors">Orders Pipeline</Link></li>
-                <li><Link href="/dashboard/products" className="hover:text-white transition-colors">Vector Catalog Sync</Link></li>
-                <li><Link href="/dashboard/configure-page" className="hover:text-white transition-colors">Meta Webhooks</Link></li>
-                <li><Link href="/dashboard/team" className="hover:text-white transition-colors">Workspaces & Roles</Link></li>
+              <ul className="mt-6 space-y-3">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex gap-2.5">
+                    <Check className="mt-0.5 size-5 shrink-0" aria-hidden />
+                    <span>{feature}</span>
+                  </li>
+                ))}
               </ul>
+              <Button asChild size="lg" variant={plan.featured ? "default" : "outline"} className="mt-8 w-full">
+                <Link href="/auth/signin">Start free trial</Link>
+              </Button>
             </div>
+          ))}
+        </div>
+      </section>
 
-            {/* Column 3: Solutions */}
-            <div className="space-y-2.5">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Solutions</h4>
-              <ul className="space-y-1.5">
-                <li><span className="hover:text-white cursor-pointer transition-colors">Clothing & Panjabi</span></li>
-                <li><span className="hover:text-white cursor-pointer transition-colors">Gadgets & Electronics</span></li>
-                <li><span className="hover:text-white cursor-pointer transition-colors">Cosmetics & Skincare</span></li>
-                <li><span className="hover:text-white cursor-pointer transition-colors">Cloud Kitchens & Bakery</span></li>
-                <li><span className="hover:text-white cursor-pointer transition-colors">Wholesale & Agencies</span></li>
-              </ul>
-            </div>
+      <section className="bg-pink px-4 py-20 text-center text-white sm:px-8 lg:py-28">
+        <h2 className="display mx-auto max-w-[18ch] text-[clamp(2.5rem,7vw,6.5rem)]">
+          Stop answering “price koto?” by hand.
+        </h2>
+        <Button asChild size="lg" className={cn(startCta, "mt-10")}>
+          <Link href="/auth/signin">Start 14-day free trial</Link>
+        </Button>
+      </section>
 
-            {/* Column 4: Developers */}
-            <div className="space-y-2.5">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Developers & Docs</h4>
-              <ul className="space-y-1.5">
-                <li><Link href="/dashboard" className="hover:text-white transition-colors">Merchant Console</Link></li>
-                <li><span className="hover:text-white cursor-pointer transition-colors">REST API Spec</span></li>
-                <li><span className="hover:text-white cursor-pointer transition-colors">Webhook Payload Guide</span></li>
-                <li><span className="hover:text-white cursor-pointer transition-colors">Banglish Prompt Engine</span></li>
-                <li><span className="hover:text-white cursor-pointer transition-colors">Postman Collection</span></li>
-                <li><span className="hover:text-white cursor-pointer transition-colors">System Architecture</span></li>
-              </ul>
-            </div>
-
-            {/* Column 5: Enterprise & Help */}
-            <div className="space-y-2.5">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Enterprise & Support</h4>
-              <ul className="space-y-1.5">
-                <li><a href="#pricing" className="hover:text-white transition-colors">Pricing & Plans</a></li>
-                <li><Link href="/auth/signin" className="hover:text-white transition-colors">Merchant Login</Link></li>
-                <li><Link href="/auth/forgot-password" className="hover:text-white transition-colors">Password Recovery</Link></li>
-                <li><Link href="/dashboard/subscription" className="hover:text-white transition-colors">bKash & Nagad Billing</Link></li>
-                <li><span className="hover:text-white cursor-pointer transition-colors">Security & Compliance</span></li>
-                <li><span className="hover:text-white cursor-pointer transition-colors">Support Hotline (+880)</span></li>
-              </ul>
-            </div>
-
-          </div>
-
-          {/* Payment Partners & Trust Strip */}
-          <div className="py-5 border-b border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-              Supported Bangladesh Payment Gateways & Banking
-            </span>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2 py-0.5 rounded bg-[#0F172A] border border-slate-800 text-slate-200 text-[11px] font-bold">
-                bKash Merchant
-              </span>
-              <span className="px-2 py-0.5 rounded bg-[#0F172A] border border-slate-800 text-slate-200 text-[11px] font-bold">
-                Nagad Direct
-              </span>
-              <span className="px-2 py-0.5 rounded bg-[#0F172A] border border-slate-800 text-slate-200 text-[11px] font-bold">
-                Bank Wire / IBAN
-              </span>
-              <span className="px-2 py-0.5 rounded bg-[#0F172A] border border-slate-800 text-slate-200 text-[11px] font-bold">
-                SSLCommerz
-              </span>
-            </div>
-          </div>
-
-          {/* Bottom Legal & Server Cluster */}
-          <div className="pt-5 flex flex-col md:flex-row items-center justify-between gap-3 text-[11px]">
-            <p className="text-slate-400">
-              © {new Date().getFullYear()} BDChatPro Technologies Ltd. Dhaka, Bangladesh. All rights reserved.
-            </p>
-
-            <div className="flex items-center gap-3 text-slate-400">
-              <span className="flex items-center gap-1.5 text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>Cluster: Dhaka Edge (ap-south-1)</span>
-              </span>
-              <span>•</span>
-              <span className="hover:text-slate-300 cursor-pointer">Privacy Policy</span>
-              <span>•</span>
-              <span className="hover:text-slate-300 cursor-pointer">Terms of Service</span>
-              <span>•</span>
-              <span className="hover:text-slate-300 cursor-pointer">Merchant Agreement</span>
-            </div>
-          </div>
-
+      <footer className="bg-sidebar text-sidebar-foreground">
+        <div className="mx-auto flex max-w-[1500px] flex-col gap-6 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+          <Logo className="text-white" />
+          <nav className="flex flex-wrap gap-6">
+            <a href="#how" className="hover:text-white">How it works</a>
+            <a href="#features" className="hover:text-white">Features</a>
+            <a href="#pricing" className="hover:text-white">Pricing</a>
+            <Link href="/auth/signin" className="hover:text-white">Sign in</Link>
+          </nav>
+          <p>© {new Date().getFullYear()} BDChatPro. Made in Dhaka.</p>
         </div>
       </footer>
     </div>

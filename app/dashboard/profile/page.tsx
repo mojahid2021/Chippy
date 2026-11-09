@@ -108,8 +108,8 @@ export default function ProfilePage() {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600 font-medium">Loading profile...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground font-medium">Loading profile...</p>
         </div>
       </div>
     )
@@ -119,7 +119,7 @@ export default function ProfilePage() {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="text-center">
-          <p className="text-slate-600 font-medium">Failed to load profile</p>
+          <p className="text-muted-foreground font-medium">Failed to load profile</p>
           <Button
             variant="outline"
             onClick={() => window.location.reload()}
@@ -138,39 +138,39 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-fit">
         {/* Profile Overview */}
         <div className="lg:col-span-1">
-          <Card className="border border-slate-200 shadow-sm h-full">
+          <Card className="border border-border h-full">
             <CardHeader className="text-center pb-4">
               <div className="flex justify-center mb-4">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src="" />
-                  <AvatarFallback className="bg-blue-600 text-white text-xl font-bold">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
                     {profile.firstName?.[0]}{profile.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
               </div>
-              <CardTitle className="text-lg text-slate-900">
+              <CardTitle className="text-lg text-foreground">
                 {profile.firstName} {profile.lastName}
               </CardTitle>
-              <p className="text-sm text-slate-600">@{profile.username}</p>
+              <p className="text-sm text-muted-foreground">@{profile.username}</p>
             </CardHeader>
             <CardContent className="space-y-4 flex-1">
               {/* Account Status */}
               <div className={`flex items-center space-x-3 p-3 rounded-lg border ${
                 profile.isActive
-                  ? 'bg-green-50 border-green-200'
-                  : 'bg-red-50 border-red-200'
+                  ? 'bg-success-soft border-success/30'
+                  : 'bg-destructive-soft border-destructive/30'
               }`}>
                 <div className={`h-3 w-3 rounded-full ${
-                  profile.isActive ? 'bg-green-500' : 'bg-red-500'
+                  profile.isActive ? 'bg-success' : 'bg-destructive'
                 }`}></div>
                 <div>
                   <p className={`text-sm font-medium ${
-                    profile.isActive ? 'text-green-800' : 'text-red-800'
+                    profile.isActive ? 'text-success' : 'text-destructive'
                   }`}>
                     {profile.isActive ? 'Active Account' : 'Inactive Account'}
                   </p>
                   <p className={`text-xs ${
-                    profile.isActive ? 'text-green-600' : 'text-red-600'
+                    profile.isActive ? 'text-success' : 'text-destructive'
                   }`}>
                     {profile.isActive ? 'Verified and ready to use' : 'Account needs verification'}
                   </p>
@@ -180,18 +180,18 @@ export default function ProfilePage() {
               {/* Account Details */}
               <div className="space-y-3">
                 <div className="flex items-center space-x-3 text-sm">
-                  <Hash className="h-4 w-4 text-slate-500" />
+                  <Hash className="h-4 w-4 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs text-slate-500 uppercase tracking-wide">User ID</p>
-                    <p className="text-slate-700 font-mono text-xs truncate">{profile.id}</p>
+                    <p className="text-xs text-muted-foreground tracking-wide">User ID</p>
+                    <p className="text-foreground font-mono text-xs truncate">{profile.id}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-3 text-sm">
-                  <Calendar className="h-4 w-4 text-slate-500" />
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs text-slate-500 uppercase tracking-wide">Member Since</p>
-                    <p className="text-slate-700">
+                    <p className="text-xs text-muted-foreground tracking-wide">Member Since</p>
+                    <p className="text-foreground">
                       {new Date(profile.createdAt).toLocaleDateString('en-US', {
                         month: 'long',
                         day: 'numeric',
@@ -202,8 +202,8 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="flex items-center space-x-3 text-sm">
-                  <Shield className="h-4 w-4 text-slate-500" />
-                  <span className="text-slate-600">Account Security: High</span>
+                  <Shield className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Account Security: High</span>
                 </div>
               </div>
             </CardContent>
@@ -212,10 +212,10 @@ export default function ProfilePage() {
 
         {/* Profile Details */}
         <div className="lg:col-span-1">
-          <Card className="border border-slate-200 shadow-sm h-full">
+          <Card className="border border-border h-full">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-lg">
-                <User className="h-5 w-5 text-blue-600" />
+                <User className="h-5 w-5 text-primary" />
                 <span>Personal Information</span>
               </CardTitle>
             </CardHeader>
@@ -223,47 +223,47 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName" className="flex items-center space-x-2 text-sm font-medium">
-                    <User className="h-4 w-4 text-blue-600" />
+                    <User className="h-4 w-4 text-primary" />
                     <span>First Name</span>
                   </Label>
                   <Input
                     id="firstName"
                     value={profile.firstName || ""}
                     disabled
-                    className="bg-slate-50 border-slate-200"
+                    className="bg-background border-border"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName" className="flex items-center space-x-2 text-sm font-medium">
-                    <User className="h-4 w-4 text-blue-600" />
+                    <User className="h-4 w-4 text-primary" />
                     <span>Last Name</span>
                   </Label>
                   <Input
                     id="lastName"
                     value={profile.lastName || ""}
                     disabled
-                    className="bg-slate-50 border-slate-200"
+                    className="bg-background border-border"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="username" className="flex items-center space-x-2 text-sm font-medium">
-                  <AtSign className="h-4 w-4 text-blue-600" />
+                  <AtSign className="h-4 w-4 text-primary" />
                   <span>Username</span>
                 </Label>
                 <Input
                   id="username"
                   value={profile.username || ""}
                   disabled
-                  className="bg-slate-50 border-slate-200"
+                  className="bg-background border-border"
                 />
-                <p className="text-xs text-slate-500">Your unique username for identification</p>
+                <p className="text-xs text-muted-foreground">Your unique username for identification</p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center space-x-2 text-sm font-medium">
-                  <Mail className="h-4 w-4 text-blue-600" />
+                  <Mail className="h-4 w-4 text-primary" />
                   <span>Email Address</span>
                 </Label>
                 <Input
@@ -271,14 +271,14 @@ export default function ProfilePage() {
                   type="email"
                   value={profile.email || ""}
                   disabled
-                  className="bg-slate-50 border-slate-200"
+                  className="bg-background border-border"
                 />
-                <p className="text-xs text-slate-500">This email is used for account notifications and login</p>
+                <p className="text-xs text-muted-foreground">This email is used for account notifications and login</p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="phone" className="flex items-center space-x-2 text-sm font-medium">
-                  <Phone className="h-4 w-4 text-blue-600" />
+                  <Phone className="h-4 w-4 text-primary" />
                   <span>Phone Number</span>
                 </Label>
                 <Input
@@ -286,20 +286,20 @@ export default function ProfilePage() {
                   type="tel"
                   value={profile.phone || ""}
                   disabled
-                  className="bg-slate-50 border-slate-200"
+                  className="bg-background border-border"
                   placeholder="Not provided"
                 />
-                <p className="text-xs text-slate-500">Editing profile details isn&apos;t available yet. Contact support to update this information.</p>
+                <p className="text-xs text-muted-foreground">Editing profile details isn&apos;t available yet. Contact support to update this information.</p>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      <Card className="border border-slate-200 shadow-sm">
+      <Card className="border border-border">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2 text-lg">
-            <KeyRound className="h-5 w-5 text-blue-600" />
+            <KeyRound className="h-5 w-5 text-primary" />
             <span>Change Password</span>
           </CardTitle>
         </CardHeader>
