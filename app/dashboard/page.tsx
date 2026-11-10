@@ -21,6 +21,8 @@ import {
   RefreshCw,
   Clock,
   CheckCircle,
+  Bot,
+  MessageSquare,
 } from "lucide-react"
 import type { UserSubscription, SubscriptionInvoice, HealthData } from "@/lib/types/woombat"
 
@@ -301,6 +303,59 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* AI Personas & Messenger Integrations Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Card className="border-border bg-card shadow-sm p-5 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                    <Bot className="h-5 w-5" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">AI Engine</Badge>
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground text-sm">AI Personas & Prompt Compiler</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Manage system instructions, behavioral guidelines, knowledge base snippets, and simulate LLM prompt synthesis.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-4">
+                <Button asChild size="sm" variant="outline" className="w-full text-xs">
+                  <Link href="/dashboard/ai-profiles" className="flex items-center justify-center gap-1.5">
+                    <span>Manage Personas</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="border-border bg-card shadow-sm p-5 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="h-9 w-9 rounded-lg bg-info-soft border border-border flex items-center justify-center text-primary">
+                    <MessageSquare className="h-5 w-5" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">Meta API</Badge>
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground text-sm">Meta Messenger Webhooks</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    HMAC-SHA256 signature verification, Facebook Page graph sync, and MongoDB audit logs.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-4">
+                <Button asChild size="sm" variant="outline" className="w-full text-xs">
+                  <Link href="/dashboard/messenger" className="flex items-center justify-center gap-1.5">
+                    <span>View Webhooks</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+          </div>
         </div>
 
         {/* Right Column: Recent Invoices & Quick Links */}

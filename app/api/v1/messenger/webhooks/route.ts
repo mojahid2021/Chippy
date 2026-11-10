@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, appSecret, verifyToken, pageId, pageAccessToken } = body
+    const { name, appSecret, verifyToken, pageId, pageAccessToken, aiProfileId } = body
 
     if (!name || !appSecret) {
       return NextResponse.json(
@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
         ...(verifyToken ? { verifyToken } : {}),
         ...(pageId ? { pageId } : {}),
         ...(pageAccessToken ? { pageAccessToken } : {}),
+        ...(aiProfileId ? { aiProfileId } : {}),
       }),
     })
 

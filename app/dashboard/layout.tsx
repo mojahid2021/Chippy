@@ -34,12 +34,10 @@ import {
   ChevronRight,
   User,
   Calendar,
-  Command,
   Crown,
-  Sparkles,
   ArrowRight,
-  Shield,
   MessageSquare,
+  Bot,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -52,8 +50,9 @@ const navigationSections = [
     ],
   },
   {
-    title: "Messenger",
+    title: "AI & Integrations",
     items: [
+      { name: "AI Personas", href: "/dashboard/ai-profiles", icon: Bot },
       { name: "Meta Webhooks", href: "/dashboard/messenger", icon: MessageSquare },
     ],
   },
@@ -231,6 +230,7 @@ export default function DashboardLayout({
 
   const allRoutes = [
     { title: "Dashboard Overview", href: "/dashboard", desc: "View account and subscription overview", icon: Home },
+    { title: "AI Persona Profiles", href: "/dashboard/ai-profiles", desc: "Manage AI personas, guardrails, and compile prompts", icon: Bot },
     { title: "Meta Messenger Webhooks", href: "/dashboard/messenger", desc: "Manage Facebook Messenger webhooks and audit events", icon: MessageSquare },
     { title: "Subscription & Billing", href: "/dashboard/subscription", desc: "Manage billing, renewals, and history", icon: Calendar },
     { title: "User Profile", href: "/dashboard/profile", desc: "View account info and credentials", icon: User },

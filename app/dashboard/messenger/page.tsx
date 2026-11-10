@@ -1,9 +1,11 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
@@ -23,7 +25,6 @@ import {
   Check,
   ExternalLink,
   ShieldCheck,
-  AlertTriangle,
   Trash2,
   Edit,
   Eye,
@@ -32,11 +33,9 @@ import {
   CheckCircle,
   XCircle,
   Sparkles,
-  Search,
-  Filter,
-  Key,
-  Globe,
   Radio,
+  Bot,
+  Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -46,6 +45,9 @@ import type {
   MessengerWebhookEvent,
   MessengerEventsResponse,
   SyncPageResponse,
+  AiProfile,
+  AiProfilesResponse,
+  CompileWebhookEventPromptResponse,
 } from "@/lib/types/woombat"
 
 function getDisplayWebhookUrl(webhookUrl?: string | null, userId?: string, webhookId?: string): string {
@@ -79,6 +81,10 @@ export default function MessengerWebhooksPage() {
   const [loading, setLoading] = useState(true)
   const [selectedWebhook, setSelectedWebhook] = useState<MessengerWebhook | null>(null)
 
+  // AI Profiles State
+  const [aiProfiles, setAiProfiles] = useState<AiProfile[]>([])
+  const [aiProfilesLoading, setAiProfilesLoading] = useState(false)
+
   // Create Modal State
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [createLoading, setCreateLoading] = useState(false)
@@ -88,12 +94,33 @@ export default function MessengerWebhooksPage() {
     verifyToken: "",
     pageId: "",
     pageAccessToken: "",
+    aiProfileId: "",
   })
 
   // Edit Modal State
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
-  const [editData, setEditData] = useState({ id: "", name: "", isActive: true })
+  const [editData, setEditData] = useState<{ id: string; name: string; isActive: boolean; aiProfileId: string }>({
+    id: "",
+    name: "",
+    isActive: true,
+    aiProfileId: "",
+  })
+
+  // AI Profile Binding Modal State
+  const [bindModalOpen, setBindModalOpen] = useState(false)
+  const [webhookToBind, setWebhookToBind] = useState<MessengerWebhook | null>(null)
+  const [selectedAiProfileToBind, setSelectedAiProfileToBind] = useState<string>("none")
+  const [bindLoading, setBindLoading] = useState(false)
+
+  // Event Prompt Compiler Modal State
+  const [compileModalOpen, setCompileModalOpen] = useState(false)
+  const [compilingEvent, setCompilingEvent] = useState<MessengerWebhookEvent | null>(null)
+  const [compileAiProfileId, setCompileAiProfileId] = useState<string>("")
+  const [compileVariables, setCompileVariables] = useState<Record<string, string>>({ store_hours: "9am - 9pm" })
+  const [compileIncludeFewShot, setCompileIncludeFewShot] = useState<boolean>(true)
+  const [compileLoading, setCompileLoading] = useState(false)
+  const [compiledPromptResult, setCompiledPromptResult] = useState<CompileWebhookEventPromptResponse["data"] | null>(null)
 
   // Delete State
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -133,6 +160,22 @@ export default function MessengerWebhooksPage() {
     }
   }
 
+  // Fetch all AI Profiles for binding
+  const fetchAiProfiles = useCallback(async () => {
+    try {
+      setAiProfilesLoading(true)
+      const res = await fetch("/api/v1/ai-profiles?limit=50")
+      const json: AiProfilesResponse = await res.json()
+      if (res.ok && Array.isArray(json.data)) {
+        setAiProfiles(json.data)
+      }
+    } catch (err) {
+      console.error("Failed to fetch AI profiles:", err)
+    } finally {
+      setAiProfilesLoading(false)
+    }
+  }, [])
+
   // Fetch all webhooks
   const fetchWebhooks = useCallback(async () => {
     try {
@@ -160,7 +203,8 @@ export default function MessengerWebhooksPage() {
 
   useEffect(() => {
     fetchWebhooks()
-  }, [fetchWebhooks])
+    fetchAiProfiles()
+  }, [fetchWebhooks, fetchAiProfiles])
 
   // Create Webhook
   const handleCreateWebhook = async (e: React.FormEvent) => {
@@ -185,6 +229,7 @@ export default function MessengerWebhooksPage() {
           ...(formData.verifyToken ? { verifyToken: formData.verifyToken } : {}),
           ...(formData.pageId ? { pageId: formData.pageId } : {}),
           ...(formData.pageAccessToken ? { pageAccessToken: formData.pageAccessToken } : {}),
+          ...(formData.aiProfileId ? { aiProfileId: formData.aiProfileId } : {}),
         }),
       })
 
@@ -203,6 +248,7 @@ export default function MessengerWebhooksPage() {
           verifyToken: "",
           pageId: "",
           pageAccessToken: "",
+          aiProfileId: "",
         })
         await fetchWebhooks()
       } else {
@@ -236,6 +282,7 @@ export default function MessengerWebhooksPage() {
         body: JSON.stringify({
           name: editData.name,
           isActive: editData.isActive,
+          ...(editData.aiProfileId === "none" ? { aiProfileId: null } : editData.aiProfileId ? { aiProfileId: editData.aiProfileId } : {}),
         }),
       })
 
@@ -264,6 +311,106 @@ export default function MessengerWebhooksPage() {
       })
     } finally {
       setEditLoading(false)
+    }
+  }
+
+  // Dedicated AI Profile Binding Action
+  const handleBindAiProfile = async () => {
+    if (!webhookToBind) return
+
+    try {
+      setBindLoading(true)
+      const targetAiProfileId = selectedAiProfileToBind === "none" ? null : selectedAiProfileToBind
+
+      const res = await fetch(`/api/v1/messenger/webhooks/${webhookToBind.id}/ai-profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aiProfileId: targetAiProfileId }),
+      })
+
+      const json = await res.json()
+
+      if (res.ok) {
+        toast({
+          variant: "success",
+          title: targetAiProfileId ? "AI Profile Bound" : "AI Profile Unbound",
+          description: json.message || "Webhook AI profile updated successfully.",
+        })
+        setBindModalOpen(false)
+        setWebhookToBind(null)
+        await fetchWebhooks()
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Binding Failed",
+          description: json.message || "Failed to bind AI Profile.",
+        })
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Network error while binding AI Profile.",
+      })
+    } finally {
+      setBindLoading(false)
+    }
+  }
+
+  // Open Event Prompt Compiler Modal
+  const handleOpenEventCompiler = (event: MessengerWebhookEvent) => {
+    setCompilingEvent(event)
+    setCompileAiProfileId(event.aiProfileId || selectedWebhook?.aiProfileId || "")
+    setCompileVariables({ store_hours: "9am - 9pm" })
+    setCompileIncludeFewShot(true)
+    setCompiledPromptResult(null)
+    setCompileModalOpen(true)
+  }
+
+  // Run Event Prompt Compilation
+  const handleCompileEventPrompt = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!compilingEvent || !selectedWebhook) return
+
+    try {
+      setCompileLoading(true)
+      const res = await fetch(
+        `/api/v1/messenger/webhooks/${selectedWebhook.id}/events/${compilingEvent.id}/compile-prompt`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            aiProfileId: compileAiProfileId || undefined,
+            dynamicVariables: compileVariables,
+            includeFewShot: compileIncludeFewShot,
+          }),
+        }
+      )
+
+      const json = await res.json()
+
+      if (res.ok && json.data) {
+        setCompiledPromptResult(json.data)
+        toast({
+          variant: "success",
+          title: "Prompt Compiled Successfully",
+          description: `Synthesized LLM prompt bundle using ${json.data.profile.name}.`,
+        })
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Compilation Failed",
+          description: json.message || "Failed to synthesize prompt from event.",
+        })
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Network error during prompt compilation.",
+      })
+    } finally {
+      setCompileLoading(false)
     }
   }
 
@@ -540,7 +687,12 @@ export default function MessengerWebhooksPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setEditData({ id: hook.id, name: hook.name, isActive: hook.isActive })
+                        setEditData({
+                          id: hook.id,
+                          name: hook.name,
+                          isActive: hook.isActive,
+                          aiProfileId: hook.aiProfileId || "none",
+                        })
                         setEditModalOpen(true)
                       }}
                       className="text-xs h-8 px-2.5"
@@ -560,6 +712,63 @@ export default function MessengerWebhooksPage() {
                     </Button>
                   </div>
                 </div>
+
+                {/* AI Persona Binding Banner */}
+                {(() => {
+                  const boundProfile = aiProfiles.find((p) => p.id === hook.aiProfileId)
+                  return (
+                    <div className="px-5 py-3 bg-primary/[0.03] border-b border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-7 w-7 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                          <Bot className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-semibold text-foreground">AI Persona:</span>
+                            {boundProfile ? (
+                              <Badge className="bg-primary/10 text-primary border-primary/20 text-[11px] font-medium flex items-center gap-1 py-0">
+                                <Sparkles className="h-2.5 w-2.5" />
+                                {boundProfile.name}
+                                <span className="opacity-70 text-[10px]">({boundProfile.role})</span>
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[11px] text-muted-foreground py-0">
+                                Default AI Profile (Fallback)
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            {boundProfile
+                              ? `Model: ${boundProfile.modelConfig?.provider || "openai"}:${boundProfile.modelConfig?.modelName || "gpt-4o"} • Dispatches tailored LLM prompt bundles`
+                              : "No dedicated persona bound. System uses your account default AI profile."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setWebhookToBind(hook)
+                            setSelectedAiProfileToBind(hook.aiProfileId || "none")
+                            setBindModalOpen(true)
+                          }}
+                          className="h-7 px-2.5 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                        >
+                          <Bot className="h-3 w-3" />
+                          <span>{hook.aiProfileId ? "Change Persona" : "Bind Persona"}</span>
+                        </Button>
+
+                        <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground">
+                          <Link href="/dashboard/ai-profiles" title="Manage AI Personas">
+                            <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Left: Meta Configuration details for Developer Dashboard */}
@@ -814,6 +1023,28 @@ export default function MessengerWebhooksPage() {
               </p>
             </div>
 
+            <div className="space-y-1">
+              <Label htmlFor="aiProfileId" className="text-xs font-semibold">
+                Bound AI Persona Profile <span className="text-muted-foreground font-normal">(Optional)</span>
+              </Label>
+              <select
+                id="aiProfileId"
+                value={formData.aiProfileId}
+                onChange={(e) => setFormData({ ...formData, aiProfileId: e.target.value })}
+                className="w-full h-8 px-2 rounded-md text-xs bg-background border border-input text-foreground focus:outline-none"
+              >
+                <option value="">Default AI Profile (Fallback)</option>
+                {aiProfiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — {p.role} {p.isDefault ? "(Default)" : ""}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground">
+                Synthesizes custom LLM prompt bundles for events on this webhook.
+              </p>
+            </div>
+
             <DialogFooter className="pt-2 gap-2 sm:gap-0">
               <Button type="button" variant="outline" onClick={() => setCreateModalOpen(false)}>
                 Cancel
@@ -850,6 +1081,25 @@ export default function MessengerWebhooksPage() {
                 required
                 className="text-xs"
               />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="edit-aiProfile" className="text-xs font-semibold">
+                Bound AI Persona Profile
+              </Label>
+              <select
+                id="edit-aiProfile"
+                value={editData.aiProfileId || "none"}
+                onChange={(e) => setEditData({ ...editData, aiProfileId: e.target.value })}
+                className="w-full h-8 px-2 rounded-md text-xs bg-background border border-input text-foreground focus:outline-none"
+              >
+                <option value="none">No Specific Persona (Use Default)</option>
+                {aiProfiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — {p.role} {p.isDefault ? "(Default)" : ""}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
@@ -1007,10 +1257,20 @@ export default function MessengerWebhooksPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">
                         {new Date(ev.createdAt).toLocaleTimeString()}
                       </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenEventCompiler(ev)}
+                        className="h-7 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                        title="Compile LLM prompt from customer event"
+                      >
+                        <Zap className="h-3 w-3" />
+                        <span className="hidden sm:inline">Compile Prompt</span>
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -1094,6 +1354,12 @@ export default function MessengerWebhooksPage() {
                     <span className="text-muted-foreground block text-[10px]">Recipient Page ID:</span>
                     <span>{selectedEvent.pageId}</span>
                   </div>
+                  {selectedEvent.aiProfileId && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground block text-[10px]">Bound AI Profile ID:</span>
+                      <span className="font-semibold text-primary">{selectedEvent.aiProfileId}</span>
+                    </div>
+                  )}
                 </div>
 
                 {selectedEvent.errorMessage && (
@@ -1102,6 +1368,29 @@ export default function MessengerWebhooksPage() {
                     <p className="mt-1 font-mono">{selectedEvent.errorMessage}</p>
                   </div>
                 )}
+
+                <div className="p-3 rounded-lg bg-primary/[0.04] border border-primary/20 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-foreground text-xs flex items-center gap-1.5">
+                      <Bot className="h-4 w-4 text-primary" />
+                      LLM Prompt Engine Integration
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Synthesize customer inquiry, postbacks, and persona guardrails into ready-to-dispatch chat payload.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setDetailModalOpen(false)
+                      handleOpenEventCompiler(selectedEvent)
+                    }}
+                    className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    Compile Prompt
+                  </Button>
+                </div>
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -1130,6 +1419,199 @@ export default function MessengerWebhooksPage() {
               </>
             ) : null}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dedicated AI Profile Binding Modal */}
+      <Dialog open={bindModalOpen} onOpenChange={setBindModalOpen}>
+        <DialogContent className="max-w-md p-6 border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Bot className="h-5 w-5 text-primary" />
+              Bind AI Persona Profile
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Assign a dedicated AI persona model to &quot;{webhookToBind?.name}&quot; for automated prompt compilation.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Select AI Persona</Label>
+              <select
+                value={selectedAiProfileToBind}
+                onChange={(e) => setSelectedAiProfileToBind(e.target.value)}
+                className="w-full h-9 px-2.5 rounded-md text-xs bg-background border border-input text-foreground focus:outline-none"
+              >
+                <option value="none">No Dedicated Persona (Fallback to Account Default)</option>
+                {aiProfiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — {p.role} {p.isDefault ? "(Default)" : ""}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground">
+                When customer messages arrive at this webhook, the selected persona&apos;s system prompt, knowledge base, and guardrails are applied.
+              </p>
+            </div>
+
+            <DialogFooter className="pt-2 flex items-center justify-between sm:justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setBindModalOpen(false)}
+                className="h-8 text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={bindLoading}
+                onClick={handleBindAiProfile}
+                className="h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {bindLoading && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+                Save Persona Binding
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Event Prompt Compiler Modal */}
+      <Dialog open={compileModalOpen} onOpenChange={setCompileModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-6 border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Zap className="h-5 w-5 text-primary" />
+              Synthesize AI Prompt from Messenger Event
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Compiles an LLM prompt bundle using this customer event payload and the bound AI persona.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCompileEventPrompt} className="space-y-4 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">AI Persona Override (Optional)</Label>
+                <select
+                  value={compileAiProfileId}
+                  onChange={(e) => setCompileAiProfileId(e.target.value)}
+                  className="w-full h-8 px-2 rounded-md text-xs bg-background border border-input text-foreground focus:outline-none"
+                >
+                  <option value="">Webhook Bound / Account Default Persona</option>
+                  {aiProfiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} — {p.role}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between p-2 rounded-md border border-border bg-muted/20">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">Include Few-Shot Dialogs</Label>
+                  <p className="text-[10px] text-muted-foreground">Appends sample Q&A into messages</p>
+                </div>
+                <Switch
+                  checked={compileIncludeFewShot}
+                  onCheckedChange={setCompileIncludeFewShot}
+                />
+              </div>
+            </div>
+
+            {/* Extracted message display */}
+            <div className="p-3 rounded-md bg-muted/40 border border-border text-xs space-y-1">
+              <span className="font-semibold text-muted-foreground text-[10px] uppercase">
+                Customer Inquiry Extracted from Meta Event
+              </span>
+              <p className="font-medium text-foreground">
+                {compilingEvent?.eventData?.message?.text ||
+                  compilingEvent?.eventData?.postback?.payload ||
+                  "(No text message body found in payload)"}
+              </p>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={compileLoading}
+              className="w-full h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {compileLoading ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Zap className="h-3.5 w-3.5" />
+              )}
+              Compile LLM Prompt Bundle
+            </Button>
+
+            {/* Compiled Prompt View */}
+            {compiledPromptResult && (
+              <div className="space-y-3 pt-3 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
+                    Persona: {compiledPromptResult.profile.name} ({compiledPromptResult.profile.role})
+                  </Badge>
+                  <span className="text-[11px] text-muted-foreground">
+                    Prompt Messages: {compiledPromptResult.messages.length}
+                  </span>
+                </div>
+
+                {/* Assembled messages */}
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {compiledPromptResult.messages.map((m, idx) => (
+                    <div
+                      key={idx}
+                      className={cn(
+                        "p-2.5 rounded-md border text-xs",
+                        m.role === "system" && "bg-muted/40 border-border font-mono text-[11px]",
+                        m.role === "user" && "bg-primary/5 border-primary/20",
+                        m.role === "assistant" && "bg-emerald-500/5 border-emerald-500/20"
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <Badge variant="outline" className="text-[10px] uppercase font-bold">
+                          {m.role}
+                        </Badge>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(m.content, `compile-msg-${idx}`)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          {copiedKey === `compile-msg-${idx}` ? (
+                            <Check className="h-3 w-3 text-emerald-500" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
+                      </div>
+                      <pre className="whitespace-pre-wrap font-sans text-xs">{m.content}</pre>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Applied Variables */}
+                {compiledPromptResult.appliedVariables && (
+                  <div className="p-2 rounded bg-muted/30 border border-border text-xs space-y-1">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+                      Applied Channel Context & Variables
+                    </span>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                      {Object.entries(compiledPromptResult.appliedVariables).map(([k, v]) => (
+                        <div key={k} className="flex justify-between">
+                          <span className="text-primary">{k}:</span>
+                          <span className="text-muted-foreground truncate">{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </form>
         </DialogContent>
       </Dialog>
     </div>
