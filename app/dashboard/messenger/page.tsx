@@ -5,7 +5,6 @@ import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
@@ -36,6 +35,8 @@ import {
   Radio,
   Bot,
   Zap,
+  Send,
+  MessageCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -48,6 +49,11 @@ import type {
   AiProfile,
   AiProfilesResponse,
   CompileWebhookEventPromptResponse,
+  GenerateResponseResult,
+  GenerateResponseApiResponse,
+  ConversationMessage,
+  ConversationHistoryResponse,
+  SendManualMessageResponse,
 } from "@/lib/types/woombat"
 
 function getDisplayWebhookUrl(webhookUrl?: string | null, userId?: string, webhookId?: string): string {
@@ -121,6 +127,27 @@ export default function MessengerWebhooksPage() {
   const [compileIncludeFewShot, setCompileIncludeFewShot] = useState<boolean>(true)
   const [compileLoading, setCompileLoading] = useState(false)
   const [compiledPromptResult, setCompiledPromptResult] = useState<CompileWebhookEventPromptResponse["data"] | null>(null)
+
+  // AI Response Generation & Dispatch State
+  const [generateModalOpen, setGenerateModalOpen] = useState(false)
+  const [generatingEvent, setGeneratingEvent] = useState<MessengerWebhookEvent | null>(null)
+  const [generateSendToUser, setGenerateSendToUser] = useState<boolean>(true)
+  const [generateAiProfileId, setGenerateAiProfileId] = useState<string>("")
+  const [generateVariables, setGenerateVariables] = useState<Record<string, string>>({ support_phone: "+1-800-555-0199" })
+  const [generateAdditionalContext, setGenerateAdditionalContext] = useState<string>("")
+  const [generateIncludeFewShot, setGenerateIncludeFewShot] = useState<boolean>(true)
+  const [generateLoading, setGenerateLoading] = useState(false)
+  const [generatedResult, setGeneratedResult] = useState<GenerateResponseResult | null>(null)
+
+  // Multi-Turn Conversation History & Live Messaging State
+  const [conversationModalOpen, setConversationModalOpen] = useState(false)
+  const [conversationSenderId, setConversationSenderId] = useState<string>("")
+  const [conversationMessages, setConversationMessages] = useState<ConversationMessage[]>([])
+  const [conversationLoading, setConversationLoading] = useState(false)
+  const [conversationPage, setConversationPage] = useState(1)
+  const [conversationTotalPages, setConversationTotalPages] = useState(1)
+  const [operatorMessageText, setOperatorMessageText] = useState<string>("")
+  const [operatorSending, setOperatorSending] = useState(false)
 
   // Delete State
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -411,6 +438,150 @@ export default function MessengerWebhooksPage() {
       })
     } finally {
       setCompileLoading(false)
+    }
+  }
+
+  // Open AI Response Generation Modal
+  const handleOpenGenerateResponse = (event: MessengerWebhookEvent) => {
+    setGeneratingEvent(event)
+    setGenerateAiProfileId(event.aiProfileId || selectedWebhook?.aiProfileId || "")
+    setGenerateSendToUser(true)
+    setGenerateVariables({ support_phone: "+1-800-555-0199" })
+    setGenerateAdditionalContext("")
+    setGenerateIncludeFewShot(true)
+    setGeneratedResult(null)
+    setGenerateModalOpen(true)
+  }
+
+  // Generate AI Response & Dispatch
+  const handleGenerateResponse = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!generatingEvent || !selectedWebhook) return
+
+    try {
+      setGenerateLoading(true)
+      const res = await fetch(
+        `/api/v1/messenger/webhooks/${selectedWebhook.id}/events/${generatingEvent.id}/generate-response`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sendToUser: generateSendToUser,
+            aiProfileId: generateAiProfileId || undefined,
+            dynamicVariables: generateVariables,
+            additionalContext: generateAdditionalContext || undefined,
+            includeFewShot: generateIncludeFewShot,
+          }),
+        }
+      )
+
+      const json: GenerateResponseApiResponse = await res.json()
+
+      if (res.ok && json.data) {
+        setGeneratedResult(json.data)
+        toast({
+          variant: "success",
+          title: json.data.dispatchedToMessenger ? "AI Response Dispatched!" : "AI Response Generated",
+          description: json.data.dispatchedToMessenger
+            ? "Delivered directly to customer on Facebook Messenger."
+            : "Generated response with LLM without sending to customer.",
+        })
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Generation Failed",
+          description: json.message || "Failed to generate AI response.",
+        })
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Network error during response generation.",
+      })
+    } finally {
+      setGenerateLoading(false)
+    }
+  }
+
+  // Fetch Conversation History
+  const fetchConversation = useCallback(
+    async (senderId: string, page = 1) => {
+      if (!selectedWebhook || !senderId) return
+      try {
+        setConversationLoading(true)
+        const res = await fetch(
+          `/api/v1/messenger/webhooks/${selectedWebhook.id}/conversations/${senderId}?page=${page}&limit=30`
+        )
+        const json: ConversationHistoryResponse = await res.json()
+
+        if (res.ok && Array.isArray(json.data)) {
+          setConversationMessages(json.data)
+          if (json.pagination) {
+            setConversationPage(json.pagination.page)
+            setConversationTotalPages(json.pagination.totalPages)
+          }
+        } else {
+          setConversationMessages([])
+        }
+      } catch (err) {
+        console.error("Failed to fetch conversation history:", err)
+      } finally {
+        setConversationLoading(false)
+      }
+    },
+    [selectedWebhook]
+  )
+
+  // Open Conversation History Modal
+  const handleOpenConversation = (senderId: string) => {
+    setConversationSenderId(senderId)
+    setOperatorMessageText("")
+    setConversationModalOpen(true)
+    fetchConversation(senderId, 1)
+  }
+
+  // Send Operator Outbound Message
+  const handleSendOperatorMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedWebhook || !conversationSenderId || !operatorMessageText.trim()) return
+
+    try {
+      setOperatorSending(true)
+      const res = await fetch(`/api/v1/messenger/webhooks/${selectedWebhook.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientId: conversationSenderId,
+          text: operatorMessageText.trim(),
+        }),
+      })
+
+      const json: SendManualMessageResponse = await res.json()
+
+      if (res.ok && json.data) {
+        toast({
+          variant: "success",
+          title: "Message Delivered",
+          description: `Delivered to customer (${conversationSenderId}) via Meta Send API.`,
+        })
+        setOperatorMessageText("")
+        await fetchConversation(conversationSenderId, 1)
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Delivery Failed",
+          description: json.message || "Failed to deliver message to customer.",
+        })
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Network error sending outbound message.",
+      })
+    } finally {
+      setOperatorSending(false)
     }
   }
 
@@ -1251,16 +1422,35 @@ export default function MessengerWebhooksPage() {
                             ? `Postback: "${ev.eventData.postback.title}"`
                             : `From: ${ev.senderId}`}
                         </p>
-                        <p className="text-[10px] text-muted-foreground font-mono">
-                          Sender: {ev.senderId} • Page: {ev.pageId}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenConversation(ev.senderId)}
+                            className="text-[10px] text-primary hover:underline font-mono flex items-center gap-1"
+                            title="Open live chat history with this customer"
+                          >
+                            <MessageCircle className="h-3 w-3" />
+                            Sender: {ev.senderId}
+                          </button>
+                          <span className="text-[10px] text-muted-foreground">• Page: {ev.pageId}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline mr-1">
                         {new Date(ev.createdAt).toLocaleTimeString()}
                       </span>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => handleOpenGenerateResponse(ev)}
+                        className="h-7 text-xs gap-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                        title="Generate AI response with multi-turn memory & dispatch"
+                      >
+                        <Bot className="h-3 w-3" />
+                        <span className="hidden md:inline">Generate Reply</span>
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -1269,7 +1459,7 @@ export default function MessengerWebhooksPage() {
                         title="Compile LLM prompt from customer event"
                       >
                         <Zap className="h-3 w-3" />
-                        <span className="hidden sm:inline">Compile Prompt</span>
+                        <span className="hidden lg:inline">Compile</span>
                       </Button>
                       <Button
                         size="sm"
@@ -1369,27 +1559,52 @@ export default function MessengerWebhooksPage() {
                   </div>
                 )}
 
-                <div className="p-3 rounded-lg bg-primary/[0.04] border border-primary/20 flex items-center justify-between">
-                  <div className="space-y-0.5">
+                <div className="p-3.5 rounded-lg bg-primary/[0.04] border border-primary/20 space-y-2.5">
+                  <div className="flex items-center justify-between">
                     <p className="font-semibold text-foreground text-xs flex items-center gap-1.5">
                       <Bot className="h-4 w-4 text-primary" />
-                      LLM Prompt Engine Integration
+                      AI Response & Conversation Intelligence
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      Synthesize customer inquiry, postbacks, and persona guardrails into ready-to-dispatch chat payload.
-                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetailModalOpen(false)
+                        handleOpenConversation(selectedEvent.senderId)
+                      }}
+                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      View Full Conversation
+                    </button>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setDetailModalOpen(false)
-                      handleOpenEventCompiler(selectedEvent)
-                    }}
-                    className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
-                  >
-                    <Zap className="h-3.5 w-3.5" />
-                    Compile Prompt
-                  </Button>
+                  <p className="text-[11px] text-muted-foreground">
+                    Synthesize prompt bundles, generate responses with multi-turn conversation memory, or dispatch directly to Facebook Messenger.
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setDetailModalOpen(false)
+                        handleOpenGenerateResponse(selectedEvent)
+                      }}
+                      className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Bot className="h-3.5 w-3.5" />
+                      Generate Reply & Dispatch
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setDetailModalOpen(false)
+                        handleOpenEventCompiler(selectedEvent)
+                      }}
+                      className="h-8 text-xs gap-1.5"
+                    >
+                      <Zap className="h-3.5 w-3.5 text-primary" />
+                      Compile Prompt
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
@@ -1611,6 +1826,322 @@ export default function MessengerWebhooksPage() {
                 )}
               </div>
             )}
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* GENERATE AI RESPONSE MODAL                                                */}
+      {/* ========================================================================= */}
+      <Dialog open={generateModalOpen} onOpenChange={setGenerateModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6 border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Bot className="h-5 w-5 text-primary" />
+              Generate AI Response & Dispatch
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Synthesize an AI reply with multi-turn conversation memory, and optionally deliver it directly to the customer on Messenger.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleGenerateResponse} className="space-y-4 pt-2">
+            {/* Inbound Customer Inquiry Display */}
+            <div className="p-3 rounded-lg bg-muted/40 border border-border text-xs space-y-1">
+              <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground uppercase">
+                <span>Inbound Customer Message</span>
+                <span>PSID: {generatingEvent?.senderId}</span>
+              </div>
+              <p className="font-semibold text-foreground text-sm">
+                {generatingEvent?.eventData?.message?.text ||
+                  generatingEvent?.eventData?.postback?.payload ||
+                  "(No text message body found in payload)"}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">AI Persona Profile</Label>
+                <select
+                  value={generateAiProfileId}
+                  onChange={(e) => setGenerateAiProfileId(e.target.value)}
+                  className="w-full h-8 px-2 rounded-md text-xs bg-background border border-input text-foreground focus:outline-none"
+                >
+                  <option value="">Webhook Bound / Account Default</option>
+                  {aiProfiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} — {p.role} {p.isDefault ? "(Default)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Additional Context (Optional)</Label>
+                <Input
+                  placeholder="e.g. Customer is inquiring about room rates"
+                  value={generateAdditionalContext}
+                  onChange={(e) => setGenerateAdditionalContext(e.target.value)}
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Delivery Toggle & Options */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-muted/20">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                    <Send className="h-3.5 w-3.5" />
+                    Deliver to Messenger
+                  </Label>
+                  <p className="text-[10px] text-muted-foreground">
+                    Send reply via Meta Graph API Send endpoint
+                  </p>
+                </div>
+                <Switch
+                  checked={generateSendToUser}
+                  onCheckedChange={setGenerateSendToUser}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-muted/20">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">Include Few-Shot Dialogs</Label>
+                  <p className="text-[10px] text-muted-foreground">Prepend sample persona Q&A</p>
+                </div>
+                <Switch
+                  checked={generateIncludeFewShot}
+                  onCheckedChange={setGenerateIncludeFewShot}
+                />
+              </div>
+            </div>
+
+            {/* Dynamic Session Variables */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Dynamic Channel Variables</Label>
+              <div className="space-y-1.5 p-2 rounded-md border border-border bg-muted/10 max-h-28 overflow-y-auto">
+                {Object.entries(generateVariables).map(([k, val]) => (
+                  <div key={k} className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-semibold text-primary w-1/3 truncate">{k}:</span>
+                    <Input
+                      value={val}
+                      onChange={(e) => setGenerateVariables({ ...generateVariables, [k]: e.target.value })}
+                      className="h-7 text-xs flex-1"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={generateLoading}
+              className="w-full h-9 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {generateLoading ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Bot className="h-4 w-4" />
+              )}
+              {generateSendToUser ? "Generate & Dispatch to Customer" : "Generate AI Reply (Preview Only)"}
+            </Button>
+
+            {/* Generation Results View */}
+            {generatedResult && (
+              <div className="p-4 rounded-xl border border-border bg-muted/30 space-y-3 pt-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
+                  <div className="flex items-center gap-2">
+                    {generatedResult.dispatchedToMessenger ? (
+                      <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-xs flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" /> Dispatched to Messenger
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">
+                        Generated Only (Not Sent)
+                      </Badge>
+                    )}
+
+                    {generatedResult.isFallback && (
+                      <Badge variant="destructive" className="text-xs">
+                        Fallback Triggered
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
+                    <Badge variant="outline" className="text-[10px]">
+                      {generatedResult.latencyMs} ms
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {generatedResult.provider}:{generatedResult.modelName}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Generated response text bubble */}
+                <div className="relative p-3 rounded-lg bg-background border border-border text-xs leading-relaxed">
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(generatedResult.generatedResponse, "gen-resp")}
+                    className="absolute right-2 top-2 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                    title="Copy generated response"
+                  >
+                    {copiedKey === "gen-resp" ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                  <p className="font-sans whitespace-pre-wrap pr-6 text-foreground font-medium">
+                    {generatedResult.generatedResponse}
+                  </p>
+                </div>
+
+                {/* Token Metrics & Message IDs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono text-muted-foreground pt-1">
+                  <div className="p-2 rounded bg-muted/40 border border-border">
+                    <span className="font-semibold text-foreground block text-[10px] uppercase">
+                      Token Usage
+                    </span>
+                    <span>Prompt: {generatedResult.tokenUsage.promptTokens}</span> •{" "}
+                    <span>Completion: {generatedResult.tokenUsage.completionTokens}</span> •{" "}
+                    <span className="font-bold text-foreground">Total: {generatedResult.tokenUsage.totalTokens}</span>
+                  </div>
+
+                  <div className="p-2 rounded bg-muted/40 border border-border">
+                    <span className="font-semibold text-foreground block text-[10px] uppercase">
+                      Meta Message IDs
+                    </span>
+                    <span className="truncate block">
+                      {generatedResult.messageIds?.length > 0
+                        ? generatedResult.messageIds.join(", ")
+                        : "None (not delivered)"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* CUSTOMER CONVERSATION HISTORY & LIVE MESSAGING MODAL                      */}
+      {/* ========================================================================= */}
+      <Dialog open={conversationModalOpen} onOpenChange={setConversationModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[88vh] flex flex-col p-0 overflow-hidden border-border bg-card">
+          <DialogHeader className="p-4 border-b border-border bg-muted/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <MessageCircle className="h-4 w-4" />
+                </div>
+                <div>
+                  <DialogTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                    Customer Chat Stream
+                    <Badge variant="outline" className="font-mono text-[10px]">
+                      PSID: {conversationSenderId}
+                    </Badge>
+                  </DialogTitle>
+                  <DialogDescription className="text-[11px] text-muted-foreground">
+                    Multi-turn conversation history with live operator Send API messaging.
+                  </DialogDescription>
+                </div>
+              </div>
+
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={conversationLoading}
+                onClick={() => fetchConversation(conversationSenderId, 1)}
+                className="h-7 text-xs px-2 gap-1"
+              >
+                <RefreshCw className={cn("h-3 w-3", conversationLoading && "animate-spin")} />
+                Refresh
+              </Button>
+            </div>
+          </DialogHeader>
+
+          {/* Chat Stream Body */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[300px] max-h-[440px] bg-muted/5">
+            {conversationLoading ? (
+              <div className="flex items-center justify-center py-20 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+                <span className="text-xs">Loading conversation history...</span>
+              </div>
+            ) : conversationMessages.length === 0 ? (
+              <div className="text-center py-20 text-muted-foreground space-y-2">
+                <MessageSquare className="h-8 w-8 mx-auto opacity-30" />
+                <p className="text-xs font-semibold">No prior conversation history recorded</p>
+                <p className="text-[11px] max-w-xs mx-auto">
+                  Messages sent by the customer or dispatched by the AI bot/operator will appear here.
+                </p>
+              </div>
+            ) : (
+              conversationMessages.map((msg) => {
+                const isAssistant = msg.role === "assistant"
+
+                return (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      "flex flex-col max-w-[85%] text-xs",
+                      isAssistant ? "ml-auto items-end" : "mr-auto items-start"
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1 px-1 text-[10px] text-muted-foreground">
+                      <span className="font-semibold uppercase tracking-wider">
+                        {isAssistant ? "AI Bot / Support Agent" : `Customer (${msg.senderId})`}
+                      </span>
+                      <span>•</span>
+                      <span>{new Date(msg.createdAt).toLocaleTimeString()}</span>
+                      {msg.messageId && (
+                        <span className="font-mono opacity-60 truncate max-w-[100px]" title={msg.messageId}>
+                          [{msg.messageId.split(":").pop()}]
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      className={cn(
+                        "p-3 rounded-2xl text-xs leading-relaxed shadow-sm font-sans whitespace-pre-wrap",
+                        isAssistant
+                          ? "bg-primary text-primary-foreground rounded-tr-xs"
+                          : "bg-muted/80 text-foreground border border-border rounded-tl-xs"
+                      )}
+                    >
+                      {msg.content}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          {/* Live Operator Message Composer */}
+          <form onSubmit={handleSendOperatorMessage} className="p-3 border-t border-border bg-card">
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Type an outbound message to deliver via Meta Send API..."
+                value={operatorMessageText}
+                onChange={(e) => setOperatorMessageText(e.target.value)}
+                disabled={operatorSending}
+                className="text-xs h-9 bg-background"
+              />
+              <Button
+                type="submit"
+                disabled={operatorSending || !operatorMessageText.trim()}
+                className="h-9 px-3 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
+              >
+                {operatorSending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Send className="h-3.5 w-3.5" />
+                )}
+                <span>Send</span>
+              </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>

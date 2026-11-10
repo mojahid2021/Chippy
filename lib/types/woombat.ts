@@ -331,3 +331,85 @@ export interface WebhookAiProfileBindingResponse {
   }
 }
 
+/**
+ * AI Response Generation & Dispatch Types
+ */
+
+export interface GenerateResponseRequest {
+  sendToUser?: boolean
+  aiProfileId?: string
+  dynamicVariables?: Record<string, string>
+  additionalContext?: string
+  includeFewShot?: boolean
+}
+
+export interface GenerateResponseResult {
+  eventId: string
+  webhookId: string
+  senderId: string
+  aiProfileId?: string
+  generatedResponse: string
+  isFallback: boolean
+  provider: string
+  modelName: string
+  latencyMs: number
+  dispatchedToMessenger: boolean
+  messageIds: string[]
+  tokenUsage: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
+}
+
+export interface GenerateResponseApiResponse {
+  message: string
+  data: GenerateResponseResult
+}
+
+/**
+ * Multi-Turn Conversation History Types
+ */
+
+export interface ConversationMessage {
+  id: string
+  webhookId: string
+  userId: string
+  senderId: string
+  pageId: string
+  role: 'assistant' | 'user' | string
+  content: string
+  aiProfileId?: string
+  messageId?: string
+  createdAt: string
+}
+
+export interface ConversationHistoryResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: ConversationMessage[]
+}
+
+/**
+ * Live Operator Outbound Messaging Types
+ */
+
+export interface SendManualMessageRequest {
+  recipientId: string
+  text: string
+}
+
+export interface SendManualMessageResponse {
+  message: string
+  data: {
+    recipientId: string
+    messageIds: string[]
+    chunksSent: number
+  }
+}
+
+
