@@ -104,7 +104,7 @@ const Sidebar = ({
         mobile ? "w-full" : collapsed ? "w-18" : "w-64"
       )}
     >
-      <div className={cn("flex items-center justify-between px-4 py-4", !expanded && "flex-col gap-3 px-2")}>
+      <div className={cn("flex items-center justify-between px-3.5 py-3", !expanded && "flex-col gap-2.5 px-2")}>
         <Link href="/dashboard" className="text-white" aria-label="Dashboard home">
           <Logo compact={!expanded} />
         </Link>
@@ -112,17 +112,17 @@ const Sidebar = ({
           <button
             onClick={onToggleCollapse}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="grid size-7 place-items-center rounded-sm hover:bg-sidebar-accent hover:text-white"
+            className="grid size-6 place-items-center rounded-sm hover:bg-sidebar-accent hover:text-white"
           >
-            <CollapseIcon className="size-4" />
+            <CollapseIcon className="size-3.5" />
           </button>
         )}
       </div>
 
-      <nav className="custom-scrollbar flex-1 space-y-5 overflow-y-auto px-3 py-3">
+      <nav className="custom-scrollbar flex-1 space-y-3.5 overflow-y-auto px-2.5 py-2">
         {navigationSections.map((section) => (
           <div key={section.title}>
-            {expanded && <h3 className="mb-1 px-3 text-xs font-medium opacity-70 [font-stretch:100%]">{section.title}</h3>}
+            {expanded && <h3 className="mb-1 px-2.5 text-[11px] font-medium opacity-70 [font-stretch:100%]">{section.title}</h3>}
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 const isActive =
@@ -135,15 +135,15 @@ const Sidebar = ({
                     title={expanded ? undefined : item.name}
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
                       isActive
                         ? "bg-sidebar-primary font-semibold text-sidebar-primary-foreground"
                         : "hover:bg-sidebar-accent hover:text-white",
-                      !expanded && "justify-center px-2"
+                      !expanded && "justify-center px-1.5"
                     )}
                     onClick={() => mobile && onNavigate?.()}
                   >
-                    <item.icon className="size-[18px] shrink-0" />
+                    <item.icon className="size-4 shrink-0" />
                     {expanded && <span className="truncate">{item.name}</span>}
                   </Link>
                 )
@@ -155,9 +155,9 @@ const Sidebar = ({
 
       <Link
         href="/dashboard/profile"
-        className={cn("m-3 flex items-center gap-2.5 rounded-md p-2 hover:bg-sidebar-accent", !expanded && "justify-center p-1")}
+        className={cn("m-2 flex items-center gap-2 rounded-md p-1.5 hover:bg-sidebar-accent", !expanded && "justify-center p-1")}
       >
-        <Avatar className="size-9">
+        <Avatar className="size-8">
           <AvatarImage src="" />
           <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
             {user?.firstName?.[0] || "U"}
@@ -166,10 +166,10 @@ const Sidebar = ({
         </Avatar>
         {expanded && (
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold text-white">
+            <span className="block truncate text-xs font-semibold text-white">
               {displayName}
             </span>
-            <span className="block truncate text-xs">{user?.email}</span>
+            <span className="block truncate text-[11px] opacity-75">{user?.email}</span>
           </span>
         )}
       </Link>
@@ -298,24 +298,24 @@ export default function DashboardLayout({
       >
         {/* Top Navbar */}
         <header className="sticky top-0 z-40 bg-background backdrop-blur-2xl border-b border-border">
-          <div className="px-4 lg:px-6 py-3">
+          <div className="px-3.5 sm:px-5 py-2">
             <div className="flex items-center justify-between">
               
               {/* Left breadcrumb trail / Mobile trigger */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                   <SheetTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="lg:hidden h-8 w-8 p-0 text-foreground/80 hover:bg-muted rounded-lg"
+                      className="lg:hidden h-7 w-7 p-0 text-foreground/80 hover:bg-muted rounded-md"
                     >
                       <Menu className="h-4 w-4" />
                     </Button>
                   </SheetTrigger>
                 </Sheet>
 
-                <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Link href="/dashboard" className="hover:text-foreground font-medium">Dashboard</Link>
                   <span>/</span>
                   <span className="text-foreground capitalize">
@@ -331,24 +331,24 @@ export default function DashboardLayout({
                   variant="outline"
                   size="sm"
                   onClick={() => setSearchModalOpen(true)}
-                  className="hidden md:flex items-center justify-between w-60 h-8 px-2.5 bg-muted/40 border-border text-muted-foreground hover:bg-muted hover:text-foreground rounded-md text-xs font-normal"
+                  className="hidden md:flex items-center justify-between w-56 h-7 px-2 bg-muted/40 border-border text-muted-foreground hover:bg-muted hover:text-foreground rounded-md text-xs font-normal"
                 >
-                  <span className="flex items-center gap-2">
-                    <Search className="h-3.5 w-3.5" />
+                  <span className="flex items-center gap-1.5">
+                    <Search className="h-3 w-3" />
                     <span>Quick navigation...</span>
                   </span>
                   <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border border-border bg-card px-1 font-mono text-[10px] font-medium text-muted-foreground">
-                    <span className="text-xs">⌘</span>K
+                    <span className="text-[11px]">⌘</span>K
                   </kbd>
                 </Button>
 
                 {/* User Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
-                      <Avatar className="h-8 w-8">
+                    <Button variant="ghost" className="relative h-7 w-7 rounded-full p-0">
+                      <Avatar className="h-7 w-7">
                         <AvatarImage src="" />
-                        <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
+                        <AvatarFallback className="bg-primary text-[11px] font-bold text-primary-foreground">
                           {user?.firstName?.[0] || "U"}
                           {user?.lastName?.[0] || ""}
                         </AvatarFallback>
@@ -364,19 +364,19 @@ export default function DashboardLayout({
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/profile" className="flex items-center gap-2 cursor-pointer">
+                      <Link href="/dashboard/profile" className="flex items-center gap-2 cursor-pointer text-xs">
                         <User className="h-3.5 w-3.5 text-muted-foreground" />
                         <span>Profile & Account</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/subscription" className="flex items-center gap-2 cursor-pointer">
+                      <Link href="/dashboard/subscription" className="flex items-center gap-2 cursor-pointer text-xs">
                         <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                         <span>Subscription & Billing</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/purchase" className="flex items-center gap-2 cursor-pointer">
+                      <Link href="/dashboard/purchase" className="flex items-center gap-2 cursor-pointer text-xs">
                         <Crown className="h-3.5 w-3.5 text-muted-foreground" />
                         <span>Upgrade / Change Plan</span>
                       </Link>
@@ -384,7 +384,7 @@ export default function DashboardLayout({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={handleLogout}
-                      className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
+                      className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer text-xs"
                     >
                       <LogOut className="h-3.5 w-3.5" />
                       <span>Sign Out</span>
@@ -397,7 +397,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Dynamic Page Container */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-3 sm:p-4 lg:p-5 max-w-7xl w-full mx-auto">
           {children}
         </main>
       </div>

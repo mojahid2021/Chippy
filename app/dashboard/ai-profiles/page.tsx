@@ -597,12 +597,12 @@ export default function AiProfilesPage() {
   const activeCount = profiles.filter((p) => p.isActive).length
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-3.5 max-w-7xl mx-auto">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Bot className="h-6 w-6 text-primary" />
+          <h1 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Bot className="h-5 w-5 text-primary" />
             AI Persona & Prompt Compiler
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -616,77 +616,77 @@ export default function AiProfilesPage() {
             size="sm"
             onClick={() => fetchProfiles(currentPage)}
             disabled={loading}
-            className="h-9 gap-1.5 text-xs"
+            className="h-8 gap-1.5 text-xs"
           >
-            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            <RefreshCw className={cn("h-3 w-3", loading && "animate-spin")} />
             Refresh
           </Button>
 
           <Button
             size="sm"
             onClick={handleOpenCreate}
-            className="h-9 gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+            className="h-8 gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-3 w-3" />
             Create AI Persona
           </Button>
         </div>
       </div>
 
       {/* Metrics Banner */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 border-border/60 bg-card/60">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="p-3 border-border bg-card gap-0">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Total Personas</span>
-            <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-              <Bot className="h-4 w-4" />
+            <span className="text-[11px] font-medium text-muted-foreground">Total Personas</span>
+            <div className="p-1 rounded-md bg-primary/10 text-primary">
+              <Bot className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold text-foreground">{totalCount || profiles.length}</div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Across all categories</p>
+          <div className="mt-1 text-xl font-bold text-foreground">{totalCount || profiles.length}</div>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Across all categories</p>
         </Card>
 
-        <Card className="p-4 border-border/60 bg-card/60">
+        <Card className="p-3 border-border bg-card gap-0">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Active Personas</span>
-            <div className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-500">
-              <CheckCircle className="h-4 w-4" />
+            <span className="text-[11px] font-medium text-muted-foreground">Active Personas</span>
+            <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-500">
+              <CheckCircle className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold text-foreground">{activeCount}</div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Ready to dispatch</p>
+          <div className="mt-1 text-xl font-bold text-foreground">{activeCount}</div>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Ready to dispatch</p>
         </Card>
 
-        <Card className="p-4 border-border/60 bg-card/60">
+        <Card className="p-3 border-border bg-card gap-0">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Default Persona</span>
-            <div className="p-1.5 rounded-md bg-amber-500/10 text-amber-500">
-              <Star className="h-4 w-4" />
+            <span className="text-[11px] font-medium text-muted-foreground">Default Persona</span>
+            <div className="p-1 rounded-md bg-amber-500/10 text-amber-500">
+              <Star className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="mt-2 text-sm font-bold text-foreground truncate">
+          <div className="mt-1 text-xs font-bold text-foreground truncate">
             {defaultProfile ? defaultProfile.name : "None set"}
           </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+          <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
             {defaultProfile ? defaultProfile.role : "Assign one below"}
           </p>
         </Card>
 
-        <Card className="p-4 border-border/60 bg-card/60">
+        <Card className="p-3 border-border bg-card gap-0">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Prompt Engine</span>
-            <div className="p-1.5 rounded-md bg-indigo-500/10 text-indigo-500">
-              <Zap className="h-4 w-4" />
+            <span className="text-[11px] font-medium text-muted-foreground">Prompt Engine</span>
+            <div className="p-1 rounded-md bg-indigo-500/10 text-indigo-500">
+              <Zap className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="mt-2 text-sm font-bold text-foreground">Multi-LLM Synthesizer</div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">OpenAI, Claude, Gemini, Groq</p>
+          <div className="mt-1 text-xs font-bold text-foreground">Multi-LLM Synthesizer</div>
+          <p className="text-[10px] text-muted-foreground mt-0.5">OpenAI, Claude, Gemini, Groq</p>
         </Card>
       </div>
 
       {/* Search and Filters Bar */}
-      <Card className="p-3 border-border/60 bg-card/40">
-        <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+      <Card className="p-2.5 border-border bg-card gap-0">
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
           <div className="flex-1 flex items-center gap-2">
             <div className="relative flex-1 max-w-sm">
               <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -694,14 +694,14 @@ export default function AiProfilesPage() {
                 placeholder="Search by persona name, role, or tags..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-8 pl-8 text-xs bg-background/50 border-border/70"
+                className="h-7 pl-8 text-xs bg-background/50 border-border/70"
               />
             </div>
 
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="h-8 px-2.5 rounded-md text-xs bg-background border border-border/70 text-foreground focus:outline-none"
+              className="h-7 px-2 rounded-md text-xs bg-background border border-border/70 text-foreground focus:outline-none"
             >
               {CATEGORIES.map((cat) => (
                 <option key={cat.value} value={cat.value}>
@@ -713,7 +713,7 @@ export default function AiProfilesPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
-              className="h-8 px-2.5 rounded-md text-xs bg-background border border-border/70 text-foreground focus:outline-none"
+              className="h-7 px-2 rounded-md text-xs bg-background border border-border/70 text-foreground focus:outline-none"
             >
               <option value="ALL">All Status</option>
               <option value="ACTIVE">Active Only</option>
@@ -729,26 +729,26 @@ export default function AiProfilesPage() {
 
       {/* Profiles Grid */}
       {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center text-muted-foreground">
-          <RefreshCw className="h-8 w-8 animate-spin text-primary mb-3" />
+        <div className="py-16 flex flex-col items-center justify-center text-muted-foreground">
+          <RefreshCw className="h-6 w-6 animate-spin text-primary mb-2" />
           <p className="text-xs font-medium">Loading AI profiles...</p>
         </div>
       ) : profiles.length === 0 ? (
-        <Card className="py-16 text-center border-dashed border-border/80 bg-card/20">
-          <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-60" />
-          <h3 className="text-sm font-semibold text-foreground">No AI Personas Found</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1 mb-4">
+        <Card className="py-12 text-center border-dashed border-border/80 bg-card/20">
+          <Bot className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-60" />
+          <h3 className="text-xs font-semibold text-foreground">No AI Personas Found</h3>
+          <p className="text-[11px] text-muted-foreground max-w-sm mx-auto mt-1 mb-3">
             {searchQuery || categoryFilter !== "ALL" || statusFilter !== "ALL"
               ? "No personas match your search filters. Try adjusting your parameters."
               : "You haven't created any AI persona profiles yet. Create your first profile to bind with Messenger webhooks and run dynamic prompt compilation."}
           </p>
-          <Button size="sm" onClick={handleOpenCreate} className="h-8 text-xs gap-1.5">
+          <Button size="sm" onClick={handleOpenCreate} className="h-7 text-xs gap-1.5">
             <Plus className="h-3.5 w-3.5" />
             Create AI Persona
           </Button>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {profiles.map((profile) => {
             const modelProvider = profile.modelConfig?.provider || "openai"
             const modelName = profile.modelConfig?.modelName || "gpt-4o"
@@ -757,29 +757,29 @@ export default function AiProfilesPage() {
               <Card
                 key={profile.id}
                 className={cn(
-                  "border transition-all duration-200 flex flex-col justify-between hover:border-primary/40 bg-card/70 shadow-sm",
+                  "border transition-all duration-200 flex flex-col justify-between hover:border-primary/40 bg-card/70 shadow-sm gap-0 py-0",
                   profile.isDefault && "border-amber-500/40 bg-amber-500/[0.02]"
                 )}
               >
                 <div>
                   {/* Card Header */}
-                  <div className="p-4 border-b border-border/50">
+                  <div className="p-3 border-b border-border/50">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
-                          <Bot className="h-5 w-5" />
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                          <Bot className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <h3 className="text-sm font-bold text-foreground truncate">{profile.name}</h3>
+                            <h3 className="text-xs font-bold text-foreground truncate">{profile.name}</h3>
                             {profile.isDefault && (
-                              <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px] px-1.5 py-0 flex items-center gap-0.5">
-                                <Star className="h-2.5 w-2.5 fill-current" />
+                              <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[9px] px-1 py-0 flex items-center gap-0.5">
+                                <Star className="h-2 w-2 fill-current" />
                                 Default
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground truncate">{profile.role}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{profile.role}</p>
                         </div>
                       </div>
 
@@ -791,67 +791,67 @@ export default function AiProfilesPage() {
                     </div>
 
                     {profile.description && (
-                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
+                      <p className="text-[11px] text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
                         {profile.description}
                       </p>
                     )}
                   </div>
 
                   {/* Configuration Highlights */}
-                  <div className="p-4 space-y-3">
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="outline" className="text-[10px] border-border/70 capitalize">
+                  <div className="p-3 space-y-2">
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="outline" className="text-[10px] py-0 px-1 border-border/70 capitalize">
                         {profile.category || "custom"}
                       </Badge>
-                      <Badge variant="outline" className="text-[10px] border-border/70 capitalize">
+                      <Badge variant="outline" className="text-[10px] py-0 px-1 border-border/70 capitalize">
                         Tone: {profile.tone || "balanced"}
                       </Badge>
-                      <Badge variant="outline" className="text-[10px] border-border/70">
+                      <Badge variant="outline" className="text-[10px] py-0 px-1 border-border/70">
                         v{profile.version || 1}
                       </Badge>
-                      <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] flex items-center gap-1">
+                      <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] py-0 px-1.5 flex items-center gap-1">
                         <Cpu className="h-2.5 w-2.5" />
                         {modelProvider}: {modelName}
                       </Badge>
                     </div>
 
                     {/* Stats pills */}
-                    <div className="grid grid-cols-3 gap-2 pt-1 text-[11px] text-muted-foreground">
-                      <div className="bg-muted/40 p-1.5 rounded-md text-center border border-border/40">
-                        <div className="font-semibold text-foreground">
+                    <div className="grid grid-cols-3 gap-1.5 pt-0.5 text-[11px] text-muted-foreground">
+                      <div className="bg-muted/40 p-1 rounded text-center border border-border/40">
+                        <div className="font-semibold text-foreground text-xs">
                           {profile.knowledgeSnippets?.length || 0}
                         </div>
-                        <div className="text-[10px]">Snippets</div>
+                        <div className="text-[9px]">Snippets</div>
                       </div>
 
-                      <div className="bg-muted/40 p-1.5 rounded-md text-center border border-border/40">
-                        <div className="font-semibold text-foreground">
+                      <div className="bg-muted/40 p-1 rounded text-center border border-border/40">
+                        <div className="font-semibold text-foreground text-xs">
                           {(profile.dos?.length || 0) + (profile.donts?.length || 0)}
                         </div>
-                        <div className="text-[10px]">Guardrails</div>
+                        <div className="text-[9px]">Guardrails</div>
                       </div>
 
-                      <div className="bg-muted/40 p-1.5 rounded-md text-center border border-border/40">
-                        <div className="font-semibold text-foreground">
+                      <div className="bg-muted/40 p-1 rounded text-center border border-border/40">
+                        <div className="font-semibold text-foreground text-xs">
                           {profile.customVariables?.length || 0}
                         </div>
-                        <div className="text-[10px]">Variables</div>
+                        <div className="text-[9px]">Variables</div>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Card Actions Footer */}
-                <div className="p-3 border-t border-border/50 bg-muted/20 flex items-center justify-between gap-1">
+                <div className="p-2 border-t border-border/50 bg-muted/20 flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1">
                     <Button
                       variant="default"
                       size="sm"
                       onClick={() => handleOpenCompiler(profile)}
-                      className="h-7 px-2.5 text-[11px] gap-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                      className="h-6 px-2 text-[10px] gap-1 bg-primary text-primary-foreground hover:bg-primary/90"
                       title="Test Persona Prompt Compilation"
                     >
-                      <Zap className="h-3 w-3" />
+                      <Zap className="h-2.5 w-2.5" />
                       Test Compiler
                     </Button>
 
@@ -859,10 +859,10 @@ export default function AiProfilesPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleOpenBoundWebhooks(profile)}
-                      className="h-7 px-2 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                      className="h-6 px-1.5 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
                       title="Inspect bound Messenger webhooks"
                     >
-                      <MessageSquare className="h-3 w-3" />
+                      <MessageSquare className="h-2.5 w-2.5" />
                       Webhooks
                     </Button>
                   </div>
@@ -943,7 +943,7 @@ export default function AiProfilesPage() {
       {/* CREATE & EDIT MODAL                                                       */}
       {/* ========================================================================= */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-6 border-border bg-card">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-5 border-border bg-card gap-3.5">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Bot className="h-5 w-5 text-primary" />
@@ -1735,7 +1735,7 @@ export default function AiProfilesPage() {
       {/* PROMPT COMPILER PLAYGROUND MODAL                                          */}
       {/* ========================================================================= */}
       <Dialog open={compilerModalOpen} onOpenChange={setCompilerModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-6 border-border bg-card">
+        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-4 sm:p-5 border-border bg-card gap-3.5">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Zap className="h-5 w-5 text-primary" />
@@ -1985,7 +1985,7 @@ export default function AiProfilesPage() {
       {/* BOUND WEBHOOKS MODAL                                                      */}
       {/* ========================================================================= */}
       <Dialog open={webhooksModalOpen} onOpenChange={setWebhooksModalOpen}>
-        <DialogContent className="max-w-md p-6 border-border bg-card">
+        <DialogContent className="max-w-md p-4 sm:p-5 border-border bg-card gap-3">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <MessageSquare className="h-4 w-4 text-primary" />
@@ -2051,7 +2051,7 @@ export default function AiProfilesPage() {
       {/* DELETE CONFIRMATION MODAL                                                 */}
       {/* ========================================================================= */}
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-        <DialogContent className="max-w-md p-6 border-border bg-card">
+        <DialogContent className="max-w-md p-4 sm:p-5 border-border bg-card gap-3">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base text-destructive">
               <Trash2 className="h-4 w-4" />

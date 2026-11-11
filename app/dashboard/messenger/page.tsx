@@ -89,7 +89,7 @@ export default function MessengerWebhooksPage() {
 
   // AI Profiles State
   const [aiProfiles, setAiProfiles] = useState<AiProfile[]>([])
-  const [aiProfilesLoading, setAiProfilesLoading] = useState(false)
+  const [, setAiProfilesLoading] = useState(false)
 
   // Create Modal State
   const [createModalOpen, setCreateModalOpen] = useState(false)
@@ -144,8 +144,8 @@ export default function MessengerWebhooksPage() {
   const [conversationSenderId, setConversationSenderId] = useState<string>("")
   const [conversationMessages, setConversationMessages] = useState<ConversationMessage[]>([])
   const [conversationLoading, setConversationLoading] = useState(false)
-  const [conversationPage, setConversationPage] = useState(1)
-  const [conversationTotalPages, setConversationTotalPages] = useState(1)
+  const [, setConversationPage] = useState(1)
+  const [, setConversationTotalPages] = useState(1)
   const [operatorMessageText, setOperatorMessageText] = useState<string>("")
   const [operatorSending, setOperatorSending] = useState(false)
 
@@ -756,12 +756,12 @@ export default function MessengerWebhooksPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3.5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <MessageSquare className="h-6 w-6 text-primary" />
+          <h1 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-primary" />
             Meta Messenger Webhooks
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -774,17 +774,17 @@ export default function MessengerWebhooksPage() {
             size="sm"
             onClick={fetchWebhooks}
             disabled={loading}
-            className="flex items-center gap-1.5"
+            className="h-8 text-xs flex items-center gap-1.5"
           >
-            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            <RefreshCw className={cn("h-3 w-3", loading && "animate-spin")} />
             <span>Refresh</span>
           </Button>
           <Button
             size="sm"
             onClick={() => setCreateModalOpen(true)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-1.5"
+            className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-1.5"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             <span>Connect Webhook</span>
           </Button>
         </div>
@@ -792,46 +792,46 @@ export default function MessengerWebhooksPage() {
 
       {/* Main List */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2 text-sm text-muted-foreground">Loading webhook integrations...</span>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="ml-2 text-xs text-muted-foreground">Loading webhook integrations...</span>
         </div>
       ) : webhooks.length === 0 ? (
-        <Card className="border-border bg-card p-12 text-center">
-          <div className="h-12 w-12 rounded-xl bg-info-soft flex items-center justify-center mx-auto text-primary mb-3">
-            <Radio className="h-6 w-6" />
+        <Card className="border-border bg-card p-8 text-center">
+          <div className="h-10 w-10 rounded-lg bg-info-soft flex items-center justify-center mx-auto text-primary mb-2">
+            <Radio className="h-5 w-5" />
           </div>
-          <h3 className="font-bold text-foreground text-base">No Messenger Webhooks Configured</h3>
+          <h3 className="font-bold text-foreground text-sm">No Messenger Webhooks Configured</h3>
           <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
             Create your first Messenger webhook integration to receive real-time Meta Messenger notifications, verify Meta challenges, and connect your Facebook Page.
           </p>
           <Button
             size="sm"
             onClick={() => setCreateModalOpen(true)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground mt-4"
+            className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground mt-3"
           >
-            <Plus className="h-4 w-4 mr-1.5" /> Connect Webhook
+            <Plus className="h-3.5 w-3.5 mr-1" /> Connect Webhook
           </Button>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 gap-3.5">
           {webhooks.map((hook) => {
             const isSyncing = syncingId === hook.id
             const fullCallbackUrl = getDisplayWebhookUrl(hook.webhookUrl, hook.userId, hook.id)
 
             return (
-              <Card key={hook.id} className="border-border bg-card shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/20">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-info-soft flex items-center justify-center text-primary shrink-0">
-                      <MessageSquare className="h-5 w-5" />
+              <Card key={hook.id} className="border-border bg-card shadow-sm overflow-hidden py-0 gap-0">
+                <div className="p-3 sm:px-4 py-2.5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-muted/20">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-lg bg-info-soft flex items-center justify-center text-primary shrink-0">
+                      <MessageSquare className="h-4 w-4" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-foreground text-base">{hook.name}</h3>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-bold text-foreground text-sm">{hook.name}</h3>
                         <Badge
                           className={cn(
-                            "text-xs",
+                            "text-[10px] py-0 px-1.5",
                             hook.isActive
                               ? "bg-success-soft text-success border-success/30"
                               : "bg-muted text-muted-foreground"
@@ -840,18 +840,18 @@ export default function MessengerWebhooksPage() {
                           {hook.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </div>
-                      <p className="text-[11px] text-muted-foreground font-mono">ID: {hook.id}</p>
+                      <p className="text-[10px] text-muted-foreground font-mono">ID: {hook.id}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-end sm:self-center">
+                  <div className="flex items-center gap-1.5 self-end sm:self-center">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openEventsModal(hook)}
-                      className="text-xs h-8 flex items-center gap-1.5"
+                      className="text-xs h-7 px-2.5 flex items-center gap-1"
                     >
-                      <Eye className="h-3.5 w-3.5 text-primary" />
+                      <Eye className="h-3 w-3 text-primary" />
                       <span>Audit Events</span>
                     </Button>
                     <Button
@@ -866,9 +866,9 @@ export default function MessengerWebhooksPage() {
                         })
                         setEditModalOpen(true)
                       }}
-                      className="text-xs h-8 px-2.5"
+                      className="text-xs h-7 px-2"
                     >
-                      <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Edit className="h-3 w-3 text-muted-foreground" />
                     </Button>
                     <Button
                       variant="outline"
@@ -877,9 +877,9 @@ export default function MessengerWebhooksPage() {
                         setWebhookToDelete(hook)
                         setDeleteModalOpen(true)
                       }}
-                      className="text-xs h-8 px-2.5 text-destructive hover:bg-destructive-soft hover:text-destructive"
+                      className="text-xs h-7 px-2 text-destructive hover:bg-destructive-soft hover:text-destructive"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
@@ -888,22 +888,22 @@ export default function MessengerWebhooksPage() {
                 {(() => {
                   const boundProfile = aiProfiles.find((p) => p.id === hook.aiProfileId)
                   return (
-                    <div className="px-5 py-3 bg-primary/[0.03] border-b border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-7 w-7 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
-                          <Bot className="h-4 w-4" />
+                    <div className="px-3.5 sm:px-4 py-2 bg-primary/[0.03] border-b border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                          <Bot className="h-3.5 w-3.5" />
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs font-semibold text-foreground">AI Persona:</span>
                             {boundProfile ? (
-                              <Badge className="bg-primary/10 text-primary border-primary/20 text-[11px] font-medium flex items-center gap-1 py-0">
-                                <Sparkles className="h-2.5 w-2.5" />
+                              <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-medium flex items-center gap-1 py-0 px-1.5">
+                                <Sparkles className="h-2 w-2" />
                                 {boundProfile.name}
-                                <span className="opacity-70 text-[10px]">({boundProfile.role})</span>
+                                <span className="opacity-70 text-[9px]">({boundProfile.role})</span>
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="text-[11px] text-muted-foreground py-0">
+                              <Badge variant="outline" className="text-[10px] text-muted-foreground py-0 px-1.5">
                                 Default AI Profile (Fallback)
                               </Badge>
                             )}
@@ -925,13 +925,13 @@ export default function MessengerWebhooksPage() {
                             setSelectedAiProfileToBind(hook.aiProfileId || "none")
                             setBindModalOpen(true)
                           }}
-                          className="h-7 px-2.5 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                          className="h-6 px-2 text-[11px] gap-1 border-primary/30 text-primary hover:bg-primary/10"
                         >
                           <Bot className="h-3 w-3" />
                           <span>{hook.aiProfileId ? "Change Persona" : "Bind Persona"}</span>
                         </Button>
 
-                        <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground">
+                        <Button asChild variant="ghost" size="sm" className="h-6 px-1.5 text-xs text-muted-foreground">
                           <Link href="/dashboard/ai-profiles" title="Manage AI Personas">
                             <ExternalLink className="h-3 w-3" />
                           </Link>
@@ -941,117 +941,117 @@ export default function MessengerWebhooksPage() {
                   )
                 })()}
 
-                <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-2 gap-3.5">
                   {/* Left: Meta Configuration details for Developer Dashboard */}
-                  <div className="space-y-4">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <div className="space-y-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                       Meta Developer App Configuration
                     </p>
 
                     {/* Callback URL */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-medium text-muted-foreground">
+                    <div className="space-y-0.5">
+                      <label className="text-[10px] font-medium text-muted-foreground">
                         Callback URL (Paste into Meta Dashboard)
                       </label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <Input
                           readOnly
                           value={fullCallbackUrl}
-                          className="font-mono text-xs bg-muted/40 h-8"
+                          className="font-mono text-xs bg-muted/40 h-7"
                         />
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => copyToClipboard(fullCallbackUrl, `url-${hook.id}`)}
-                          className="h-8 shrink-0"
+                          className="h-7 px-2 shrink-0"
                         >
                           {copiedKey === `url-${hook.id}` ? (
-                            <Check className="h-3.5 w-3.5 text-success" />
+                            <Check className="h-3 w-3 text-success" />
                           ) : (
-                            <Copy className="h-3.5 w-3.5" />
+                            <Copy className="h-3 w-3" />
                           )}
                         </Button>
                       </div>
                     </div>
 
                     {/* Verify Token */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-medium text-muted-foreground">
+                    <div className="space-y-0.5">
+                      <label className="text-[10px] font-medium text-muted-foreground">
                         Verify Token (Paste into Meta Dashboard)
                       </label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <Input
                           readOnly
                           value={hook.verifyToken}
-                          className="font-mono text-xs bg-muted/40 h-8"
+                          className="font-mono text-xs bg-muted/40 h-7"
                         />
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => copyToClipboard(hook.verifyToken, `token-${hook.id}`)}
-                          className="h-8 shrink-0"
+                          className="h-7 px-2 shrink-0"
                         >
                           {copiedKey === `token-${hook.id}` ? (
-                            <Check className="h-3.5 w-3.5 text-success" />
+                            <Check className="h-3 w-3 text-success" />
                           ) : (
-                            <Copy className="h-3.5 w-3.5" />
+                            <Copy className="h-3 w-3" />
                           )}
                         </Button>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 text-xs">
+                    <div className="flex items-center justify-between pt-0.5 text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Active Status:</span>
+                        <span className="text-muted-foreground text-[11px]">Active Status:</span>
                         <Switch
                           checked={hook.isActive}
                           onCheckedChange={(checked) => handleToggleActive(hook, checked)}
                         />
                       </div>
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-[10px] text-muted-foreground">
                         Created {new Date(hook.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
 
                   {/* Right: Associated Facebook Page details */}
-                  <div className="space-y-4 rounded-xl bg-muted/20 border border-border p-4 flex flex-col justify-between">
+                  <div className="space-y-3 rounded-lg bg-muted/20 border border-border p-3 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                           Associated Facebook Page
                         </p>
                         {hook.pageSubscribedAt ? (
-                          <Badge className="bg-success-soft text-success border-success/30 text-xs flex items-center gap-1">
-                            <Sparkles className="h-3 w-3" /> Subscribed
+                          <Badge className="bg-success-soft text-success border-success/30 text-[10px] py-0 px-1.5 flex items-center gap-1">
+                            <Sparkles className="h-2.5 w-2.5" /> Subscribed
                           </Badge>
                         ) : hook.pageId ? (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-[10px] py-0 px-1.5">
                             Page Linked
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-xs text-muted-foreground">
+                          <Badge variant="outline" className="text-[10px] py-0 px-1.5 text-muted-foreground">
                             Not Linked
                           </Badge>
                         )}
                       </div>
 
                       {hook.pageName ? (
-                        <div className="flex items-center gap-3 mt-2">
+                        <div className="flex items-center gap-2.5 mt-1.5">
                           {hook.pagePictureUrl ? (
                             <img
                               src={hook.pagePictureUrl}
                               alt={hook.pageName}
-                              className="h-10 w-10 rounded-full border border-border object-cover"
+                              className="h-9 w-9 rounded-full border border-border object-cover"
                             />
                           ) : (
-                            <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center font-bold text-foreground">
+                            <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center font-bold text-foreground text-xs">
                               {hook.pageName[0]}
                             </div>
                           )}
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <p className="font-bold text-sm text-foreground">{hook.pageName}</p>
+                              <p className="font-bold text-xs text-foreground">{hook.pageName}</p>
                               {hook.pageLink && (
                                 <a
                                   href={hook.pageLink}
@@ -1063,38 +1063,38 @@ export default function MessengerWebhooksPage() {
                                 </a>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-[11px] text-muted-foreground">
                               Page ID: {hook.pageId} • {hook.pageCategory || "Business Page"}
                             </p>
                           </div>
                         </div>
                       ) : hook.pageId ? (
-                        <p className="text-xs text-muted-foreground mt-2">
+                        <p className="text-xs text-muted-foreground mt-1">
                           Page ID: <strong>{hook.pageId}</strong>. Synchronize with Meta Graph API to fetch page details and auto-subscribe.
                         </p>
                       ) : (
-                        <p className="text-xs text-muted-foreground mt-2">
+                        <p className="text-xs text-muted-foreground mt-1">
                           No Facebook Page associated yet. Provide a Page ID and Page Access Token to auto-subscribe messaging webhooks.
                         </p>
                       )}
                     </div>
 
-                    <div className="pt-3 border-t border-border flex items-center justify-between gap-3">
+                    <div className="pt-2 border-t border-border flex items-center justify-between gap-2">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleSyncPage(hook)}
                         disabled={isSyncing}
-                        className="text-xs w-full flex items-center justify-center gap-1.5 bg-card"
+                        className="text-xs h-7 w-full flex items-center justify-center gap-1.5 bg-card"
                       >
                         {isSyncing ? (
                           <>
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <Loader2 className="h-3 w-3 animate-spin" />
                             <span>Synchronizing Meta Graph API...</span>
                           </>
                         ) : (
                           <>
-                            <RefreshCw className="h-3.5 w-3.5 text-primary" />
+                            <RefreshCw className="h-3 w-3 text-primary" />
                             <span>Sync Facebook Page & Subscribe</span>
                           </>
                         )}
@@ -1639,7 +1639,7 @@ export default function MessengerWebhooksPage() {
 
       {/* Dedicated AI Profile Binding Modal */}
       <Dialog open={bindModalOpen} onOpenChange={setBindModalOpen}>
-        <DialogContent className="max-w-md p-6 border-border bg-card">
+        <DialogContent className="max-w-md p-4 sm:p-5 border-border bg-card gap-3.5">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Bot className="h-5 w-5 text-primary" />
@@ -1697,7 +1697,7 @@ export default function MessengerWebhooksPage() {
 
       {/* Event Prompt Compiler Modal */}
       <Dialog open={compileModalOpen} onOpenChange={setCompileModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-6 border-border bg-card">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-5 border-border bg-card gap-3.5">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Zap className="h-5 w-5 text-primary" />
@@ -1834,7 +1834,7 @@ export default function MessengerWebhooksPage() {
       {/* GENERATE AI RESPONSE MODAL                                                */}
       {/* ========================================================================= */}
       <Dialog open={generateModalOpen} onOpenChange={setGenerateModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6 border-border bg-card">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-5 border-border bg-card gap-3.5">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Bot className="h-5 w-5 text-primary" />

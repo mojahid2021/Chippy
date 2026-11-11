@@ -17,26 +17,21 @@ import {
 import { 
   Check, 
   Crown, 
-  Calendar,
-  CreditCard,
-  Zap,
-  Shield,
-  ArrowRight,
-  FileText,
-  Star,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Loader2,
-  AlertCircle,
-  Sparkles,
-  RefreshCw,
-  AlertTriangle,
-  Lock,
+  Zap, 
+  Shield, 
+  ArrowRight, 
+  FileText, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  Loader2, 
+  Sparkles, 
+  RefreshCw, 
+  AlertTriangle, 
+  Lock, 
   Unlock
 } from "lucide-react"
 import { cn } from '@/lib/utils'
-import { useUserStore } from '@/lib/stores/userStore'
 import { toast } from '@/hooks/use-toast'
 import type {
   SubscriptionPlan,
@@ -47,7 +42,6 @@ import type {
 } from '@/lib/types/woombat'
 
 export default function SubscriptionPage() {
-  const { user } = useUserStore()
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [subscription, setSubscription] = useState<UserSubscription | null>(null)
   const [invoices, setInvoices] = useState<SubscriptionInvoice[]>([])
@@ -390,12 +384,12 @@ export default function SubscriptionPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Subscriptions & Billing</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <h1 className="text-lg font-bold text-foreground">Subscriptions & Billing</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Manage your subscription tier, billing period, and invoice transactions
           </p>
         </div>
@@ -408,37 +402,37 @@ export default function SubscriptionPage() {
             fetchInvoices(1)
           }}
           disabled={loading || plansLoading}
-          className="flex items-center gap-2"
+          className="h-8 text-xs flex items-center gap-1.5"
         >
-          <RefreshCw className={cn("h-4 w-4", (loading || plansLoading) && "animate-spin")} />
+          <RefreshCw className={cn("h-3 w-3", (loading || plansLoading) && "animate-spin")} />
           <span>Refresh</span>
         </Button>
       </div>
 
       {/* No Subscription Alert */}
       {!loading && !subscription && (
-        <Card className="border-info/30 bg-info-soft/40 p-5">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-info-soft flex items-center justify-center shrink-0">
-                <Crown className="h-5 w-5 text-primary" />
+        <Card className="border-info/30 bg-info-soft/40 p-3.5 gap-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-info-soft flex items-center justify-center shrink-0">
+                <Crown className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">No active subscription found</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs font-semibold text-foreground">No active subscription found</p>
+                <p className="text-[11px] text-muted-foreground">
                   Select a subscription plan below to unlock automated store tools and AI features.
                 </p>
               </div>
             </div>
             <Button 
               size="sm" 
-              className="bg-primary hover:bg-primary/90"
+              className="h-7 text-xs bg-primary hover:bg-primary/90"
               onClick={() => {
                 const el = document.getElementById('available-plans-section')
                 el?.scrollIntoView({ behavior: 'smooth' })
               }}
             >
-              Explore Plans <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+              Explore Plans <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </div>
         </Card>
@@ -446,52 +440,52 @@ export default function SubscriptionPage() {
 
       {/* Current Active Subscription Banner */}
       {subscription && (
-        <Card className="border-border overflow-hidden bg-card shadow-sm">
-          <div className="bg-card border-b border-border p-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-info-soft border border-info/30 flex items-center justify-center text-info shrink-0">
-                  <Crown className="h-6 w-6" />
+        <Card className="border-border overflow-hidden bg-card shadow-sm py-0 gap-0">
+          <div className="bg-card border-b border-border p-3.5 sm:px-4 py-3">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-info-soft border border-info/30 flex items-center justify-center text-info shrink-0">
+                  <Crown className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-1.5 mb-0.5">
                     {getStatusBadge(subscription.status)}
                     {subscription.cancelAtPeriodEnd && (
-                      <Badge className="bg-warning-soft text-warning border-warning/30 flex items-center gap-1 text-xs">
-                        <AlertTriangle className="h-3 w-3" /> Scheduled to Cancel
+                      <Badge className="bg-warning-soft text-warning border-warning/30 flex items-center gap-1 text-[10px] py-0 px-1.5">
+                        <AlertTriangle className="h-2.5 w-2.5" /> Scheduled to Cancel
                       </Badge>
                     )}
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">
+                  <h2 className="text-base font-bold text-foreground">
                     {subscription.plan?.name || "Active"} Plan
                   </h2>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground">
                     {subscription.plan?.description || "Subscribed member"}
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-col md:items-end gap-1">
-                <p className="text-xs text-muted-foreground">Current Billing Cycle</p>
-                <p className="text-base font-semibold text-foreground">
+              <div className="flex flex-col md:items-end gap-0.5">
+                <p className="text-[11px] text-muted-foreground">Current Billing Cycle</p>
+                <p className="text-sm font-semibold text-foreground">
                   {formatDate(subscription.currentPeriodStart)} — {formatDate(subscription.currentPeriodEnd)}
                 </p>
-                <p className="text-xs text-primary font-medium">
+                <p className="text-[11px] text-primary font-medium">
                   {getDaysUntilExpiry(subscription.currentPeriodEnd)} days remaining
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 bg-muted/20">
+          <div className="p-3 sm:p-4 grid grid-cols-1 md:grid-cols-3 gap-3 bg-muted/20">
             {/* Auto Renewal Card */}
-            <div className="p-4 rounded-lg bg-card border border-border flex flex-col justify-between">
+            <div className="p-3 rounded-lg bg-card border border-border flex flex-col justify-between">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                   Auto-Renewal
                 </p>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm font-medium text-foreground">
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-xs font-medium text-foreground">
                     {subscription.autoRenew ? 'Enabled (Recurring)' : 'Disabled (Will not renew)'}
                   </span>
                   <Switch 
@@ -500,7 +494,7 @@ export default function SubscriptionPage() {
                     onCheckedChange={(checked) => handleToggleAutoRenew(checked)}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
                   {subscription.cancelAtPeriodEnd 
                     ? 'Subscription will terminate at the end of the current period.' 
                     : 'Your card will renew automatically at the end of billing cycle.'}
@@ -509,19 +503,19 @@ export default function SubscriptionPage() {
             </div>
 
             {/* Plan Price & Interval */}
-            <div className="p-4 rounded-lg bg-card border border-border flex flex-col justify-between">
+            <div className="p-3 rounded-lg bg-card border border-border flex flex-col justify-between">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                   Rate & Interval
                 </p>
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-xl font-bold text-foreground">
                   {formatCurrency(subscription.plan?.price || 0, subscription.plan?.currency)}
                   <span className="text-xs font-normal text-muted-foreground ml-1">
                     /{subscription.plan?.interval?.toLowerCase() || 'month'}
                   </span>
                 </p>
                 {subscription.lastRenewalAt && (
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
                     Last renewed: {formatDate(subscription.lastRenewalAt)}
                   </p>
                 )}
@@ -529,21 +523,21 @@ export default function SubscriptionPage() {
             </div>
 
             {/* Subscription Actions */}
-            <div className="p-4 rounded-lg bg-card border border-border flex flex-col justify-between">
+            <div className="p-3 rounded-lg bg-card border border-border flex flex-col justify-between">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                   Subscription Controls
                 </p>
-                <div className="flex flex-col gap-2 mt-2">
+                <div className="flex flex-col gap-2 mt-1">
                   {subscription.cancelAtPeriodEnd ? (
                     <Button 
                       size="sm" 
                       variant="outline" 
                       onClick={handleResumeSubscription}
                       disabled={actionLoading}
-                      className="w-full text-success border-success/30 hover:bg-success-soft"
+                      className="w-full h-7 text-xs text-success border-success/30 hover:bg-success-soft"
                     >
-                      {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
+                      {actionLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <RefreshCw className="h-3 w-3 mr-1.5" />}
                       Resume Auto-Renewal
                     </Button>
                   ) : (
@@ -552,7 +546,7 @@ export default function SubscriptionPage() {
                       variant="outline" 
                       onClick={() => setCancelModalOpen(true)}
                       disabled={actionLoading}
-                      className="w-full text-destructive border-destructive/30 hover:bg-destructive-soft"
+                      className="w-full h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive-soft"
                     >
                       Cancel Subscription
                     </Button>
@@ -565,31 +559,31 @@ export default function SubscriptionPage() {
       )}
 
       {/* Available Plans Catalog */}
-      <div id="available-plans-section" className="space-y-4">
+      <div id="available-plans-section" className="space-y-3">
         <div>
-          <h2 className="text-lg font-bold text-foreground">Available Subscription Plans</h2>
+          <h2 className="text-sm font-bold text-foreground">Available Subscription Plans</h2>
           <p className="text-xs text-muted-foreground">Select a pricing tier for your merchant workspace</p>
         </div>
 
         {plansLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="p-6 border-border animate-pulse space-y-4">
-                <div className="h-6 w-1/2 bg-muted rounded"></div>
-                <div className="h-8 w-1/3 bg-muted rounded"></div>
-                <div className="space-y-2">
-                  <div className="h-4 w-full bg-muted rounded"></div>
-                  <div className="h-4 w-3/4 bg-muted rounded"></div>
+              <Card key={i} className="p-4 border-border animate-pulse space-y-3">
+                <div className="h-5 w-1/2 bg-muted rounded"></div>
+                <div className="h-7 w-1/3 bg-muted rounded"></div>
+                <div className="space-y-1.5">
+                  <div className="h-3.5 w-full bg-muted rounded"></div>
+                  <div className="h-3.5 w-3/4 bg-muted rounded"></div>
                 </div>
               </Card>
             ))}
           </div>
         ) : plans.length === 0 ? (
-          <Card className="p-8 text-center border-border">
-            <p className="text-sm text-muted-foreground">No active subscription plans available at this moment.</p>
+          <Card className="p-6 text-center border-border">
+            <p className="text-xs text-muted-foreground">No active subscription plans available at this moment.</p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
             {plans.map((plan) => {
               const isCurrent = subscription?.planId === plan.id
               const hasTrial = plan.trialDays > 0
@@ -598,64 +592,64 @@ export default function SubscriptionPage() {
                 <Card 
                   key={plan.id}
                   className={cn(
-                    "relative border-2 transition-all p-6 flex flex-col justify-between hover:shadow-md",
+                    "relative border-2 transition-all p-4 flex flex-col justify-between hover:shadow-md gap-0",
                     isCurrent ? "border-primary bg-primary/5" : "border-border bg-card"
                   )}
                 >
                   {isCurrent && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-primary text-primary-foreground px-3 py-0.5 shadow">
-                        <Check className="h-3 w-3 mr-1" />
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                      <Badge className="bg-primary text-primary-foreground px-2.5 py-0 text-[10px] shadow">
+                        <Check className="h-2.5 w-2.5 mr-1" />
                         Current Plan
                       </Badge>
                     </div>
                   )}
 
                   <div>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-2">
                       <div>
-                        <h3 className="font-bold text-lg text-foreground">{plan.name}</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">{plan.description}</p>
+                        <h3 className="font-bold text-sm text-foreground">{plan.name}</h3>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{plan.description}</p>
                       </div>
-                      <div className="h-10 w-10 rounded-lg bg-info-soft flex items-center justify-center shrink-0">
-                        {plan.price > 20 ? <Shield className="h-5 w-5 text-primary" /> : <Zap className="h-5 w-5 text-primary" />}
+                      <div className="h-8 w-8 rounded-lg bg-info-soft flex items-center justify-center shrink-0">
+                        {plan.price > 20 ? <Shield className="h-4 w-4 text-primary" /> : <Zap className="h-4 w-4 text-primary" />}
                       </div>
                     </div>
 
-                    <div className="my-4">
+                    <div className="my-2.5">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-extrabold text-foreground">
+                        <span className="text-2xl font-extrabold text-foreground">
                           {formatCurrency(plan.price, plan.currency)}
                         </span>
-                        <span className="text-xs text-muted-foreground uppercase font-medium">
+                        <span className="text-[11px] text-muted-foreground uppercase font-medium">
                           /{plan.interval}
                         </span>
                       </div>
                       {hasTrial && (
-                        <Badge className="mt-2 bg-success-soft text-success border-success/30 text-xs">
-                          <Sparkles className="h-3 w-3 mr-1" /> {plan.trialDays}-Day Free Trial
+                        <Badge className="mt-1 bg-success-soft text-success border-success/30 text-[10px] py-0 px-1.5">
+                          <Sparkles className="h-2.5 w-2.5 mr-1" /> {plan.trialDays}-Day Free Trial
                         </Badge>
                       )}
                     </div>
 
-                    <div className="space-y-2.5 my-6 border-t border-border pt-4">
+                    <div className="space-y-1.5 my-3 border-t border-border pt-2.5">
                       {plan.features.map((feature, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-xs">
-                          <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                        <div key={idx} className="flex items-start gap-1.5 text-xs">
+                          <Check className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
                           <span className="text-foreground/90">{feature}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div>
+                  <div className="pt-2">
                     {isCurrent ? (
-                      <Button className="w-full bg-muted text-muted-foreground hover:bg-muted" disabled>
+                      <Button className="w-full h-8 text-xs bg-muted text-muted-foreground hover:bg-muted" disabled>
                         Subscribed
                       </Button>
                     ) : subscription ? (
                       <Button 
-                        className="w-full"
+                        className="w-full h-8 text-xs"
                         variant="outline"
                         onClick={() => {
                           setSelectedPlanForSwitch(plan)
@@ -666,8 +660,8 @@ export default function SubscriptionPage() {
                       </Button>
                     ) : (
                       <Link href={`/dashboard/purchase?planId=${plan.id}`} className="w-full block">
-                        <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                          Subscribe <ArrowRight className="h-4 w-4 ml-1.5" />
+                        <Button className="w-full h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
+                          Subscribe <ArrowRight className="h-3 w-3 ml-1" />
                         </Button>
                       </Link>
                     )}
@@ -680,12 +674,12 @@ export default function SubscriptionPage() {
       </div>
 
       {/* Invoice & Billing History */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-border bg-card">
-          <div className="p-5 border-b border-border flex items-center justify-between">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
+        <Card className="lg:col-span-2 border-border bg-card py-0 gap-0">
+          <div className="p-3 sm:px-4 py-2.5 border-b border-border flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-foreground">Billing & Invoice History</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <h3 className="font-semibold text-foreground text-xs">Billing & Invoice History</h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
                 Past invoice settlement records and billing renewals
               </p>
             </div>
@@ -694,54 +688,55 @@ export default function SubscriptionPage() {
               size="sm" 
               onClick={() => fetchInvoices(pagination.page)} 
               disabled={invoicesLoading}
+              className="h-7 w-7 p-0"
             >
-              <RefreshCw className={cn("h-3.5 w-3.5", invoicesLoading && "animate-spin")} />
+              <RefreshCw className={cn("h-3 w-3", invoicesLoading && "animate-spin")} />
             </Button>
           </div>
 
-          <div className="p-5">
+          <div className="p-3 sm:p-4">
             {invoicesLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 <span className="ml-2 text-xs text-muted-foreground">Loading invoices...</span>
               </div>
             ) : invoices.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
-                <p className="text-sm font-medium text-foreground">No invoices generated yet</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
+              <div className="text-center py-8">
+                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-1.5 opacity-50" />
+                <p className="text-xs font-medium text-foreground">No invoices generated yet</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
                   Invoices will appear here once your subscription billing executes.
                 </p>
               </div>
             ) : (
               <div className="divide-y divide-border">
                 {invoices.map((inv) => (
-                  <div key={inv.id} className="py-3.5 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                  <div key={inv.id} className="py-2.5 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-foreground truncate">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-semibold text-foreground truncate">
                             {inv.billingReason === 'INITIAL_PAYMENT' ? 'Initial Plan Enrollment' : 'Subscription Renewal'}
                           </p>
                           {getInvoiceStatusBadge(inv.status)}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
                           Period: {formatDate(inv.periodStart)} – {formatDate(inv.periodEnd)}
                         </p>
-                        <p className="text-xs text-muted-foreground font-mono">
+                        <p className="text-[10px] text-muted-foreground font-mono">
                           Invoice ID: {inv.id.substring(0, 18)}...
                         </p>
                       </div>
                     </div>
 
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-foreground">
+                      <p className="text-xs font-bold text-foreground">
                         {formatCurrency(inv.amount, inv.currency)}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
                         {formatDate(inv.paidAt || inv.createdAt)}
                       </p>
                     </div>
@@ -753,46 +748,46 @@ export default function SubscriptionPage() {
         </Card>
 
         {/* Premium Content & Route Guard Verification Card */}
-        <Card className="border-border bg-card">
-          <div className="p-5 border-b border-border">
-            <h3 className="font-semibold text-foreground flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
+        <Card className="border-border bg-card py-0 gap-0">
+          <div className="p-3 sm:px-4 py-2.5 border-b border-border">
+            <h3 className="font-semibold text-foreground text-xs flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
               Member Access Verification
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               Verify your active subscription status with the backend route guard
             </p>
           </div>
 
-          <div className="p-5 space-y-4">
-            <p className="text-xs text-muted-foreground leading-relaxed">
+          <div className="p-3 sm:p-4 space-y-3">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
               Protected endpoints use the backend subscription validator. Click below to test your access.
             </p>
 
             <Button 
-              className="w-full" 
+              className="w-full h-8 text-xs" 
               variant="outline"
               disabled={testingPremium}
               onClick={handleTestPremiumContent}
             >
               {testingPremium ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Verifying...
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Verifying...
                 </>
               ) : (
                 <>
-                  <Unlock className="h-4 w-4 mr-2 text-primary" /> Test Premium Access
+                  <Unlock className="h-3.5 w-3.5 mr-1.5 text-primary" /> Test Premium Access
                 </>
               )}
             </Button>
 
             {premiumData && (
-              <div className="p-3.5 rounded-lg bg-success-soft/50 border border-success/30 space-y-1.5 text-xs">
-                <p className="font-semibold text-success flex items-center gap-1.5">
-                  <CheckCircle className="h-4 w-4" /> Access Granted
+              <div className="p-2.5 rounded-md bg-success-soft/50 border border-success/30 space-y-1 text-xs">
+                <p className="font-semibold text-success flex items-center gap-1 text-xs">
+                  <CheckCircle className="h-3.5 w-3.5" /> Access Granted
                 </p>
-                <p className="text-foreground/90">{premiumData.content}</p>
-                <div className="pt-1 text-muted-foreground flex items-center justify-between border-t border-success/20">
+                <p className="text-foreground/90 text-xs">{premiumData.content}</p>
+                <div className="pt-1 text-[11px] text-muted-foreground flex items-center justify-between border-t border-success/20">
                   <span>Tier: <strong>{premiumData.tier}</strong></span>
                   <span>Expires: {formatDate(premiumData.expiresAt)}</span>
                 </div>
@@ -800,11 +795,11 @@ export default function SubscriptionPage() {
             )}
 
             {premiumError && (
-              <div className="p-3.5 rounded-lg bg-destructive-soft/50 border border-destructive/30 space-y-1 text-xs">
-                <p className="font-semibold text-destructive flex items-center gap-1.5">
-                  <Lock className="h-4 w-4" /> Restricted Access
+              <div className="p-2.5 rounded-md bg-destructive-soft/50 border border-destructive/30 space-y-1 text-xs">
+                <p className="font-semibold text-destructive flex items-center gap-1 text-xs">
+                  <Lock className="h-3.5 w-3.5" /> Restricted Access
                 </p>
-                <p className="text-destructive/90">{premiumError}</p>
+                <p className="text-destructive/90 text-xs">{premiumError}</p>
               </div>
             )}
           </div>
