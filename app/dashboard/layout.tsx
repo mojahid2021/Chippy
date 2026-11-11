@@ -212,7 +212,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const current = currentNavItem(pathname)
-  const crumb = pathname.endsWith("/inbox") ? "Inbox" : pathname === "/dashboard/purchase" ? "Choose a plan" : null
+  const crumb = pathname.endsWith("/inbox")
+    ? "Inbox"
+    : pathname === "/dashboard/purchase"
+      ? "Choose a plan"
+      : pathname === "/dashboard/ai-profiles/new"
+        ? "New assistant"
+        : pathname.startsWith("/dashboard/ai-profiles/")
+          ? "Edit assistant"
+          : null
 
   return (
     // App shell: the window never scrolls, only the content panel does, so menus and panels
