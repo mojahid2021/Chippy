@@ -2,42 +2,25 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
 import { cn } from "@/lib/utils"
+import { SITE_LINKS } from "@/lib/site-links"
 
-export const SITE_LINKS = [
-  { label: "How it works", href: "#how" },
-  { label: "Features", href: "#features" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "FAQ", href: "#faq" },
-]
 
-/** Marketing header: transparent at the top, a floating bar once you scroll, with a full menu on phones. */
+/** Marketing header: transparent at the top, a floating bar once you scroll, with a full menu on phones. Marks the current page. */
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
-  const [active, setActive] = useState<string | null>(null)
+  const pathname = usePathname()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
     onScroll()
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
-  }, [])
-
-  // Underline the section currently in view.
-  useEffect(() => {
-    const io = new IntersectionObserver(
-      (entries) => entries.forEach((e) => e.isIntersecting && setActive(`#${e.target.id}`)),
-      { rootMargin: "-45% 0px -50% 0px" }
-    )
-    SITE_LINKS.forEach(({ href }) => {
-      const el = document.querySelector(href)
-      if (el) io.observe(el)
-    })
-    return () => io.disconnect()
   }, [])
 
   useEffect(() => {
@@ -62,17 +45,17 @@ export function SiteHeader() {
 
           <nav aria-label="Main" className="mx-auto hidden items-center md:flex">
             {SITE_LINKS.map(({ label, href }) => (
-              <a
+              <Link
                 key={href}
                 href={href}
-                aria-current={active === href ? "location" : undefined}
+                aria-current={pathname === href ? "page" : undefined}
                 className={cn(
                   "relative rounded-full px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground",
-                  active === href && "text-foreground after:absolute after:inset-x-3.5 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-brand"
+                  pathname === href && "text-foreground after:absolute after:inset-x-3.5 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-brand"
                 )}
               >
                 {label}
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -100,9 +83,14 @@ export function SiteHeader() {
             <ul>
               {SITE_LINKS.map(({ label, href }) => (
                 <li key={href}>
-                  <a href={href} onClick={() => setOpen(false)} className="flex rounded-xl px-3 py-2.5 text-base font-medium hover:bg-secondary">
+                  <Link
+                    href={href}
+                    onClick={() => setOpen(false)}
+                    aria-current={pathname === href ? "page" : undefined}
+                    className="flex rounded-xl px-3 py-2.5 text-base font-medium hover:bg-secondary aria-[current=page]:bg-secondary"
+                  >
                     {label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

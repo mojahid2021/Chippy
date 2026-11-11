@@ -2,15 +2,15 @@ import Link from "next/link"
 import { ArrowUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { LogoMark } from "@/components/logo"
-import { SITE_LINKS } from "@/components/site-header"
+import { SITE_LINKS } from "@/lib/site-links"
 
 const columns = [
-  { title: "Product", links: SITE_LINKS.map((l) => ({ ...l, internal: false })) },
+  { title: "Product", links: [{ label: "Home", href: "/" }, ...SITE_LINKS] },
   {
     title: "Account",
     links: [
-      { label: "Start free trial", href: "/auth/signin?mode=signup", internal: true },
-      { label: "Sign in", href: "/auth/signin", internal: true },
+      { label: "Start free trial", href: "/auth/signin?mode=signup" },
+      { label: "Sign in", href: "/auth/signin" },
     ],
   },
 ]
@@ -41,11 +41,7 @@ export function SiteFooter() {
               <ul className="mt-4 space-y-2.5 text-sm">
                 {col.links.map((l) => (
                   <li key={l.href}>
-                    {l.internal ? (
-                      <Link href={l.href} className="hover:text-white">{l.label}</Link>
-                    ) : (
-                      <a href={l.href} className="hover:text-white">{l.label}</a>
-                    )}
+                    <Link href={l.href} className="hover:text-white">{l.label}</Link>
                   </li>
                 ))}
               </ul>
