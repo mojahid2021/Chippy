@@ -132,32 +132,139 @@ export interface MessengerWebhooksResponse {
   data: MessengerWebhook[]
 }
 
+export type SupportedMessengerEventType =
+  | 'messages'
+  | 'message_deliveries'
+  | 'message_reads'
+  | 'messaging_seen'
+  | 'message_echoes'
+  | 'message_reactions'
+  | 'message_edits'
+  | 'messaging_postbacks'
+  | 'messaging_referrals'
+  | 'messaging_optins'
+  | 'messaging_handovers'
+  | 'messaging_policy_enforcement'
+  | 'messaging_account_linking'
+  | 'messaging_game_plays'
+  | 'response_feedback'
+  | 'messaging_feedback'
+  | 'send_cart'
+  | 'standby'
+  | 'group_feed'
+  | 'calls'
+  | 'messenger_template_status_update'
+  | string
+
+export interface MessengerWebhookEventData {
+  message?: {
+    mid: string
+    text?: string
+    attachments?: unknown[]
+    quick_reply?: { payload: string }
+    reply_to?: { mid: string }
+    is_echo?: boolean
+    app_id?: string
+    metadata?: string
+    [key: string]: unknown
+  }
+  postback?: {
+    title: string
+    payload: string
+    referral?: {
+      ref?: string
+      source?: string
+      type?: string
+      ads_context_data?: Record<string, unknown>
+    }
+    [key: string]: unknown
+  }
+  delivery?: {
+    mids?: string[]
+    watermark?: number
+    [key: string]: unknown
+  }
+  read?: {
+    watermark?: number
+    [key: string]: unknown
+  }
+  reaction?: {
+    action: 'react' | 'unreact' | string
+    emoji?: string
+    reaction?: string
+    mid?: string
+  }
+  edit?: {
+    mid: string
+    text: string
+    num_edit?: number
+  }
+  referral?: {
+    ref?: string
+    source?: string
+    type?: string
+    ads_context_data?: Record<string, unknown>
+  }
+  optin?: {
+    notification_messages_token?: string
+    frequency?: string
+    status?: string
+    type?: string
+  }
+  handover?: {
+    action?: string
+    target_app_id?: string
+    metadata?: string
+    [key: string]: unknown
+  }
+  feedback?: {
+    feedback?: string
+    score?: number
+    [key: string]: unknown
+  }
+  call?: {
+    status?: string
+    call_id?: string
+    [key: string]: unknown
+  }
+  [key: string]: unknown
+}
+
 export interface MessengerWebhookEvent {
   id: string
   userId: string
   webhookId: string
   aiProfileId?: string | null
   pageId: string
-  eventType: string
+  eventType: SupportedMessengerEventType
   senderId: string
   recipientId: string
   metaTimestamp: number
   status: 'PROCESSED' | 'DUPLICATE' | 'ERROR' | string
   errorMessage?: string | null
   rawPayload?: Record<string, unknown>
-  eventData?: {
-    message?: {
-      mid: string
-      text?: string
-      attachments?: unknown[]
-    }
-    postback?: {
-      title: string
-      payload: string
-    }
-    [key: string]: unknown
-  }
+  eventData?: MessengerWebhookEventData
   createdAt: string
+}
+
+export interface MessengerEventsQueryParams {
+  page?: number
+  limit?: number
+  eventType?: string
+  status?: string
+  pageId?: string
+  startDate?: string
+  endDate?: string
+}
+
+export interface UpdateMessengerWebhookRequest {
+  name?: string
+  appSecret?: string
+  verifyToken?: string
+  pageId?: string
+  pageAccessToken?: string
+  aiProfileId?: string | null
+  isActive?: boolean
 }
 
 export interface MessengerEventsResponse {
@@ -270,6 +377,7 @@ export interface CompilePromptRequest {
   dynamicVariables?: Record<string, string>
   additionalContext?: string
   includeFewShot?: boolean
+  humanize?: boolean
 }
 
 export interface CompilePromptMessage {
@@ -305,6 +413,7 @@ export interface CompileWebhookEventPromptRequest {
   aiProfileId?: string
   dynamicVariables?: Record<string, string>
   includeFewShot?: boolean
+  humanize?: boolean
 }
 
 export interface CompileWebhookEventPromptResponse {
@@ -341,6 +450,7 @@ export interface GenerateResponseRequest {
   dynamicVariables?: Record<string, string>
   additionalContext?: string
   includeFewShot?: boolean
+  humanize?: boolean
 }
 
 export interface GenerateResponseResult {
@@ -500,11 +610,14 @@ export interface LiveAttachment {
 export interface LiveMessage {
   id: string
   createdTime: string
-  from: LiveParticipant
-  to: LiveParticipant[]
+  from: LiveParticipant & { email?: string }
+  to?: LiveParticipant[] | { data: LiveParticipant[] }
   text?: string
-  attachments?: LiveAttachment[]
-  isFromPage: boolean
+  message?: string
+  attachments?: LiveAttachment[] | { data: LiveAttachment[] }
+  isFromPage?: boolean
+  shares?: Record<string, unknown>
+  tags?: Record<string, unknown>
 }
 
 export interface LiveMessagesData {

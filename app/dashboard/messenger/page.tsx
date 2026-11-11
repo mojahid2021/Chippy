@@ -118,11 +118,22 @@ export default function MessengerWebhooksPage() {
   // Edit Modal State
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
-  const [editData, setEditData] = useState<{ id: string; name: string; isActive: boolean; aiProfileId: string }>({
+  const [editData, setEditData] = useState<{
+    id: string
+    name: string
+    isActive: boolean
+    aiProfileId: string
+    pageId?: string
+    pageAccessToken?: string
+    appSecret?: string
+  }>({
     id: "",
     name: "",
     isActive: true,
     aiProfileId: "",
+    pageId: "",
+    pageAccessToken: "",
+    appSecret: "",
   })
 
   // AI Profile Binding Modal State
@@ -137,6 +148,7 @@ export default function MessengerWebhooksPage() {
   const [compileAiProfileId, setCompileAiProfileId] = useState<string>("")
   const [compileVariables, setCompileVariables] = useState<Record<string, string>>({})
   const [compileIncludeFewShot, setCompileIncludeFewShot] = useState<boolean>(true)
+  const [compileHumanize, setCompileHumanize] = useState<boolean>(true)
   const [compileLoading, setCompileLoading] = useState(false)
   const [compiledPromptResult, setCompiledPromptResult] = useState<CompileWebhookEventPromptResponse["data"] | null>(null)
 
@@ -148,6 +160,7 @@ export default function MessengerWebhooksPage() {
   const [generateVariables, setGenerateVariables] = useState<Record<string, string>>({})
   const [generateAdditionalContext, setGenerateAdditionalContext] = useState<string>("")
   const [generateIncludeFewShot, setGenerateIncludeFewShot] = useState<boolean>(true)
+  const [generateHumanize, setGenerateHumanize] = useState<boolean>(true)
   const [generateLoading, setGenerateLoading] = useState(false)
   const [generatedResult, setGeneratedResult] = useState<GenerateResponseResult | null>(null)
 
@@ -177,6 +190,8 @@ export default function MessengerWebhooksPage() {
   const [eventsTotalPages, setEventsTotalPages] = useState(1)
   const [eventStatusFilter, setEventStatusFilter] = useState<string>("ALL")
   const [eventTypeFilter, setEventTypeFilter] = useState<string>("ALL")
+  const [eventStartDate, setEventStartDate] = useState<string>("")
+  const [eventEndDate, setEventEndDate] = useState<string>("")
 
   // Single Event Detail State
   const [detailModalOpen, setDetailModalOpen] = useState(false)
@@ -314,14 +329,19 @@ export default function MessengerWebhooksPage() {
 
     try {
       setEditLoading(true)
+      const payload: Record<string, unknown> = {
+        name: editData.name,
+        isActive: editData.isActive,
+        ...(editData.aiProfileId === "none" ? { aiProfileId: null } : editData.aiProfileId ? { aiProfileId: editData.aiProfileId } : {}),
+      }
+      if (editData.pageId?.trim()) payload.pageId = editData.pageId.trim()
+      if (editData.pageAccessToken?.trim()) payload.pageAccessToken = editData.pageAccessToken.trim()
+      if (editData.appSecret?.trim()) payload.appSecret = editData.appSecret.trim()
+
       const res = await fetch(`/api/v1/messenger/webhooks/${editData.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editData.name,
-          isActive: editData.isActive,
-          ...(editData.aiProfileId === "none" ? { aiProfileId: null } : editData.aiProfileId ? { aiProfileId: editData.aiProfileId } : {}),
-        }),
+        body: JSON.stringify(payload),
       })
 
       const json = await res.json()
@@ -401,6 +421,7 @@ export default function MessengerWebhooksPage() {
     setCompileAiProfileId(event.aiProfileId || selectedWebhook?.aiProfileId || "")
     setCompileVariables({})
     setCompileIncludeFewShot(true)
+    setCompileHumanize(true)
     setCompiledPromptResult(null)
     setCompileModalOpen(true)
   }
@@ -421,6 +442,7 @@ export default function MessengerWebhooksPage() {
             aiProfileId: compileAiProfileId || undefined,
             dynamicVariables: compileVariables,
             includeFewShot: compileIncludeFewShot,
+            humanize: compileHumanize,
           }),
         }
       )
@@ -460,6 +482,7 @@ export default function MessengerWebhooksPage() {
     setGenerateVariables(Object.fromEntries((aiProfiles.find((p) => p.id === (event.aiProfileId || selectedWebhook?.aiProfileId))?.customVariables ?? []).map((v) => [v.key, v.defaultValue])))
     setGenerateAdditionalContext("")
     setGenerateIncludeFewShot(true)
+    setGenerateHumanize(true)
     setGeneratedResult(null)
     setGenerateModalOpen(true)
   }
@@ -482,6 +505,7 @@ export default function MessengerWebhooksPage() {
             dynamicVariables: generateVariables,
             additionalContext: generateAdditionalContext || undefined,
             includeFewShot: generateIncludeFewShot,
+            humanize: generateHumanize,
           }),
         }
       )
@@ -709,6 +733,8 @@ export default function MessengerWebhooksPage() {
       const params = new URLSearchParams({ page: page.toString(), limit: "20" })
       if (eventStatusFilter !== "ALL") params.append("status", eventStatusFilter)
       if (eventTypeFilter !== "ALL") params.append("eventType", eventTypeFilter)
+      if (eventStartDate.trim()) params.append("startDate", new Date(eventStartDate).toISOString())
+      if (eventEndDate.trim()) params.append("endDate", new Date(eventEndDate).toISOString())
 
       const res = await fetch(`/api/v1/messenger/webhooks/${webhookId}/events?${params.toString()}`)
       const json: MessengerEventsResponse = await res.json()
@@ -727,7 +753,7 @@ export default function MessengerWebhooksPage() {
     } finally {
       setEventsLoading(false)
     }
-  }, [eventStatusFilter, eventTypeFilter])
+  }, [eventStatusFilter, eventTypeFilter, eventStartDate, eventEndDate])
 
   const openEventsModal = (hook: MessengerWebhook) => {
     setSelectedWebhook(hook)
@@ -766,8 +792,45 @@ export default function MessengerWebhooksPage() {
     }
   }
 
-  const eventText = (ev: MessengerWebhookEvent | null) =>
-    ev?.eventData?.message?.text || ev?.eventData?.postback?.title || ev?.eventData?.postback?.payload || null
+  const eventText = (ev: MessengerWebhookEvent | null) => {
+    if (!ev) return null
+    if (ev.eventData?.message?.text) return ev.eventData.message.text
+    if (ev.eventData?.postback?.title) return `Button tap: ${ev.eventData.postback.title}`
+    if (ev.eventData?.postback?.payload) return `Button tap: ${ev.eventData.postback.payload}`
+    if (ev.eventData?.reaction) {
+      return `Reaction: ${ev.eventData.reaction.emoji || ev.eventData.reaction.reaction || "emoji"} (${ev.eventData.reaction.action || "react"})`
+    }
+    if (ev.eventData?.edit?.text) return `Edited message: "${ev.eventData.edit.text}"`
+    if (ev.eventData?.referral) {
+      return `Referral: ${ev.eventData.referral.ref || ev.eventData.referral.source || "Ad / Link"}`
+    }
+    if (ev.eventData?.optin) {
+      return `Marketing opt-in: ${ev.eventData.optin.frequency || ev.eventData.optin.status || "Subscribed"}`
+    }
+    if (ev.eventData?.handover) {
+      return `Handover: ${ev.eventData.handover.action || "Thread control"}`
+    }
+    if (ev.eventData?.feedback) {
+      return `Feedback: ${ev.eventData.feedback.feedback || "Rating submitted"}`
+    }
+    if (ev.eventData?.call) {
+      return `Messenger call: ${ev.eventData.call.status || "Voice event"}`
+    }
+    if (ev.eventData?.message?.attachments?.length) {
+      return `Message with ${ev.eventData.message.attachments.length} attachment(s)`
+    }
+    if (ev.eventType === "message_deliveries") return "Message delivery watermark receipt"
+    if (ev.eventType === "message_reads" || ev.eventType === "messaging_seen") return "Message read receipt"
+    if (ev.eventType === "message_echoes") return "Sent message echo"
+    if (ev.eventType === "send_cart") return "Shopping cart / order submission"
+    if (ev.eventType === "messaging_policy_enforcement") return "Meta policy notification"
+    if (ev.eventType === "messaging_account_linking") return "Account linking event"
+    if (ev.eventType === "messaging_game_plays") return "Instant game event"
+    if (ev.eventType === "standby") return "Standby channel event"
+    if (ev.eventType === "group_feed") return "Facebook group feed comment"
+    if (ev.eventType === "messenger_template_status_update") return "Message template review update"
+    return null
+  }
 
   const assistantName = (id?: string | null) => aiProfiles.find((p) => p.id === id)?.name
   const defaultAssistant = aiProfiles.find((p) => p.isDefault)
@@ -883,7 +946,15 @@ export default function MessengerWebhooksPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
-                            setEditData({ id: hook.id, name: hook.name, isActive: hook.isActive, aiProfileId: hook.aiProfileId || "none" })
+                            setEditData({
+                              id: hook.id,
+                              name: hook.name,
+                              isActive: hook.isActive,
+                              aiProfileId: hook.aiProfileId || "none",
+                              pageId: hook.pageId || "",
+                              pageAccessToken: "",
+                              appSecret: "",
+                            })
                             setEditModalOpen(true)
                           }}
                         >
@@ -1015,6 +1086,23 @@ export default function MessengerWebhooksPage() {
                 {assistantOptions("none", "Use the default assistant")}
               </NativeSelect>
             </FormField>
+            <details className="group rounded-xl border">
+              <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground">
+                Update Meta credentials (optional)
+                <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="space-y-3 border-t bg-muted/40 p-4">
+                <FormField id="edit-pageId" label="Facebook Page ID" hint="Target Facebook Page ID.">
+                  <Input id="edit-pageId" placeholder="106378625516323" value={editData.pageId || ""} onChange={(e) => setEditData({ ...editData, pageId: e.target.value })} />
+                </FormField>
+                <FormField id="edit-pageAccessToken" label="Page Access Token" hint="Update if token expired.">
+                  <Input id="edit-pageAccessToken" type="password" placeholder="EAAB..." value={editData.pageAccessToken || ""} onChange={(e) => setEditData({ ...editData, pageAccessToken: e.target.value })} />
+                </FormField>
+                <FormField id="edit-appSecret" label="Meta App Secret" hint="Used for HMAC-SHA256 signature verification.">
+                  <Input id="edit-appSecret" type="password" placeholder="App Secret" value={editData.appSecret || ""} onChange={(e) => setEditData({ ...editData, appSecret: e.target.value })} />
+                </FormField>
+              </div>
+            </details>
             <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border px-4 py-3">
               <span>
                 <span className="block text-sm font-medium">Replying</span>
@@ -1104,23 +1192,83 @@ export default function MessengerWebhooksPage() {
               <h2 className="text-2xl">Message log</h2>
               <p className="mt-1 text-sm text-muted-foreground">Everything Facebook sent to {selectedWebhook?.pageName || selectedWebhook?.name}, newest first.</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <NativeSelect value={eventStatusFilter} onChange={(e) => setEventStatusFilter(e.target.value)} className="w-40" aria-label="Status">
+            <div className="flex flex-wrap items-center gap-2">
+              <NativeSelect value={eventStatusFilter} onChange={(e) => setEventStatusFilter(e.target.value)} className="w-36" aria-label="Status">
                 <option value="ALL">All results</option>
                 <option value="PROCESSED">Handled</option>
                 <option value="DUPLICATE">Duplicates</option>
                 <option value="ERROR">Failed</option>
               </NativeSelect>
-              <NativeSelect value={eventTypeFilter} onChange={(e) => setEventTypeFilter(e.target.value)} className="w-44" aria-label="Type">
-                <option value="ALL">All types</option>
-                <option value="messages">Messages</option>
-                <option value="messaging_postbacks">Button taps</option>
-                <option value="message_deliveries">Delivery receipts</option>
+              <NativeSelect value={eventTypeFilter} onChange={(e) => setEventTypeFilter(e.target.value)} className="w-48" aria-label="Type">
+                <option value="ALL">All 19 event types</option>
+                <optgroup label="Messages & Delivery">
+                  <option value="messages">messages (Inbound chat)</option>
+                  <option value="message_deliveries">message_deliveries (Receipt)</option>
+                  <option value="message_reads">message_reads (Read watermark)</option>
+                  <option value="messaging_seen">messaging_seen (Seen)</option>
+                  <option value="message_echoes">message_echoes (Page echo)</option>
+                  <option value="message_edits">message_edits (Edited msg)</option>
+                </optgroup>
+                <optgroup label="Customer Actions">
+                  <option value="messaging_postbacks">messaging_postbacks (Button/Menu)</option>
+                  <option value="message_reactions">message_reactions (Emoji)</option>
+                  <option value="messaging_referrals">messaging_referrals (Ads/m.me)</option>
+                  <option value="messaging_optins">messaging_optins (Marketing optin)</option>
+                  <option value="response_feedback">response_feedback (Feedback)</option>
+                  <option value="messaging_feedback">messaging_feedback (CSAT)</option>
+                  <option value="send_cart">send_cart (Cart submit)</option>
+                </optgroup>
+                <optgroup label="Handover & System">
+                  <option value="messaging_handovers">messaging_handovers (Thread control)</option>
+                  <option value="messaging_policy_enforcement">messaging_policy_enforcement (Policy)</option>
+                  <option value="messaging_account_linking">messaging_account_linking (Link/Unlink)</option>
+                  <option value="messaging_game_plays">messaging_game_plays (Instant game)</option>
+                  <option value="standby">standby (Secondary receiver)</option>
+                  <option value="group_feed">group_feed (Group comment)</option>
+                  <option value="calls">calls (VoIP calling)</option>
+                  <option value="messenger_template_status_update">messenger_template_status_update (Template)</option>
+                </optgroup>
               </NativeSelect>
-              <Button variant="outline" onClick={() => selectedWebhook && fetchEvents(selectedWebhook.id, 1)} disabled={eventsLoading}>
+              <div className="flex items-center gap-1">
+                <span className="text-2xs text-muted-foreground">From</span>
+                <Input
+                  type="date"
+                  value={eventStartDate}
+                  onChange={(e) => setEventStartDate(e.target.value)}
+                  className="h-8 w-32 text-xs"
+                  aria-label="Start date"
+                />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-2xs text-muted-foreground">To</span>
+                <Input
+                  type="date"
+                  value={eventEndDate}
+                  onChange={(e) => setEventEndDate(e.target.value)}
+                  className="h-8 w-32 text-xs"
+                  aria-label="End date"
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={() => selectedWebhook && fetchEvents(selectedWebhook.id, 1)} disabled={eventsLoading}>
                 <RefreshCw className={cn(eventsLoading && "animate-spin")} />
-                Apply
+                Filter
               </Button>
+              {(eventStartDate || eventEndDate || eventTypeFilter !== "ALL" || eventStatusFilter !== "ALL") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEventStatusFilter("ALL")
+                    setEventTypeFilter("ALL")
+                    setEventStartDate("")
+                    setEventEndDate("")
+                    if (selectedWebhook) fetchEvents(selectedWebhook.id, 1)
+                  }}
+                  className="text-xs"
+                >
+                  Clear
+                </Button>
+              )}
             </div>
           </div>
           <div className="custom-scrollbar flex-1 overflow-y-auto">
@@ -1242,10 +1390,19 @@ export default function MessengerWebhooksPage() {
                   {assistantOptions("", "Page’s assistant")}
                 </NativeSelect>
               </FormField>
-              <label className="flex cursor-pointer items-center justify-between gap-3 self-end rounded-lg border px-3 py-2">
-                <span className="text-sm">Include example replies</span>
-                <Switch checked={compileIncludeFewShot} onCheckedChange={setCompileIncludeFewShot} />
-              </label>
+              <div className="space-y-2">
+                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2">
+                  <span className="text-sm">Include example replies</span>
+                  <Switch checked={compileIncludeFewShot} onCheckedChange={setCompileIncludeFewShot} />
+                </label>
+                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2">
+                  <div>
+                    <span className="block text-sm">Humanize directives</span>
+                    <span className="block text-2xs text-muted-foreground">Inject natural conversational rules</span>
+                  </div>
+                  <Switch checked={compileHumanize} onCheckedChange={setCompileHumanize} />
+                </label>
+              </div>
             </div>
             <Button type="submit" disabled={compileLoading}>
               {compileLoading ? <Loader2 className="animate-spin" /> : <Zap />}
@@ -1314,6 +1471,13 @@ export default function MessengerWebhooksPage() {
               <label className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3">
                 <span className="text-sm font-medium">Include example replies</span>
                 <Switch checked={generateIncludeFewShot} onCheckedChange={setGenerateIncludeFewShot} />
+              </label>
+              <label className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3">
+                <span>
+                  <span className="block text-sm font-medium">Humanize conversation tone</span>
+                  <span className="block text-xs text-muted-foreground">Inject natural conversational human behavioral directives.</span>
+                </span>
+                <Switch checked={generateHumanize} onCheckedChange={setGenerateHumanize} />
               </label>
             </div>
             <Button type="submit" className="w-full" disabled={generateLoading}>

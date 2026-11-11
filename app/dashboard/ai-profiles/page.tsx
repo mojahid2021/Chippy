@@ -39,6 +39,7 @@ import {
   Send,
   Star,
   Trash2,
+  X,
   Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -59,6 +60,7 @@ export default function AiProfilesPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("ALL")
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL")
+  const [tagFilter, setTagFilter] = useState<string>("")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
@@ -80,6 +82,7 @@ export default function AiProfilesPage() {
   const [compilerUserPrompt, setCompilerUserPrompt] = useState("")
   const [compilerAdditionalContext, setCompilerAdditionalContext] = useState("")
   const [compilerIncludeFewShot, setCompilerIncludeFewShot] = useState(true)
+  const [compilerHumanize, setCompilerHumanize] = useState(true)
   const [compilerVariables, setCompilerVariables] = useState<Record<string, string>>({})
   const [compilerLoading, setCompilerLoading] = useState(false)
   const [compiledResult, setCompiledResult] = useState<CompilePromptResponse["data"] | null>(null)
@@ -108,6 +111,7 @@ export default function AiProfilesPage() {
       if (searchQuery.trim()) params.append("search", searchQuery.trim())
       if (categoryFilter !== "ALL") params.append("category", categoryFilter)
       if (statusFilter !== "ALL") params.append("isActive", statusFilter === "ACTIVE" ? "true" : "false")
+      if (tagFilter.trim()) params.append("tag", tagFilter.trim())
 
       const res = await fetch(`/api/v1/ai-profiles?${params.toString()}`)
       const json: AiProfilesResponse = await res.json()
@@ -132,7 +136,7 @@ export default function AiProfilesPage() {
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, categoryFilter, statusFilter])
+  }, [searchQuery, categoryFilter, statusFilter, tagFilter])
 
   useEffect(() => {
     fetchProfiles(currentPage)
@@ -270,6 +274,7 @@ export default function AiProfilesPage() {
     setCompilerUserPrompt("XL ache? Dhaka-r baire delivery charge koto?")
     setCompilerAdditionalContext("")
     setCompilerIncludeFewShot(true)
+    setCompilerHumanize(true)
 
     // Pre-populate variables from profile
     const initialVars: Record<string, string> = {}
@@ -296,6 +301,7 @@ export default function AiProfilesPage() {
           dynamicVariables: compilerVariables,
           additionalContext: compilerAdditionalContext || undefined,
           includeFewShot: compilerIncludeFewShot,
+          humanize: compilerHumanize,
         }),
       })
 
@@ -327,7 +333,7 @@ export default function AiProfilesPage() {
   }
 
   const defaultProfile = profiles.find((p) => p.isDefault)
-  const filtersOn = !!searchQuery || categoryFilter !== "ALL" || statusFilter !== "ALL"
+  const filtersOn = !!searchQuery || categoryFilter !== "ALL" || statusFilter !== "ALL" || !!tagFilter
 
   return (
     <div className="space-y-6">
@@ -377,6 +383,18 @@ export default function AiProfilesPage() {
         </div>
       </div>
 
+      {tagFilter && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Filtered by tag:</span>
+          <Badge variant="secondary" className="flex items-center gap-1 font-mono text-xs">
+            #{tagFilter}
+            <button type="button" onClick={() => setTagFilter("")} className="hover:text-foreground" aria-label="Clear tag filter">
+              <X className="size-3" />
+            </button>
+          </Badge>
+        </div>
+      )}
+
       {loading ? (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-busy>
           {[0, 1, 2].map((i) => (
@@ -412,15 +430,20 @@ export default function AiProfilesPage() {
                 )}
               >
                 <div className="flex items-start gap-3">
-                  <span
-                    className={cn(
-                      "grid size-10 shrink-0 place-items-center rounded-xl font-display text-base font-bold",
-                      profile.isDefault ? "bg-brand text-brand-foreground" : "bg-secondary"
-                    )}
-                    aria-hidden
-                  >
-                    {profile.name.slice(0, 1).toUpperCase()}
-                  </span>
+                  {profile.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={profile.avatar} alt="" className="size-10 shrink-0 rounded-xl border object-cover" />
+                  ) : (
+                    <span
+                      className={cn(
+                        "grid size-10 shrink-0 place-items-center rounded-xl font-display text-base font-bold",
+                        profile.isDefault ? "bg-brand text-brand-foreground" : "bg-secondary"
+                      )}
+                      aria-hidden
+                    >
+                      {profile.name.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
                   <div className="min-w-0 flex-1">
                     <Link href={`/dashboard/ai-profiles/${profile.id}`} className="block max-w-full text-left after:absolute after:inset-0 after:rounded-2xl">
                       <h3 className="truncate text-base">{profile.name}</h3>
@@ -466,6 +489,27 @@ export default function AiProfilesPage() {
                   {profile.tone && <Badge variant="outline" className="capitalize">{profile.tone}</Badge>}
                   <Badge variant="outline">{profile.modelConfig?.modelName || "gpt-4o"}</Badge>
                 </div>
+
+                {profile.tags && profile.tags.length > 0 && (
+                  <div className="relative z-10 mt-2 flex flex-wrap gap-1">
+                    {profile.tags.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setTagFilter(tagFilter === t ? "" : t)
+                        }}
+                        className={cn(
+                          "rounded-md border px-1.5 py-0.5 text-2xs font-medium transition-colors",
+                          tagFilter === t ? "border-ink bg-ink text-white" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        )}
+                      >
+                        #{t}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 <dl className="mt-4 grid grid-cols-3 gap-2 border-t pt-3 text-center">
                   {[
@@ -524,8 +568,9 @@ export default function AiProfilesPage() {
               <Field label="Extra context" hint="Anything the bot would know about this chat, like the product they tapped.">
                 <Input value={compilerAdditionalContext} onChange={(e) => setCompilerAdditionalContext(e.target.value)} />
               </Field>
-              <div className="rounded-xl border">
+              <div className="divide-y rounded-xl border">
                 <ToggleRow label="Include example replies" hint="Adds your examples before the message." checked={compilerIncludeFewShot} onChange={setCompilerIncludeFewShot} />
+                <ToggleRow label="Humanize behavioral directives" hint="Injects natural conversational directives into instructions." checked={compilerHumanize} onChange={setCompilerHumanize} />
               </div>
               <div className="space-y-2">
                 <p className="text-sm font-medium">Variables</p>

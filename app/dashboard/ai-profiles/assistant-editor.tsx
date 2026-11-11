@@ -61,6 +61,7 @@ type FormData = {
   name: string
   role: string
   description: string
+  avatar: string
   category: string
   tone: string
   style: string
@@ -81,13 +82,24 @@ type FormData = {
   isDefault: boolean
 }
 
-const DEFAULT_MODEL: ModelConfig = { provider: "openai", modelName: "gpt-4o", temperature: 0.7, topP: 1.0, maxTokens: 2048, responseFormat: "text" }
+const DEFAULT_MODEL: ModelConfig = {
+  provider: "openai",
+  modelName: "gpt-4o",
+  temperature: 0.7,
+  topP: 1.0,
+  maxTokens: 2048,
+  frequencyPenalty: 0,
+  presencePenalty: 0,
+  stopSequences: [],
+  responseFormat: "text",
+}
 
 // A ready-to-edit starter for a Bangladeshi Messenger shop, so a new assistant works on first save.
 const STARTER: FormData = {
   name: "",
   role: "",
   description: "",
+  avatar: "",
   category: "sales",
   tone: "friendly",
   style: "conversational",
@@ -127,6 +139,7 @@ const fromProfile = (data: AiProfile): FormData => ({
   name: data.name || "",
   role: data.role || "",
   description: data.description || "",
+  avatar: data.avatar || "",
   category: data.category || "customer-support",
   tone: data.tone || "empathetic",
   style: data.style || "conversational",
@@ -141,7 +154,7 @@ const fromProfile = (data: AiProfile): FormData => ({
   referenceUrls: data.referenceUrls || [],
   customVariables: data.customVariables || [],
   fewShotExamples: data.fewShotExamples || [],
-  modelConfig: data.modelConfig || DEFAULT_MODEL,
+  modelConfig: { ...DEFAULT_MODEL, ...(data.modelConfig || {}) },
   tags: data.tags || [],
   isActive: data.isActive ?? true,
   isDefault: data.isDefault ?? false,
@@ -376,10 +389,41 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
             <Field label="Description">
               <Textarea rows={2} placeholder="What this assistant is for, in a sentence." value={formData.description} onChange={(e) => patch({ description: e.target.value })} />
             </Field>
-            <Field label="Category">
-              <NativeSelect value={formData.category} onChange={(e) => patch({ category: e.target.value })}>
-                {CATEGORIES.filter((c) => c.value !== "ALL").map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </NativeSelect>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Category">
+                <NativeSelect value={formData.category} onChange={(e) => patch({ category: e.target.value })}>
+                  {CATEGORIES.filter((c) => c.value !== "ALL").map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </NativeSelect>
+              </Field>
+              <Field label="Avatar URL" hint="Optional icon image link.">
+                <Input placeholder="https://example.com/avatar.png" value={formData.avatar} onChange={(e) => patch({ avatar: e.target.value })} />
+              </Field>
+            </div>
+            <Field label="Tags" hint="Press Enter or comma to add tags (e.g. concierge, sales).">
+              <div className="flex flex-wrap items-center gap-1.5 rounded-xl border bg-card p-2">
+                {formData.tags.map((tag, idx) => (
+                  <span key={idx} className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium">
+                    {tag}
+                    <button type="button" onClick={() => patch({ tags: formData.tags.filter((_, j) => j !== idx) })} className="hover:text-destructive" aria-label={`Remove tag ${tag}`}>
+                      <Trash2 className="size-3" />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  placeholder={formData.tags.length === 0 ? "Type a tag and press Enter" : "Add another tag..."}
+                  className="flex-1 bg-transparent px-1.5 py-0.5 text-sm outline-none placeholder:text-muted-foreground"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === ",") {
+                      e.preventDefault()
+                      const val = e.currentTarget.value.trim().toLowerCase().replace(/^,+|,+$/g, "")
+                      if (val && !formData.tags.includes(val)) {
+                        patch({ tags: [...formData.tags, val] })
+                        e.currentTarget.value = ""
+                      }
+                    }
+                  }}
+                />
+              </div>
             </Field>
             <div className="-mx-5 -mb-5 divide-y border-t bg-muted/40 [&>label]:px-5">
               <ToggleRow label="Turned on" hint="When off, this assistant never replies." checked={formData.isActive} onChange={(v) => patch({ isActive: v })} />
@@ -505,6 +549,18 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
                 </div>
                 <Textarea rows={2} placeholder="Inside Dhaka ৳60, outside Dhaka ৳120. 2–4 days." value={snip.content} aria-label="Fact details" className="bg-card"
                   onChange={(e) => patch({ knowledgeSnippets: formData.knowledgeSnippets.map((s, j) => (j === i ? { ...s, content: e.target.value } : s)) })} />
+                <Input
+                  placeholder="Tags (comma-separated, e.g. policy, delivery)"
+                  value={(snip.tags || []).join(", ")}
+                  aria-label="Fact tags"
+                  className="bg-card text-xs font-mono"
+                  onChange={(e) => {
+                    const tags = e.target.value.split(",").map((t) => t.trim()).filter(Boolean)
+                    patch({
+                      knowledgeSnippets: formData.knowledgeSnippets.map((s, j) => (j === i ? { ...s, tags } : s)),
+                    })
+                  }}
+                />
               </div>
             ))}
 
@@ -620,6 +676,36 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
                     <option value="json_object">JSON</option>
                   </NativeSelect>
                 </Field>
+                <Field label="Frequency penalty" hint="Reduces token repetition (-2.0 to 2.0).">
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="-2"
+                    max="2"
+                    value={formData.modelConfig.frequencyPenalty ?? 0}
+                    onChange={(e) => patchModel({ frequencyPenalty: parseFloat(e.target.value) || 0 })}
+                  />
+                </Field>
+                <Field label="Presence penalty" hint="Encourages new topics (-2.0 to 2.0).">
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="-2"
+                    max="2"
+                    value={formData.modelConfig.presencePenalty ?? 0}
+                    onChange={(e) => patchModel({ presencePenalty: parseFloat(e.target.value) || 0 })}
+                  />
+                </Field>
+                <Field label="Stop sequences" hint="Halts reply (comma-separated).">
+                  <Input
+                    placeholder="e.g. User:, \n\n"
+                    value={(formData.modelConfig.stopSequences || []).join(", ")}
+                    onChange={(e) => {
+                      const seqs = e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
+                      patchModel({ stopSequences: seqs })
+                    }}
+                  />
+                </Field>
               </div>
             </details>
           </Section>
@@ -658,7 +744,12 @@ function Preview({ form }: { form: FormData }) {
       <p className="px-1 text-xs font-medium text-muted-foreground">Preview in Messenger</p>
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="flex items-center gap-2.5 border-b px-4 py-3">
-          <span className="grid size-8 place-items-center rounded-full bg-brand font-display text-sm font-bold">{name[0].toUpperCase()}</span>
+          {form.avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={form.avatar} alt="" className="size-8 rounded-full border object-cover" />
+          ) : (
+            <span className="grid size-8 place-items-center rounded-full bg-brand font-display text-sm font-bold">{name[0].toUpperCase()}</span>
+          )}
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{name}</p>
             <p className="flex items-center gap-1 text-2xs text-muted-foreground">

@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch"
 import { NativeSelect } from "@/components/ui/native-select"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
 import {
   ArrowLeft,
   Check,
@@ -19,6 +21,7 @@ import {
   ExternalLink,
   FileText,
   Inbox,
+  Info,
   Loader2,
   MessageSquareDashed,
   MousePointerClick,
@@ -27,6 +30,7 @@ import {
   RefreshCw,
   Search,
   Send,
+  Sparkles,
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -35,8 +39,11 @@ import type {
   MessengerWebhook,
   LiveConversation,
   LiveConversationsResponse,
+  LiveConversationDetailResponse,
   LiveMessage,
   LiveMessagesResponse,
+  LiveMessageDetailResponse,
+  LiveAttachment,
   LiveCustomerProfile,
   LiveCustomerProfileResponse,
   LiveQuickReply,
@@ -107,6 +114,13 @@ const replyWindowLeft = (messages: LiveMessage[], now: number) => {
 const formatLeft = (ms: number) =>
   ms >= HOUR ? `${Math.floor(ms / HOUR)}h left to reply` : `${Math.max(1, Math.ceil(ms / 6e4))}m left to reply`
 
+function extractAttachments(attachments?: LiveAttachment[] | { data: LiveAttachment[] }): LiveAttachment[] {
+  if (!attachments) return []
+  if (Array.isArray(attachments)) return attachments
+  if (Array.isArray(attachments.data)) return attachments.data
+  return []
+}
+
 function Person({ name, src, className }: { name: string; src?: string | null; className?: string }) {
   return (
     <Avatar className={cn("size-9", className)}>
@@ -130,11 +144,20 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
   const [selectedThread, setSelectedThread] = useState<LiveConversation | null>(null)
   const [messages, setMessages] = useState<LiveMessage[]>([])
   const [messagesLoading, setMessagesLoading] = useState(false)
+  const [messagesPaging, setMessagesPaging] = useState<{ before?: string | null; after?: string | null; hasPrevious?: boolean; hasNext?: boolean }>({})
+  const [loadingOlder, setLoadingOlder] = useState(false)
+  const isPrependingRef = useRef(false)
+  const [conversationRefreshing, setConversationRefreshing] = useState(false)
 
   const [customerProfile, setCustomerProfile] = useState<LiveCustomerProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileOpen, setProfileOpen] = useState(true)
   const [profileSheetOpen, setProfileSheetOpen] = useState(false)
+
+  const [inspectingMessageId, setInspectingMessageId] = useState<string | null>(null)
+  const [inspectedMessage, setInspectedMessage] = useState<LiveMessage | null>(null)
+  const [inspectLoading, setInspectLoading] = useState(false)
+  const [inspectCopied, setInspectCopied] = useState(false)
 
   const [composerMode, setComposerMode] = useState<"text" | "attachment">("text")
   const [messageText, setMessageText] = useState("")
@@ -149,6 +172,7 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
   const [sendingMessage, setSendingMessage] = useState(false)
   const [senderActionLoading, setSenderActionLoading] = useState(false)
   const [typingActive, setTypingActive] = useState(false)
+  const [aiDraftLoading, setAiDraftLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const threadRef = useRef<HTMLDivElement>(null)
@@ -190,27 +214,199 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
   )
 
   const fetchMessages = useCallback(
-    async (conversationId: string) => {
+    async (conversationId: string, silent = false) => {
       try {
-        setMessagesLoading(true)
+        if (!silent) setMessagesLoading(true)
         const res = await fetch(
           `/api/v1/messenger/webhooks/${webhook.id}/live/conversations/${encodeURIComponent(conversationId)}/messages?limit=50`
         )
         const json: LiveMessagesResponse = await res.json()
         if (res.ok && json.data) {
           // Graph returns newest first; show oldest at the top.
-          setMessages([...(json.data.messages || [])].sort((a, b) => +new Date(a.createdTime) - +new Date(b.createdTime)))
-        } else {
+          const sorted = [...(json.data.messages || [])].sort((a, b) => +new Date(a.createdTime) - +new Date(b.createdTime))
+          if (silent) {
+            setMessages((prev) => {
+              const existingIds = new Set(prev.map((m) => m.id))
+              const newIncoming = sorted.filter((m) => !existingIds.has(m.id))
+              return newIncoming.length > 0 ? [...prev, ...newIncoming] : prev
+            })
+          } else {
+            setMessages(sorted)
+          }
+          setMessagesPaging({
+            before: json.data.paging?.cursors?.before || null,
+            after: json.data.paging?.cursors?.after || null,
+            hasPrevious: !!json.data.paging?.hasPrevious,
+            hasNext: !!json.data.paging?.hasNext,
+          })
+        } else if (!silent) {
           toast({ variant: "destructive", title: "Couldn’t load messages", description: apiMessage(json) || "Try opening the chat again." })
         }
       } catch {
-        toast({ variant: "destructive", title: "Couldn’t load messages", description: "Check your connection and try again." })
+        if (!silent) {
+          toast({ variant: "destructive", title: "Couldn’t load messages", description: "Check your connection and try again." })
+        }
       } finally {
-        setMessagesLoading(false)
+        if (!silent) setMessagesLoading(false)
       }
     },
     [webhook.id]
   )
+
+  const fetchOlderMessages = async () => {
+    if (!selectedThread || !messagesPaging.before || loadingOlder) return
+    try {
+      setLoadingOlder(true)
+      isPrependingRef.current = true
+      const scrollContainer = threadRef.current
+      const prevScrollHeight = scrollContainer?.scrollHeight || 0
+      const prevScrollTop = scrollContainer?.scrollTop || 0
+
+      const res = await fetch(
+        `/api/v1/messenger/webhooks/${webhook.id}/live/conversations/${encodeURIComponent(selectedThread.id)}/messages?limit=50&before=${encodeURIComponent(messagesPaging.before)}`
+      )
+      const json: LiveMessagesResponse = await res.json()
+      if (res.ok && json.data) {
+        const olderSorted = [...(json.data.messages || [])].sort((a, b) => +new Date(a.createdTime) - +new Date(b.createdTime))
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id))
+          const uniqueOlder = olderSorted.filter((m) => !existingIds.has(m.id))
+          return [...uniqueOlder, ...prev]
+        })
+        setMessagesPaging((prevPaging) => ({
+          ...prevPaging,
+          before: json.data.paging?.cursors?.before || null,
+          hasPrevious: !!json.data.paging?.hasPrevious,
+        }))
+        requestAnimationFrame(() => {
+          if (scrollContainer) {
+            const newScrollHeight = scrollContainer.scrollHeight
+            scrollContainer.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight)
+          }
+          isPrependingRef.current = false
+        })
+      } else {
+        isPrependingRef.current = false
+        toast({ variant: "destructive", title: "Couldn’t load older messages", description: apiMessage(json) || "Try again." })
+      }
+    } catch {
+      isPrependingRef.current = false
+      toast({ variant: "destructive", title: "Couldn’t load older messages", description: "Check connection." })
+    } finally {
+      setLoadingOlder(false)
+    }
+  }
+
+  const handleRefreshConversation = async () => {
+    if (!selectedThread) return
+    try {
+      setConversationRefreshing(true)
+      const res = await fetch(`/api/v1/messenger/webhooks/${webhook.id}/live/conversations/${encodeURIComponent(selectedThread.id)}`)
+      const json: LiveConversationDetailResponse = await res.json()
+      if (res.ok && json.data) {
+        setSelectedThread(json.data)
+        setConversations((prev) => prev.map((c) => (c.id === json.data.id ? json.data : c)))
+        await fetchMessages(json.data.id, true)
+        const psid = psidOf(json.data)
+        if (psid) void fetchCustomerProfile(psid)
+        toast({ title: "Conversation updated", description: "Thread details and latest messages refreshed." })
+      } else {
+        toast({ variant: "destructive", title: "Couldn’t refresh conversation", description: apiMessage(json) || "Failed" })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Couldn’t refresh conversation", description: "Check connection." })
+    } finally {
+      setConversationRefreshing(false)
+    }
+  }
+
+  const handleInspectMessage = async (messageId: string) => {
+    setInspectingMessageId(messageId)
+    setInspectedMessage(null)
+    setInspectLoading(true)
+    try {
+      const res = await fetch(`/api/v1/messenger/webhooks/${webhook.id}/live/messages/${encodeURIComponent(messageId)}`)
+      const json: LiveMessageDetailResponse = await res.json()
+      if (res.ok && json.data) {
+        setInspectedMessage(json.data)
+      } else {
+        toast({ variant: "destructive", title: "Couldn’t load message details", description: apiMessage(json) || "Not found" })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Couldn’t load message details", description: "Check connection." })
+    } finally {
+      setInspectLoading(false)
+    }
+  }
+
+  const handleAiDraft = async () => {
+    if (!selectedThread || !activePsid) return
+    try {
+      setAiDraftLoading(true)
+      // 1. Check for the most recent webhook audit event from this sender
+      const evRes = await fetch(`/api/v1/messenger/webhooks/${webhook.id}/events?senderId=${encodeURIComponent(activePsid)}&limit=1`)
+      const evJson = await evRes.json()
+      const latestEvent = evJson.data?.events?.[0]
+
+      if (latestEvent?.id) {
+        const genRes = await fetch(`/api/v1/messenger/webhooks/${webhook.id}/events/${latestEvent.id}/generate-response`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sendToUser: false,
+            humanize: true,
+            includeFewShot: true,
+          }),
+        })
+        const genJson = await genRes.json()
+        if (genRes.ok && genJson.data?.generatedResponse) {
+          setMessageText(genJson.data.generatedResponse)
+          setComposerMode("text")
+          composerRef.current?.focus()
+          toast({
+            variant: "success",
+            title: "AI draft generated",
+            description: `Drafted via ${genJson.data.modelName || "AI"} (${(genJson.data.latencyMs / 1000).toFixed(1)}s). Review and edit before sending.`,
+          })
+          return
+        }
+      }
+
+      // Fallback: If no event was logged yet, check if there's an aiProfile bound or available
+      const profileId = webhook.aiProfileId
+      if (profileId) {
+        const customerMsgs = messages.filter((m) => !m.isFromPage)
+        const lastMsg = customerMsgs[customerMsgs.length - 1]?.text || customerMsgs[customerMsgs.length - 1]?.message || "Hello"
+        const compRes = await fetch(`/api/v1/ai-profiles/${profileId}/compile-prompt`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: lastMsg }],
+            humanize: true,
+            includeFewShot: true,
+          }),
+        })
+        const compJson = await compRes.json()
+        if (compRes.ok && compJson.data?.messages) {
+          toast({
+            title: "AI instructions active",
+            description: "No recent webhook event to auto-generate response, but assistant prompt is compiled.",
+          })
+          return
+        }
+      }
+
+      toast({
+        variant: "warning",
+        title: "No recent customer event",
+        description: "No incoming customer message event was recorded to generate an AI draft from.",
+      })
+    } catch {
+      toast({ variant: "destructive", title: "AI Draft failed", description: "Failed to generate reply draft. Try again." })
+    } finally {
+      setAiDraftLoading(false)
+    }
+  }
 
   const fetchCustomerProfile = useCallback(
     async (psid: string) => {
@@ -240,10 +436,20 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
   }, [selectedThread, fetchMessages, fetchCustomerProfile, psidOf])
 
   useEffect(() => {
+    if (isPrependingRef.current) return
     // Scroll only the thread; scrollIntoView would also scroll the page around it.
     const el = threadRef.current
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
   }, [messages, typingActive])
+
+  // Silent live polling every 20s when a thread is open
+  useEffect(() => {
+    if (!selectedThread) return
+    const interval = setInterval(() => {
+      void fetchMessages(selectedThread.id, true)
+    }, 20_000)
+    return () => clearInterval(interval)
+  }, [selectedThread, fetchMessages])
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60_000)
@@ -551,6 +757,16 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
                 <p className="truncate text-sm font-semibold">{activeName}</p>
                 <ReplyWindow left={windowLeft} />
               </div>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleRefreshConversation}
+                disabled={conversationRefreshing}
+                aria-label="Refresh conversation"
+                title="Refresh conversation"
+              >
+                <RefreshCw className={cn("size-3.5", conversationRefreshing && "animate-spin")} />
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => handleSenderAction("mark_seen")} disabled={senderActionLoading} aria-label="Mark as seen">
                 <CheckCheck className="size-4" /><span className="hidden sm:inline">Mark seen</span>
               </Button>
@@ -581,13 +797,39 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
                 <p className="m-auto text-sm text-muted-foreground">No messages in this chat yet.</p>
               ) : (
                 <div className="mx-auto mt-auto flex w-full max-w-3xl flex-col gap-0.5">
+                  {(messagesPaging.hasPrevious || messagesPaging.before) && (
+                    <div className="flex justify-center pb-3 pt-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchOlderMessages}
+                        disabled={loadingOlder}
+                        className="h-7 rounded-full border-border/80 bg-card/80 px-3 text-2xs font-medium text-muted-foreground shadow-xs hover:bg-card hover:text-foreground"
+                      >
+                        {loadingOlder ? (
+                          <>
+                            <Loader2 className="mr-1.5 size-3 animate-spin" />
+                            Loading older messages…
+                          </>
+                        ) : (
+                          <>
+                            <ChevronLeft className="mr-1 size-3 rotate-90" />
+                            Load older messages
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                   {messages.map((msg, i) => {
-                    const mine = msg.isFromPage
+                    const mine = !!msg.isFromPage
                     const prev = messages[i - 1]
                     const next = messages[i + 1]
                     const newDay = !prev || !sameDay(new Date(prev.createdTime), new Date(msg.createdTime))
-                    const first = newDay || prev?.isFromPage !== mine
-                    const last = !next || next.isFromPage !== mine || !sameDay(new Date(next.createdTime), new Date(msg.createdTime))
+                    const first = newDay || prev?.isFromPage !== msg.isFromPage
+                    const last = !next || next.isFromPage !== msg.isFromPage || !sameDay(new Date(next.createdTime), new Date(msg.createdTime))
+                    const atts = extractAttachments(msg.attachments)
+                    const body = msg.text || msg.message
                     return (
                       <Fragment key={msg.id}>
                         {newDay && (
@@ -597,8 +839,8 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
                             <span className="h-px flex-1 bg-border" />
                           </div>
                         )}
-                        <div className={cn("flex max-w-[min(78%,36rem)] flex-col", mine ? "ml-auto items-end" : "items-start", first && !newDay && "mt-3")}>
-                          {(msg.text || !msg.attachments?.length) && (
+                        <div className={cn("group relative flex max-w-[min(78%,36rem)] flex-col", mine ? "ml-auto items-end" : "items-start", first && !newDay && "mt-3")}>
+                          {(body || atts.length === 0) && (
                             <p
                               title={new Date(msg.createdTime).toLocaleString()}
                               className={cn(
@@ -608,15 +850,26 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
                                 mine ? !last && "rounded-br-md" : !last && "rounded-bl-md"
                               )}
                             >
-                              {msg.text || <span className="italic opacity-60">Unsupported message</span>}
+                              {body || <span className="italic opacity-60">Unsupported message</span>}
                             </p>
                           )}
-                          {msg.attachments?.map((att, idx) => <AttachmentView key={idx} att={att} />)}
-                          {last && (
-                            <span className="mt-1 px-1 text-2xs tabular-nums text-muted-foreground">
-                              {mine ? `${pageName} · ` : ""}{timeOnly(msg.createdTime)}
-                            </span>
-                          )}
+                          {atts.map((att, idx) => <AttachmentView key={idx} att={att} />)}
+                          <div className={cn("mt-1 flex items-center gap-1.5 px-1 text-2xs tabular-nums text-muted-foreground", mine ? "justify-end" : "justify-start")}>
+                            {last && (
+                              <span>
+                                {mine ? `${pageName} · ` : ""}{timeOnly(msg.createdTime)}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleInspectMessage(msg.id)}
+                              className="rounded p-0.5 opacity-0 transition-opacity hover:bg-card hover:text-foreground group-hover:opacity-80"
+                              title="Inspect message metadata"
+                              aria-label="Inspect message metadata"
+                            >
+                              <Info className="size-3" />
+                            </button>
+                          </div>
                         </div>
                       </Fragment>
                     )
@@ -725,6 +978,18 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
                         <MousePointerClick className="size-3.5" />Add button
                       </Button>
                     )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAiDraft}
+                      disabled={aiDraftLoading || !selectedThread}
+                      className="gap-1.5 text-xs text-brand hover:bg-brand/10"
+                      title="Generate an AI draft reply based on the customer's inquiry"
+                    >
+                      {aiDraftLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                      <span className="font-medium">AI Draft</span>
+                    </Button>
                     <span className="ml-auto hidden text-2xs text-muted-foreground md:inline">
                       {composerMode === "text" ? "Enter to send, Shift + Enter for a new line" : "Customers see the file right in Messenger"}
                     </span>
@@ -751,6 +1016,139 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
           {details}
         </SheetContent>
       </Sheet>
+
+      {/* ── Message Inspector Dialog ────────────────────────── */}
+      <Dialog open={!!inspectingMessageId} onOpenChange={(open) => { if (!open) setInspectingMessageId(null) }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="size-4 text-brand" />
+              Message Inspector
+            </DialogTitle>
+            <DialogDescription>
+              Detailed Meta Graph API message metadata and attachment payload.
+            </DialogDescription>
+          </DialogHeader>
+
+          {inspectLoading ? (
+            <div className="flex h-48 items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              Fetching message metadata from Meta Graph API…
+            </div>
+          ) : inspectedMessage ? (
+            <div className="custom-scrollbar max-h-[65vh] space-y-4 overflow-y-auto">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border bg-secondary/30 p-3">
+                  <p className="text-2xs text-muted-foreground">Message ID</p>
+                  <code className="block truncate font-mono text-xs">{inspectedMessage.id}</code>
+                </div>
+                <div className="rounded-xl border bg-secondary/30 p-3">
+                  <p className="text-2xs text-muted-foreground">Created Time</p>
+                  <p className="text-xs font-medium">{new Date(inspectedMessage.createdTime).toLocaleString()}</p>
+                  <p className="font-mono text-2xs text-muted-foreground">{inspectedMessage.createdTime}</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border divide-y text-xs">
+                <div className="flex justify-between items-center p-3">
+                  <span className="text-muted-foreground">From</span>
+                  <div className="text-right">
+                    <span className="font-medium">{inspectedMessage.from?.name || "Unknown"}</span>
+                    <span className="block font-mono text-2xs text-muted-foreground">{inspectedMessage.from?.id}</span>
+                  </div>
+                </div>
+                {inspectedMessage.to && (
+                  <div className="flex justify-between items-center p-3">
+                    <span className="text-muted-foreground">To</span>
+                    <div className="text-right">
+                      {Array.isArray(inspectedMessage.to) ? (
+                        inspectedMessage.to.map((t, idx) => (
+                          <div key={idx}>
+                            <span className="font-medium">{t.name}</span>
+                            <span className="block font-mono text-2xs text-muted-foreground">{t.id}</span>
+                          </div>
+                        ))
+                      ) : Array.isArray(inspectedMessage.to.data) ? (
+                        inspectedMessage.to.data.map((t, idx) => (
+                          <div key={idx}>
+                            <span className="font-medium">{t.name}</span>
+                            <span className="block font-mono text-2xs text-muted-foreground">{t.id}</span>
+                          </div>
+                        ))
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+                {(inspectedMessage.text || inspectedMessage.message) && (
+                  <div className="p-3">
+                    <span className="text-muted-foreground block mb-1">Message Text</span>
+                    <p className="whitespace-pre-wrap rounded-lg bg-muted p-2 font-sans text-sm">
+                      {inspectedMessage.text || inspectedMessage.message}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {extractAttachments(inspectedMessage.attachments).length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Attachments ({extractAttachments(inspectedMessage.attachments).length})</p>
+                  {extractAttachments(inspectedMessage.attachments).map((att, idx) => (
+                    <div key={idx} className="rounded-xl border p-3 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{att.name || "Attachment"}</span>
+                        {att.mimeType && <Badge variant="outline">{att.mimeType}</Badge>}
+                      </div>
+                      {att.size && <p className="text-2xs text-muted-foreground">Size: {Math.round(att.size / 1024)} KB ({att.size.toLocaleString()} bytes)</p>}
+                      {att.imageData && (
+                        <p className="text-2xs text-muted-foreground">
+                          Dimensions: {att.imageData.maxWidth || "—"} × {att.imageData.maxHeight || "—"}
+                        </p>
+                      )}
+                      {(att.fileUrl || att.imageData?.url) && (
+                        <a
+                          href={att.imageData?.url || att.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-2xs text-brand hover:underline"
+                        >
+                          <ExternalLink className="size-3" /> View original asset
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <details className="rounded-xl border bg-muted/40 p-3 text-xs">
+                <summary className="cursor-pointer font-medium text-muted-foreground hover:text-foreground">
+                  View raw Graph payload
+                </summary>
+                <div className="relative mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="absolute right-2 top-2 h-6 px-2 text-2xs"
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(inspectedMessage, null, 2))
+                      setInspectCopied(true)
+                      setTimeout(() => setInspectCopied(false), 1500)
+                    }}
+                  >
+                    {inspectCopied ? <Check className="size-3" /> : <Copy className="size-3" />}
+                    {inspectCopied ? "Copied" : "Copy"}
+                  </Button>
+                  <pre className="max-h-56 overflow-auto rounded-lg bg-card p-3 font-mono text-2xs">
+                    {JSON.stringify(inspectedMessage, null, 2)}
+                  </pre>
+                </div>
+              </details>
+            </div>
+          ) : (
+            <p className="py-8 text-center text-sm text-muted-foreground">No message details found.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -782,7 +1180,7 @@ function ReplyWindow({ left }: { left: number | null }) {
   )
 }
 
-function AttachmentView({ att }: { att: NonNullable<LiveMessage["attachments"]>[number] }) {
+function AttachmentView({ att }: { att: LiveAttachment }) {
   const imgUrl = att.imageData?.url || (att.mimeType?.startsWith("image/") ? att.fileUrl : undefined)
   if (imgUrl) {
     return (
