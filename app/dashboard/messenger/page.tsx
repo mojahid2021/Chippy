@@ -55,6 +55,7 @@ import type {
   ConversationHistoryResponse,
   SendManualMessageResponse,
 } from "@/lib/types/woombat"
+import { LiveMessengerSuiteModal } from "@/components/messenger/LiveMessengerSuiteModal"
 
 function getDisplayWebhookUrl(webhookUrl?: string | null, userId?: string, webhookId?: string): string {
   // If the backend already provided a complete URL (e.g. http://localhost:3001/api/... or https://api.woombat.com/...)
@@ -148,6 +149,16 @@ export default function MessengerWebhooksPage() {
   const [, setConversationTotalPages] = useState(1)
   const [operatorMessageText, setOperatorMessageText] = useState<string>("")
   const [operatorSending, setOperatorSending] = useState(false)
+
+  // Live Meta Messenger Suite State (Section 6)
+  const [liveSuiteOpen, setLiveSuiteOpen] = useState(false)
+  const [liveSuiteWebhook, setLiveSuiteWebhook] = useState<MessengerWebhook | null>(null)
+
+  const openLiveSuite = (hook: MessengerWebhook) => {
+    setSelectedWebhook(hook)
+    setLiveSuiteWebhook(hook)
+    setLiveSuiteOpen(true)
+  }
 
   // Delete State
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -846,6 +857,14 @@ export default function MessengerWebhooksPage() {
 
                   <div className="flex items-center gap-1.5 self-end sm:self-center">
                     <Button
+                      size="sm"
+                      onClick={() => openLiveSuite(hook)}
+                      className="text-xs h-7 px-2.5 flex items-center gap-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <MessageCircle className="h-3 w-3" />
+                      <span>Live Suite</span>
+                    </Button>
+                    <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openEventsModal(hook)}
@@ -1085,7 +1104,7 @@ export default function MessengerWebhooksPage() {
                         variant="outline"
                         onClick={() => handleSyncPage(hook)}
                         disabled={isSyncing}
-                        className="text-xs h-7 w-full flex items-center justify-center gap-1.5 bg-card"
+                        className="text-xs h-7 flex-1 flex items-center justify-center gap-1.5 bg-card"
                       >
                         {isSyncing ? (
                           <>
@@ -1095,9 +1114,17 @@ export default function MessengerWebhooksPage() {
                         ) : (
                           <>
                             <RefreshCw className="h-3 w-3 text-primary" />
-                            <span>Sync Facebook Page & Subscribe</span>
+                            <span>Sync Facebook Page</span>
                           </>
                         )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => openLiveSuite(hook)}
+                        className="text-xs h-7 px-3 flex items-center justify-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        <MessageCircle className="h-3 w-3" />
+                        <span>Live Inbox</span>
                       </Button>
                     </div>
                   </div>
@@ -2145,6 +2172,13 @@ export default function MessengerWebhooksPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Meta Facebook Messenger Graph API Live Client Suite Modal (Section 6) */}
+      <LiveMessengerSuiteModal
+        open={liveSuiteOpen}
+        onOpenChange={setLiveSuiteOpen}
+        webhook={liveSuiteWebhook}
+      />
     </div>
   )
 }

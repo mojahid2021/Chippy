@@ -412,4 +412,176 @@ export interface SendManualMessageResponse {
   }
 }
 
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Section 6: Live Meta Facebook Messenger Graph API Client (Custom Messenger Suite)
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+export type LiveConversationFolder = 'inbox' | 'other' | 'page_done' | 'spam'
+export type LiveConversationPlatform = 'messenger' | 'instagram'
+export type LiveSenderActionType = 'typing_on' | 'typing_off' | 'mark_seen'
+export type LiveAttachmentType = 'image' | 'audio' | 'video' | 'file'
+
+export interface LiveParticipant {
+  id: string
+  name: string
+  email?: string
+}
+
+export interface LiveCustomer {
+  id: string
+  name: string
+  email?: string
+}
+
+export interface LiveConversation {
+  id: string
+  updatedTime: string
+  link?: string
+  messageCount: number
+  unreadCount: number
+  snippet: string
+  customer?: LiveCustomer | null
+  participants: LiveParticipant[]
+  senders?: LiveParticipant[]
+}
+
+export interface LivePagingCursors {
+  before?: string | null
+  after?: string | null
+}
+
+export interface LivePaging {
+  cursors?: LivePagingCursors | null
+  next?: string | null
+  previous?: string | null
+  hasNext?: boolean
+  hasPrevious?: boolean
+}
+
+export interface LiveConversationsData {
+  conversations: LiveConversation[]
+  paging?: LivePaging
+}
+
+export interface LiveConversationsResponse {
+  message: string
+  data: LiveConversationsData
+}
+
+export interface LiveConversationDetailResponse {
+  message: string
+  data: LiveConversation
+}
+
+export interface LiveAttachmentImageData {
+  url: string
+  previewUrl?: string
+  maxWidth?: number
+  maxHeight?: number
+}
+
+export interface LiveAttachment {
+  id?: string
+  mimeType?: string
+  name?: string
+  size?: number
+  fileUrl?: string
+  imageData?: LiveAttachmentImageData
+  videoData?: {
+    url: string
+    previewUrl?: string
+    width?: number
+    height?: number
+  }
+}
+
+export interface LiveMessage {
+  id: string
+  createdTime: string
+  from: LiveParticipant
+  to: LiveParticipant[]
+  text?: string
+  attachments?: LiveAttachment[]
+  isFromPage: boolean
+}
+
+export interface LiveMessagesData {
+  messages: LiveMessage[]
+  paging?: LivePaging
+}
+
+export interface LiveMessagesResponse {
+  message: string
+  data: LiveMessagesData
+}
+
+export interface LiveMessageDetailResponse {
+  message: string
+  data: LiveMessage
+}
+
+export interface LiveCustomerProfile {
+  id: string
+  name: string
+  firstName?: string
+  lastName?: string
+  profilePic?: string
+  locale?: string
+  timezone?: number
+  gender?: string
+}
+
+export interface LiveCustomerProfileResponse {
+  message: string
+  data: LiveCustomerProfile
+}
+
+export interface LiveQuickReply {
+  title: string
+  payload: string
+}
+
+export interface LiveMessageAttachment {
+  type: LiveAttachmentType
+  url: string
+  isReusable?: boolean
+}
+
+export interface SendLiveMessageRequest {
+  recipientId: string
+  text?: string
+  quickReplies?: LiveQuickReply[]
+  attachment?: LiveMessageAttachment
+}
+
+export interface SendLiveMessageData {
+  recipientId: string
+  messageIds: string[]
+  chunksSent: number
+}
+
+export interface SendLiveMessageResponse {
+  message: string
+  data: SendLiveMessageData
+}
+
+export interface SendLiveSenderActionRequest {
+  recipientId: string
+  action: LiveSenderActionType
+}
+
+export interface SendLiveSenderActionData {
+  recipientId: string
+  action: LiveSenderActionType
+  success: boolean
+}
+
+export interface SendLiveSenderActionResponse {
+  message: string
+  data: SendLiveSenderActionData
+}
+
+
 
