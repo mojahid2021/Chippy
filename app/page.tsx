@@ -4,7 +4,9 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Check, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Logo, LogoMark } from "@/components/logo"
+import { LogoMark } from "@/components/logo"
+import { SiteHeader } from "@/components/site-header"
+import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
 
 const questions = [
@@ -122,21 +124,8 @@ export default function Home() {
   const featuredId = shown.length >= 3 && shown.length % 2 === 1 ? shown[Math.floor(shown.length / 2)].id : null
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-card">
-      <header className="sticky top-0 z-40 border-b border-transparent bg-card/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-site items-center justify-between px-4 sm:px-6 lg:px-10">
-          <Link href="/" aria-label="Chippy home"><Logo /></Link>
-          <nav className="hidden items-center gap-1 text-sm md:flex">
-            {[["How it works", "#how"], ["Features", "#features"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([label, href]) => (
-              <a key={href} href={href} className="rounded-full px-3 py-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground">{label}</a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-1.5">
-            <Button asChild variant="ghost" size="sm"><Link href="/auth/signin">Sign in</Link></Button>
-            <Button asChild size="sm" className="rounded-full px-4"><Link href="/auth/signin?mode=signup">Start free</Link></Button>
-          </div>
-        </div>
-      </header>
+    <div id="top" className="min-h-screen overflow-x-clip bg-card">
+      <SiteHeader />
 
       <section className="mx-auto grid max-w-site items-center gap-16 px-4 pb-24 pt-14 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:pt-20">
         <div>
@@ -314,16 +303,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="mx-auto flex max-w-site flex-col gap-5 px-4 py-10 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <Logo className="text-foreground" />
-        <nav className="flex flex-wrap gap-5">
-          <a href="#how" className="hover:text-foreground">How it works</a>
-          <a href="#pricing" className="hover:text-foreground">Pricing</a>
-          <a href="#faq" className="hover:text-foreground">FAQ</a>
-          <Link href="/auth/signin" className="hover:text-foreground">Sign in</Link>
-        </nav>
-        <p>© {new Date().getFullYear()} Chippy. Made in Dhaka.</p>
-      </footer>
+      <SiteFooter />
     </div>
   )
 }
