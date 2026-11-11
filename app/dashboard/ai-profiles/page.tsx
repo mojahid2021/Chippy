@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import { NativeSelect } from "@/components/ui/native-select"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
 import {
   Dialog,
   DialogContent,
@@ -18,28 +18,36 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   Bot,
-  Plus,
-  RefreshCw,
-  Copy,
-  Trash2,
-  Edit,
-  Search,
-  CheckCircle,
-  Cpu,
   BookOpen,
-  ShieldAlert,
-  Sliders,
-  Send,
-  MessageSquare,
+  Bookmark,
   Check,
+  ChevronLeft,
   ChevronRight,
   Code2,
-  Bookmark,
+  Copy,
+  Cpu,
+  Edit,
+  MessageSquare,
+  MoreHorizontal,
+  Plus,
+  RefreshCw,
+  Search,
+  Send,
+  ShieldAlert,
   Star,
+  Trash2,
   Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { PageHeader, EmptyState } from "@/components/page-header"
 import { toast } from "@/hooks/use-toast"
 import type {
   AiProfile,
@@ -54,13 +62,20 @@ import type {
 } from "@/lib/types/woombat"
 
 const CATEGORIES = [
-  { value: "ALL", label: "All Categories" },
-  { value: "customer-support", label: "Customer Support" },
-  { value: "sales", label: "Sales & Conversion" },
-  { value: "booking", label: "Booking & Reservations" },
-  { value: "real-estate", label: "Real Estate & Concierge" },
-  { value: "tech-support", label: "Technical Support" },
-  { value: "general", label: "General Assistant" },
+  { value: "ALL", label: "All categories" },
+  { value: "customer-support", label: "Customer support" },
+  { value: "sales", label: "Sales" },
+  { value: "booking", label: "Bookings" },
+  { value: "real-estate", label: "Real estate" },
+  { value: "tech-support", label: "Tech support" },
+  { value: "general", label: "General" },
+]
+
+const LANGUAGES = [
+  { value: "en", label: "English" },
+  { value: "bn", label: "Bangla" },
+  { value: "banglish", label: "Banglish (Bangla in English letters)" },
+  { value: "auto", label: "Match the customer" },
 ]
 
 const LLM_PROVIDERS = [
@@ -86,7 +101,7 @@ export default function AiProfilesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState<"create" | "edit">("create")
   const [saveLoading, setSaveLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<"identity" | "prompts" | "knowledge" | "variables" | "model">("identity")
+  const [activeTab, setActiveTab] = useState<"identity" | "prompts" | "rules" | "knowledge" | "variables" | "examples" | "model">("identity")
 
   // Form State
   const [formProfileId, setFormProfileId] = useState<string | null>(null)
@@ -177,7 +192,7 @@ export default function AiProfilesPage() {
       setCopiedKey(key)
       toast({
         variant: "info",
-        title: "Copied to clipboard",
+        title: "Copied",
         description: text.length > 60 ? `${text.substring(0, 60)}...` : text,
       })
       setTimeout(() => setCopiedKey(null), 2000)
@@ -210,8 +225,8 @@ export default function AiProfilesPage() {
       console.error("Failed to fetch AI profiles:", err)
       toast({
         variant: "destructive",
-        title: "Network Error",
-        description: "Failed to load AI profiles",
+        title: "Couldn’t load assistants",
+        description: "Check your connection and refresh.",
       })
     } finally {
       setLoading(false)
@@ -231,59 +246,53 @@ export default function AiProfilesPage() {
       name: "",
       role: "",
       description: "",
-      category: "customer-support",
-      tone: "empathetic",
+      category: "sales",
+      tone: "friendly",
       style: "conversational",
-      language: "en",
-      responseLength: "balanced",
-      systemPrompt: "You represent {{company_name}}. Assist visitors with inquiries about properties and services.",
-      mission: "Deliver fast, accurate, and friendly support to all prospects.",
-      fallbackResponse: "I am not certain about that detail. Please email {{support_email}} and our team will follow up.",
+      language: "auto",
+      responseLength: "concise",
+      systemPrompt: "You are the Messenger sales assistant for {{company_name}}. Answer questions about products, prices, sizes, and delivery. When a customer wants to buy, collect their name, phone number, and full address, then confirm the order.",
+      mission: "Answer quickly and help the customer place an order.",
+      fallbackResponse: "Ekjon team member ekhuni apnake janabe. Call korte paren {{support_phone}} e.",
       dos: [
-        "Always greet the customer politely",
-        "Refer to {{support_email}} for escalations",
-        "Format prices in {{currency}}",
+        "Reply in the customer’s language: Bangla, Banglish, or English",
+        "Show prices in {{currency}}",
+        "Mention cash on delivery when talking about payment",
       ],
       donts: [
-        "Never share internal admin credentials",
-        "Do not promise discounts without manager approval",
+        "Promise a discount or free delivery that isn’t in your knowledge",
+        "Confirm an order without a phone number and address",
       ],
       knowledgeSnippets: [
         {
-          id: "general-policy",
-          title: "Service Overview",
-          content: "We provide automated customer support and property booking management.",
-          tags: ["support", "general"],
+          id: "delivery",
+          title: "Delivery",
+          content: "Inside Dhaka ৳60, 1–2 days. Outside Dhaka ৳120, 3–4 days. Cash on delivery available everywhere.",
+          tags: ["delivery"],
         },
       ],
-      referenceUrls: [
-        {
-          title: "Official Website",
-          url: "https://example.com",
-          description: "Main business portal",
-        },
-      ],
+      referenceUrls: [],
       customVariables: [
         {
           key: "company_name",
-          defaultValue: "My Business",
-          description: "Business name placeholder",
+          defaultValue: "My Shop",
+          description: "Your shop’s name",
         },
         {
-          key: "support_email",
-          defaultValue: "support@example.com",
-          description: "Customer service contact email",
+          key: "support_phone",
+          defaultValue: "01XXXXXXXXX",
+          description: "Phone number customers can call",
         },
         {
           key: "currency",
-          defaultValue: "USD",
-          description: "Default transaction currency",
+          defaultValue: "৳ (BDT)",
+          description: "Currency for prices",
         },
       ],
       fewShotExamples: [
         {
-          user: "What are your business hours?",
-          assistant: "We are available 24/7 to assist you with inquiries and bookings.",
+          user: "XL ache? Price koto?",
+          assistant: "Ji apu, XL ache! Price ৳1,850. Order korte apnar naam, phone number ar address diben?",
         },
       ],
       modelConfig: {
@@ -294,7 +303,7 @@ export default function AiProfilesPage() {
         maxTokens: 2048,
         responseFormat: "text",
       },
-      tags: ["support", "concierge"],
+      tags: [],
       isActive: true,
       isDefault: profiles.length === 0,
     })
@@ -348,8 +357,8 @@ export default function AiProfilesPage() {
       console.error("Failed to load profile for editing:", err)
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to load full profile configuration.",
+        title: "Couldn’t open this assistant",
+        description: "Refresh the page and try again.",
       })
     }
   }
@@ -360,8 +369,8 @@ export default function AiProfilesPage() {
     if (!formData.name.trim() || !formData.role.trim()) {
       toast({
         variant: "destructive",
-        title: "Validation Error",
-        description: "Persona Name and Role are required.",
+        title: "Name and role needed",
+        description: "Add a name and a role for this assistant.",
       })
       return
     }
@@ -382,23 +391,23 @@ export default function AiProfilesPage() {
       if (res.ok && json.data) {
         toast({
           variant: "success",
-          title: modalMode === "create" ? "AI Profile Created" : "AI Profile Updated",
-          description: `Persona "${json.data.name}" saved successfully.`,
+          title: modalMode === "create" ? "Assistant created" : "Changes saved",
+          description: `${json.data.name} is ready.`,
         })
         setIsModalOpen(false)
         await fetchProfiles(currentPage)
       } else {
         toast({
           variant: "destructive",
-          title: "Save Failed",
-          description: json.message || "Could not save AI profile.",
+          title: "Couldn’t save",
+          description: json.message || "Check the fields and try again.",
         })
       }
     } catch {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Network error while saving AI profile.",
+        description: "Couldn’t reach the server. Your changes are still here; try saving again.",
       })
     } finally {
       setSaveLoading(false)
@@ -417,22 +426,22 @@ export default function AiProfilesPage() {
       if (res.ok) {
         toast({
           variant: "success",
-          title: "Default AI Persona Updated",
-          description: `"${profile.name}" is now designated as your default AI profile.`,
+          title: "Default assistant updated",
+          description: `${profile.name} now replies on pages without their own assistant.`,
         })
         await fetchProfiles(currentPage)
       } else {
         toast({
           variant: "destructive",
-          title: "Update Failed",
-          description: json.message || "Failed to set default profile.",
+          title: "Couldn’t change the default",
+          description: json.message || "Try again in a moment.",
         })
       }
     } catch {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Network error while setting default profile.",
+        description: "Couldn’t reach the server. Try again in a moment.",
       })
     }
   }
@@ -449,8 +458,8 @@ export default function AiProfilesPage() {
       if (res.ok) {
         toast({
           variant: "success",
-          title: newStatus ? "AI Profile Activated" : "AI Profile Deactivated",
-          description: `${profile.name} is now ${newStatus ? "active" : "disabled"}.`,
+          title: newStatus ? "Assistant turned on" : "Assistant turned off",
+          description: newStatus ? `${profile.name} can reply again.` : `${profile.name} won’t reply until you turn it back on.`,
         })
         setProfiles((prev) =>
           prev.map((item) => (item.id === profile.id ? { ...item, isActive: newStatus } : item))
@@ -459,14 +468,14 @@ export default function AiProfilesPage() {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to update profile status.",
+          description: "Couldn’t change this assistant. Try again.",
         })
       }
     } catch {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Network error",
+        description: "Couldn’t reach the server. Try again in a moment.",
       })
     }
   }
@@ -484,8 +493,8 @@ export default function AiProfilesPage() {
       if (res.ok) {
         toast({
           variant: "success",
-          title: "Profile Deleted",
-          description: `"${profileToDelete.name}" has been permanently deleted.`,
+          title: "Assistant deleted",
+          description: `${profileToDelete.name} was deleted.`,
         })
         setDeleteModalOpen(false)
         setProfileToDelete(null)
@@ -493,15 +502,15 @@ export default function AiProfilesPage() {
       } else {
         toast({
           variant: "destructive",
-          title: "Deletion Failed",
-          description: "Could not delete AI profile.",
+          title: "Couldn’t delete",
+          description: "Try again in a moment.",
         })
       }
     } catch {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Network error while deleting profile.",
+        description: "Couldn’t reach the server. Try again in a moment.",
       })
     } finally {
       setDeleteLoading(false)
@@ -534,8 +543,8 @@ export default function AiProfilesPage() {
   // Open Prompt Compiler Playground
   const handleOpenCompiler = (profile: AiProfile) => {
     setCompilerProfile(profile)
-    setCompilerUserPrompt("Can I get a refund if I cancel my reservation tomorrow at {{company_name}}?")
-    setCompilerAdditionalContext("Prospect is viewing penthouse suite #402.")
+    setCompilerUserPrompt("XL ache? Dhaka-r baire delivery charge koto?")
+    setCompilerAdditionalContext("")
     setCompilerIncludeFewShot(true)
 
     // Pre-populate variables from profile
@@ -572,21 +581,21 @@ export default function AiProfilesPage() {
         setCompiledResult(json.data)
         toast({
           variant: "success",
-          title: "Prompt Compiled Successfully",
-          description: `Total Estimated Tokens: ${json.data.estimatedTokens.total}`,
+          title: "Preview ready",
+          description: `About ${json.data.estimatedTokens.total} tokens.`,
         })
       } else {
         toast({
           variant: "destructive",
-          title: "Compilation Failed",
-          description: json.message || "Failed to compile prompt bundle.",
+          title: "Couldn’t build the preview",
+          description: json.message || "Try again in a moment.",
         })
       }
     } catch {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Network error while compiling prompt bundle.",
+        description: "Couldn’t reach the server. Try again in a moment.",
       })
     } finally {
       setCompilerLoading(false)
@@ -594,1498 +603,738 @@ export default function AiProfilesPage() {
   }
 
   const defaultProfile = profiles.find((p) => p.isDefault)
-  const activeCount = profiles.filter((p) => p.isActive).length
+  const filtersOn = !!searchQuery || categoryFilter !== "ALL" || statusFilter !== "ALL"
+  const patch = (next: Partial<typeof formData>) => setFormData({ ...formData, ...next })
+  const patchModel = (next: Partial<ModelConfig>) => setFormData({ ...formData, modelConfig: { ...formData.modelConfig, ...next } })
+
+  const sections = [
+    { id: "identity", label: "Basics", icon: Bot, count: null },
+    { id: "prompts", label: "Instructions", icon: MessageSquare, count: null },
+    { id: "rules", label: "Rules", icon: ShieldAlert, count: formData.dos.length + formData.donts.length },
+    { id: "knowledge", label: "Knowledge", icon: BookOpen, count: formData.knowledgeSnippets.length + formData.referenceUrls.length },
+    { id: "variables", label: "Variables", icon: Code2, count: formData.customVariables.length },
+    { id: "examples", label: "Example replies", icon: Bookmark, count: formData.fewShotExamples.length },
+    { id: "model", label: "AI model", icon: Cpu, count: null },
+  ] as const
 
   return (
-    <div className="space-y-3.5 max-w-7xl mx-auto">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Bot className="h-5 w-5 text-primary" />
-            AI Persona & Prompt Compiler
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Manage rich AI profiles, guardrails, knowledge base snippets, dynamic variables, and compile production-ready chat prompts.
-          </p>
+    <div className="space-y-6">
+      <PageHeader
+        title="AI assistants"
+        description="Decide how Chippy talks, what it knows about your shop, and which AI model it uses. The default assistant replies on any page without its own."
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => fetchProfiles(currentPage)} disabled={loading}>
+              <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
+              Refresh
+            </Button>
+            <Button size="sm" onClick={handleOpenCreate}>
+              <Plus className="size-3.5" />
+              New assistant
+            </Button>
+          </>
+        }
+      />
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search assistants"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+            aria-label="Search assistants"
+          />
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchProfiles(currentPage)}
-            disabled={loading}
-            className="h-8 gap-1.5 text-xs"
-          >
-            <RefreshCw className={cn("h-3 w-3", loading && "animate-spin")} />
-            Refresh
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={handleOpenCreate}
-            className="h-8 gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-3 w-3" />
-            Create AI Persona
-          </Button>
+        <NativeSelect value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="sm:w-48" aria-label="Category">
+          {CATEGORIES.map((cat) => (
+            <option key={cat.value} value={cat.value}>{cat.label}</option>
+          ))}
+        </NativeSelect>
+        <div role="group" aria-label="Status" className="inline-flex rounded-lg bg-secondary p-0.5 text-sm">
+          {(["ALL", "ACTIVE", "INACTIVE"] as const).map((s) => (
+            <button
+              key={s}
+              aria-pressed={statusFilter === s}
+              onClick={() => setStatusFilter(s)}
+              className={cn("rounded-md px-3 py-1 font-medium text-muted-foreground", statusFilter === s && "bg-card text-foreground shadow-xs")}
+            >
+              {s === "ALL" ? "All" : s === "ACTIVE" ? "On" : "Off"}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Metrics Banner */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="p-3 border-border bg-card gap-0">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-muted-foreground">Total Personas</span>
-            <div className="p-1 rounded-md bg-primary/10 text-primary">
-              <Bot className="h-3.5 w-3.5" />
-            </div>
-          </div>
-          <div className="mt-1 text-xl font-bold text-foreground">{totalCount || profiles.length}</div>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Across all categories</p>
-        </Card>
-
-        <Card className="p-3 border-border bg-card gap-0">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-muted-foreground">Active Personas</span>
-            <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-500">
-              <CheckCircle className="h-3.5 w-3.5" />
-            </div>
-          </div>
-          <div className="mt-1 text-xl font-bold text-foreground">{activeCount}</div>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Ready to dispatch</p>
-        </Card>
-
-        <Card className="p-3 border-border bg-card gap-0">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-muted-foreground">Default Persona</span>
-            <div className="p-1 rounded-md bg-amber-500/10 text-amber-500">
-              <Star className="h-3.5 w-3.5" />
-            </div>
-          </div>
-          <div className="mt-1 text-xs font-bold text-foreground truncate">
-            {defaultProfile ? defaultProfile.name : "None set"}
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-            {defaultProfile ? defaultProfile.role : "Assign one below"}
-          </p>
-        </Card>
-
-        <Card className="p-3 border-border bg-card gap-0">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-muted-foreground">Prompt Engine</span>
-            <div className="p-1 rounded-md bg-indigo-500/10 text-indigo-500">
-              <Zap className="h-3.5 w-3.5" />
-            </div>
-          </div>
-          <div className="mt-1 text-xs font-bold text-foreground">Multi-LLM Synthesizer</div>
-          <p className="text-[10px] text-muted-foreground mt-0.5">OpenAI, Claude, Gemini, Groq</p>
-        </Card>
-      </div>
-
-      {/* Search and Filters Bar */}
-      <Card className="p-2.5 border-border bg-card gap-0">
-        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
-          <div className="flex-1 flex items-center gap-2">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by persona name, role, or tags..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-7 pl-8 text-xs bg-background/50 border-border/70"
-              />
-            </div>
-
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="h-7 px-2 rounded-md text-xs bg-background border border-border/70 text-foreground focus:outline-none"
-            >
-              {CATEGORIES.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
-              className="h-7 px-2 rounded-md text-xs bg-background border border-border/70 text-foreground focus:outline-none"
-            >
-              <option value="ALL">All Status</option>
-              <option value="ACTIVE">Active Only</option>
-              <option value="INACTIVE">Inactive Only</option>
-            </select>
-          </div>
-
-          <div className="text-[11px] text-muted-foreground self-center">
-            Showing {profiles.length} of {totalCount || profiles.length} personas
-          </div>
-        </div>
-      </Card>
-
-      {/* Profiles Grid */}
       {loading ? (
-        <div className="py-16 flex flex-col items-center justify-center text-muted-foreground">
-          <RefreshCw className="h-6 w-6 animate-spin text-primary mb-2" />
-          <p className="text-xs font-medium">Loading AI profiles...</p>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-busy>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-44 animate-pulse rounded-2xl border bg-muted" />
+          ))}
         </div>
       ) : profiles.length === 0 ? (
-        <Card className="py-12 text-center border-dashed border-border/80 bg-card/20">
-          <Bot className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-60" />
-          <h3 className="text-xs font-semibold text-foreground">No AI Personas Found</h3>
-          <p className="text-[11px] text-muted-foreground max-w-sm mx-auto mt-1 mb-3">
-            {searchQuery || categoryFilter !== "ALL" || statusFilter !== "ALL"
-              ? "No personas match your search filters. Try adjusting your parameters."
-              : "You haven't created any AI persona profiles yet. Create your first profile to bind with Messenger webhooks and run dynamic prompt compilation."}
-          </p>
-          <Button size="sm" onClick={handleOpenCreate} className="h-7 text-xs gap-1.5">
-            <Plus className="h-3.5 w-3.5" />
-            Create AI Persona
-          </Button>
-        </Card>
+        <EmptyState
+          icon={<Bot />}
+          title={filtersOn ? "No assistants match" : "Create your first assistant"}
+          body={
+            filtersOn
+              ? "Try a different search or clear the filters."
+              : "Tell it about your shop and how to talk to customers. Then choose it on a Facebook page and it starts replying."
+          }
+          action={
+            filtersOn ? (
+              <Button variant="outline" onClick={() => { setSearchQuery(""); setCategoryFilter("ALL"); setStatusFilter("ALL") }}>Clear filters</Button>
+            ) : (
+              <Button onClick={handleOpenCreate}><Plus className="size-4" />New assistant</Button>
+            )
+          }
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {profiles.map((profile) => {
-            const modelProvider = profile.modelConfig?.provider || "openai"
-            const modelName = profile.modelConfig?.modelName || "gpt-4o"
-
-            return (
-              <Card
+        <>
+          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {profiles.map((profile) => (
+              <li
                 key={profile.id}
                 className={cn(
-                  "border transition-all duration-200 flex flex-col justify-between hover:border-primary/40 bg-card/70 shadow-sm gap-0 py-0",
-                  profile.isDefault && "border-amber-500/40 bg-amber-500/[0.02]"
+                  "group relative flex flex-col rounded-2xl border bg-card p-4 shadow-xs transition-shadow hover:shadow-md",
+                  profile.isDefault && "border-ink"
                 )}
               >
-                <div>
-                  {/* Card Header */}
-                  <div className="p-3 border-b border-border/50">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
-                          <Bot className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <h3 className="text-xs font-bold text-foreground truncate">{profile.name}</h3>
-                            {profile.isDefault && (
-                              <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[9px] px-1 py-0 flex items-center gap-0.5">
-                                <Star className="h-2 w-2 fill-current" />
-                                Default
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-muted-foreground truncate">{profile.role}</p>
-                        </div>
-                      </div>
-
-                      <Switch
-                        checked={profile.isActive}
-                        onCheckedChange={(checked) => handleToggleActive(profile, checked)}
-                        aria-label="Toggle active status"
-                      />
-                    </div>
-
-                    {profile.description && (
-                      <p className="text-[11px] text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
-                        {profile.description}
-                      </p>
+                <div className="flex items-start gap-3">
+                  <span
+                    className={cn(
+                      "grid size-10 shrink-0 place-items-center rounded-xl font-display text-base font-bold",
+                      profile.isDefault ? "bg-brand text-brand-foreground" : "bg-secondary"
                     )}
-                  </div>
-
-                  {/* Configuration Highlights */}
-                  <div className="p-3 space-y-2">
-                    <div className="flex flex-wrap gap-1">
-                      <Badge variant="outline" className="text-[10px] py-0 px-1 border-border/70 capitalize">
-                        {profile.category || "custom"}
-                      </Badge>
-                      <Badge variant="outline" className="text-[10px] py-0 px-1 border-border/70 capitalize">
-                        Tone: {profile.tone || "balanced"}
-                      </Badge>
-                      <Badge variant="outline" className="text-[10px] py-0 px-1 border-border/70">
-                        v{profile.version || 1}
-                      </Badge>
-                      <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] py-0 px-1.5 flex items-center gap-1">
-                        <Cpu className="h-2.5 w-2.5" />
-                        {modelProvider}: {modelName}
-                      </Badge>
-                    </div>
-
-                    {/* Stats pills */}
-                    <div className="grid grid-cols-3 gap-1.5 pt-0.5 text-[11px] text-muted-foreground">
-                      <div className="bg-muted/40 p-1 rounded text-center border border-border/40">
-                        <div className="font-semibold text-foreground text-xs">
-                          {profile.knowledgeSnippets?.length || 0}
-                        </div>
-                        <div className="text-[9px]">Snippets</div>
-                      </div>
-
-                      <div className="bg-muted/40 p-1 rounded text-center border border-border/40">
-                        <div className="font-semibold text-foreground text-xs">
-                          {(profile.dos?.length || 0) + (profile.donts?.length || 0)}
-                        </div>
-                        <div className="text-[9px]">Guardrails</div>
-                      </div>
-
-                      <div className="bg-muted/40 p-1 rounded text-center border border-border/40">
-                        <div className="font-semibold text-foreground text-xs">
-                          {profile.customVariables?.length || 0}
-                        </div>
-                        <div className="text-[9px]">Variables</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Actions Footer */}
-                <div className="p-2 border-t border-border/50 bg-muted/20 flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleOpenCompiler(profile)}
-                      className="h-6 px-2 text-[10px] gap-1 bg-primary text-primary-foreground hover:bg-primary/90"
-                      title="Test Persona Prompt Compilation"
-                    >
-                      <Zap className="h-2.5 w-2.5" />
-                      Test Compiler
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenBoundWebhooks(profile)}
-                      className="h-6 px-1.5 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
-                      title="Inspect bound Messenger webhooks"
-                    >
-                      <MessageSquare className="h-2.5 w-2.5" />
-                      Webhooks
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    {!profile.isDefault && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSetDefault(profile)}
-                        className="h-7 px-1.5 text-muted-foreground hover:text-amber-500"
-                        title="Set as Default Persona"
-                      >
-                        <Star className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleOpenEdit(profile)}
-                      className="h-7 px-1.5 text-muted-foreground hover:text-foreground"
-                      title="Edit Profile"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setProfileToDelete(profile)
-                        setDeleteModalOpen(true)
-                      }}
-                      className="h-7 px-1.5 text-muted-foreground hover:text-destructive"
-                      title="Delete Profile"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            )
-          })}
-        </div>
-      )}
-
-      {/* Pagination Bar */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-border/50 pt-4 text-xs">
-          <p className="text-muted-foreground">
-            Page {currentPage} of {totalPages}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage <= 1 || loading}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="h-8 text-xs"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage >= totalPages || loading}
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="h-8 text-xs"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* CREATE & EDIT MODAL                                                       */}
-      {/* ========================================================================= */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-5 border-border bg-card gap-3.5">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Bot className="h-5 w-5 text-primary" />
-              {modalMode === "create" ? "Create AI Persona Profile" : `Edit Persona: ${formData.name}`}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Configure system prompts, guardrails, knowledge base snippets, dynamic placeholders, and target LLM model parameters.
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Form Tabs */}
-          <div className="flex border-b border-border gap-2 text-xs font-medium pb-2 overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => setActiveTab("identity")}
-              className={cn(
-                "px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 shrink-0",
-                activeTab === "identity"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted"
-              )}
-            >
-              <Bot className="h-3.5 w-3.5" />
-              Identity & Tone
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("prompts")}
-              className={cn(
-                "px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 shrink-0",
-                activeTab === "prompts"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted"
-              )}
-            >
-              <ShieldAlert className="h-3.5 w-3.5" />
-              Prompts & Guardrails
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("knowledge")}
-              className={cn(
-                "px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 shrink-0",
-                activeTab === "knowledge"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted"
-              )}
-            >
-              <BookOpen className="h-3.5 w-3.5" />
-              Knowledge & Links
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("variables")}
-              className={cn(
-                "px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 shrink-0",
-                activeTab === "variables"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted"
-              )}
-            >
-              <Code2 className="h-3.5 w-3.5" />
-              Variables & Few-Shot
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("model")}
-              className={cn(
-                "px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 shrink-0",
-                activeTab === "model"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted"
-              )}
-            >
-              <Sliders className="h-3.5 w-3.5" />
-              LLM Model Config
-            </button>
-          </div>
-
-          <form onSubmit={handleSaveProfile} className="space-y-4 pt-2">
-            {/* TAB 1: IDENTITY & TONE */}
-            {activeTab === "identity" && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Persona Name *</Label>
-                    <Input
-                      placeholder="e.g. Woombat Concierge"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                      className="h-8 text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-xs">Role / Title *</Label>
-                    <Input
-                      placeholder="e.g. Property & Support Specialist"
-                      value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      required
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-xs">Description</Label>
-                  <Input
-                    placeholder="Short summary of this persona's purpose and scope..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="h-8 text-xs"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Category</Label>
-                    <select
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full h-8 px-2 rounded-md text-xs bg-background border border-input text-foreground focus:outline-none"
-                    >
-                      <option value="customer-support">Customer Support</option>
-                      <option value="sales">Sales</option>
-                      <option value="booking">Booking</option>
-                      <option value="real-estate">Real Estate</option>
-                      <option value="tech-support">Tech Support</option>
-                      <option value="general">General</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-xs">Tone</Label>
-                    <Input
-                      placeholder="e.g. empathetic, friendly"
-                      value={formData.tone}
-                      onChange={(e) => setFormData({ ...formData, tone: e.target.value })}
-                      className="h-8 text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-xs">Style</Label>
-                    <Input
-                      placeholder="e.g. conversational, concise"
-                      value={formData.style}
-                      onChange={(e) => setFormData({ ...formData, style: e.target.value })}
-                      className="h-8 text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-xs">Response Length</Label>
-                    <select
-                      value={formData.responseLength}
-                      onChange={(e) => setFormData({ ...formData, responseLength: e.target.value })}
-                      className="w-full h-8 px-2 rounded-md text-xs bg-background border border-input text-foreground focus:outline-none"
-                    >
-                      <option value="concise">Concise</option>
-                      <option value="balanced">Balanced</option>
-                      <option value="detailed">Detailed</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50">
-                  <div className="flex items-center justify-between p-2 rounded-md border border-border/60 bg-muted/30">
-                    <div className="space-y-0.5">
-                      <Label className="text-xs font-semibold">Active State</Label>
-                      <p className="text-[10px] text-muted-foreground">Available for webhook dispatching</p>
-                    </div>
-                    <Switch
-                      checked={formData.isActive}
-                      onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-2 rounded-md border border-border/60 bg-muted/30">
-                    <div className="space-y-0.5">
-                      <Label className="text-xs font-semibold">Set as Default</Label>
-                      <p className="text-[10px] text-muted-foreground">Fallback persona for new webhooks</p>
-                    </div>
-                    <Switch
-                      checked={formData.isDefault}
-                      onCheckedChange={(checked) => setFormData({ ...formData, isDefault: checked })}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 2: PROMPTS & GUARDRAILS */}
-            {activeTab === "prompts" && (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">System Prompt / Core Persona Instructions</Label>
-                    <span className="text-[10px] text-muted-foreground">Supports &#123;&#123;variable_name&#125;&#125;</span>
-                  </div>
-                  <Textarea
-                    rows={4}
-                    placeholder="You represent {{company_name}}. Assist visitors with inquiries about properties and services..."
-                    value={formData.systemPrompt}
-                    onChange={(e) => setFormData({ ...formData, systemPrompt: e.target.value })}
-                    className="text-xs font-mono"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Mission Statement</Label>
-                    <Input
-                      placeholder="e.g. Deliver fast, accurate, and friendly support."
-                      value={formData.mission}
-                      onChange={(e) => setFormData({ ...formData, mission: e.target.value })}
-                      className="h-8 text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-xs">Fallback Response</Label>
-                    <Input
-                      placeholder="I am not certain about that detail. Please email {{support_email}}..."
-                      value={formData.fallbackResponse}
-                      onChange={(e) => setFormData({ ...formData, fallbackResponse: e.target.value })}
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                </div>
-
-                {/* Behavioral Dos */}
-                <div className="space-y-1.5 pt-2 border-t border-border/50">
-                  <Label className="text-xs font-semibold text-emerald-500 flex items-center gap-1">
-                    <CheckCircle className="h-3.5 w-3.5" />
-                    Behavioral Guidelines (Always Do)
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add a required rule (e.g. 'Format prices in {{currency}}')..."
-                      value={newDo}
-                      onChange={(e) => setNewDo(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault()
-                          if (newDo.trim()) {
-                            setFormData({ ...formData, dos: [...formData.dos, newDo.trim()] })
-                            setNewDo("")
-                          }
-                        }
-                      }}
-                      className="h-8 text-xs"
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        if (newDo.trim()) {
-                          setFormData({ ...formData, dos: [...formData.dos, newDo.trim()] })
-                          setNewDo("")
-                        }
-                      }}
-                      className="h-8 text-xs px-3"
-                    >
-                      Add
-                    </Button>
-                  </div>
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {formData.dos.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between text-xs bg-emerald-500/5 border border-emerald-500/20 px-2 py-1 rounded-md"
-                      >
-                        <span className="truncate">{item}</span>
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, dos: formData.dos.filter((_, i) => i !== idx) })}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Safety Donts */}
-                <div className="space-y-1.5 pt-2 border-t border-border/50">
-                  <Label className="text-xs font-semibold text-rose-500 flex items-center gap-1">
-                    <ShieldAlert className="h-3.5 w-3.5" />
-                    Safety Rules & Restrictions (Never Do)
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add a safety restriction (e.g. 'Never disclose admin credentials')..."
-                      value={newDont}
-                      onChange={(e) => setNewDont(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault()
-                          if (newDont.trim()) {
-                            setFormData({ ...formData, donts: [...formData.donts, newDont.trim()] })
-                            setNewDont("")
-                          }
-                        }
-                      }}
-                      className="h-8 text-xs"
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        if (newDont.trim()) {
-                          setFormData({ ...formData, donts: [...formData.donts, newDont.trim()] })
-                          setNewDont("")
-                        }
-                      }}
-                      className="h-8 text-xs px-3"
-                    >
-                      Add
-                    </Button>
-                  </div>
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {formData.donts.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between text-xs bg-rose-500/5 border border-rose-500/20 px-2 py-1 rounded-md"
-                      >
-                        <span className="truncate">{item}</span>
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, donts: formData.donts.filter((_, i) => i !== idx) })}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: KNOWLEDGE & LINKS */}
-            {activeTab === "knowledge" && (
-              <div className="space-y-4">
-                {/* Knowledge Snippets */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold flex items-center gap-1.5">
-                      <BookOpen className="h-3.5 w-3.5 text-primary" />
-                      Knowledge Snippets ({formData.knowledgeSnippets.length})
-                    </Label>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          knowledgeSnippets: [
-                            ...formData.knowledgeSnippets,
-                            {
-                              id: `snippet-${Date.now()}`,
-                              title: "New Policy",
-                              content: "Policy details here...",
-                              tags: ["policy"],
-                            },
-                          ],
-                        })
-                      }
-                      className="h-7 text-xs px-2 gap-1"
-                    >
-                      <Plus className="h-3 w-3" /> Add Snippet
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2 max-h-52 overflow-y-auto">
-                    {formData.knowledgeSnippets.map((snip, idx) => (
-                      <div key={idx} className="p-2.5 rounded-md border border-border/70 bg-muted/20 space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <Input
-                            placeholder="Snippet Title"
-                            value={snip.title}
-                            onChange={(e) => {
-                              const updated = [...formData.knowledgeSnippets]
-                              updated[idx].title = e.target.value
-                              setFormData({ ...formData, knowledgeSnippets: updated })
-                            }}
-                            className="h-7 text-xs font-semibold"
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFormData({
-                                ...formData,
-                                knowledgeSnippets: formData.knowledgeSnippets.filter((_, i) => i !== idx),
-                              })
-                            }
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                        <Textarea
-                          placeholder="Snippet Content..."
-                          rows={2}
-                          value={snip.content}
-                          onChange={(e) => {
-                            const updated = [...formData.knowledgeSnippets]
-                            updated[idx].content = e.target.value
-                            setFormData({ ...formData, knowledgeSnippets: updated })
-                          }}
-                          className="text-xs font-mono"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Reference URLs */}
-                <div className="space-y-2 pt-2 border-t border-border/50">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold flex items-center gap-1.5">
-                      <Bookmark className="h-3.5 w-3.5 text-primary" />
-                      Reference URLs & Documentation ({formData.referenceUrls.length})
-                    </Label>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          referenceUrls: [
-                            ...formData.referenceUrls,
-                            { title: "Terms of Service", url: "https://example.com/terms", description: "Official terms" },
-                          ],
-                        })
-                      }
-                      className="h-7 text-xs px-2 gap-1"
-                    >
-                      <Plus className="h-3 w-3" /> Add URL
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2 max-h-44 overflow-y-auto">
-                    {formData.referenceUrls.map((ref, idx) => (
-                      <div key={idx} className="p-2 rounded-md border border-border/70 bg-muted/20 flex gap-2 items-center">
-                        <Input
-                          placeholder="Link Title"
-                          value={ref.title}
-                          onChange={(e) => {
-                            const updated = [...formData.referenceUrls]
-                            updated[idx].title = e.target.value
-                            setFormData({ ...formData, referenceUrls: updated })
-                          }}
-                          className="h-7 text-xs w-1/3"
-                        />
-                        <Input
-                          placeholder="https://..."
-                          value={ref.url}
-                          onChange={(e) => {
-                            const updated = [...formData.referenceUrls]
-                            updated[idx].url = e.target.value
-                            setFormData({ ...formData, referenceUrls: updated })
-                          }}
-                          className="h-7 text-xs flex-1 font-mono"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setFormData({
-                              ...formData,
-                              referenceUrls: formData.referenceUrls.filter((_, i) => i !== idx),
-                            })
-                          }
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 4: VARIABLES & FEW-SHOT */}
-            {activeTab === "variables" && (
-              <div className="space-y-4">
-                {/* Custom Variables */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-xs font-semibold flex items-center gap-1.5">
-                        <Code2 className="h-3.5 w-3.5 text-primary" />
-                        Dynamic Template Variables ({formData.customVariables.length})
-                      </Label>
-                      <p className="text-[10px] text-muted-foreground">
-                        Placeholders like &#123;&#123;company_name&#125;&#125; populated at runtime.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          customVariables: [
-                            ...formData.customVariables,
-                            { key: `var_${Date.now()}`, defaultValue: "Value", description: "Variable description" },
-                          ],
-                        })
-                      }
-                      className="h-7 text-xs px-2 gap-1"
-                    >
-                      <Plus className="h-3 w-3" /> Add Variable
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {formData.customVariables.map((v, idx) => (
-                      <div key={idx} className="p-2 rounded-md border border-border/70 bg-muted/20 flex gap-2 items-center">
-                        <Input
-                          placeholder="key"
-                          value={v.key}
-                          onChange={(e) => {
-                            const updated = [...formData.customVariables]
-                            updated[idx].key = e.target.value
-                            setFormData({ ...formData, customVariables: updated })
-                          }}
-                          className="h-7 text-xs w-1/3 font-mono font-semibold"
-                        />
-                        <Input
-                          placeholder="default value"
-                          value={v.defaultValue}
-                          onChange={(e) => {
-                            const updated = [...formData.customVariables]
-                            updated[idx].defaultValue = e.target.value
-                            setFormData({ ...formData, customVariables: updated })
-                          }}
-                          className="h-7 text-xs flex-1"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setFormData({
-                              ...formData,
-                              customVariables: formData.customVariables.filter((_, i) => i !== idx),
-                            })
-                          }
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Few-Shot Examples */}
-                <div className="space-y-2 pt-2 border-t border-border/50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-xs font-semibold flex items-center gap-1.5">
-                        <Zap className="h-3.5 w-3.5 text-primary" />
-                        Few-Shot Dialog Examples ({formData.fewShotExamples.length})
-                      </Label>
-                      <p className="text-[10px] text-muted-foreground">Injected into conversation context.</p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          fewShotExamples: [
-                            ...formData.fewShotExamples,
-                            { user: "User query here", assistant: "Ideal assistant reply here" },
-                          ],
-                        })
-                      }
-                      className="h-7 text-xs px-2 gap-1"
-                    >
-                      <Plus className="h-3 w-3" /> Add Example
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {formData.fewShotExamples.map((ex, idx) => (
-                      <div key={idx} className="p-2.5 rounded-md border border-border/70 bg-muted/20 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-semibold text-primary">Example #{idx + 1}</span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFormData({
-                                ...formData,
-                                fewShotExamples: formData.fewShotExamples.filter((_, i) => i !== idx),
-                              })
-                            }
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                        <Input
-                          placeholder="User question..."
-                          value={ex.user}
-                          onChange={(e) => {
-                            const updated = [...formData.fewShotExamples]
-                            updated[idx].user = e.target.value
-                            setFormData({ ...formData, fewShotExamples: updated })
-                          }}
-                          className="h-7 text-xs"
-                        />
-                        <Input
-                          placeholder="Assistant answer..."
-                          value={ex.assistant}
-                          onChange={(e) => {
-                            const updated = [...formData.fewShotExamples]
-                            updated[idx].assistant = e.target.value
-                            setFormData({ ...formData, fewShotExamples: updated })
-                          }}
-                          className="h-7 text-xs text-muted-foreground"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 5: LLM MODEL CONFIG */}
-            {activeTab === "model" && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Model Provider</Label>
-                    <select
-                      value={formData.modelConfig.provider}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          modelConfig: { ...formData.modelConfig, provider: e.target.value },
-                        })
-                      }
-                      className="w-full h-8 px-2 rounded-md text-xs bg-background border border-input text-foreground focus:outline-none"
-                    >
-                      {LLM_PROVIDERS.map((p) => (
-                        <option key={p.value} value={p.value}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-xs">Model Name</Label>
-                    <Input
-                      placeholder="e.g. gpt-4o, claude-3-5-sonnet, gemini-1.5-pro"
-                      value={formData.modelConfig.modelName}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          modelConfig: { ...formData.modelConfig, modelName: e.target.value },
-                        })
-                      }
-                      className="h-8 text-xs font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center text-xs">
-                      <Label className="text-xs">Temperature</Label>
-                      <span className="text-[10px] text-muted-foreground">{formData.modelConfig.temperature ?? 0.7}</span>
-                    </div>
-                    <Input
-                      type="number"
-                      step="0.05"
-                      min="0"
-                      max="2"
-                      value={formData.modelConfig.temperature ?? 0.7}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          modelConfig: { ...formData.modelConfig, temperature: parseFloat(e.target.value) || 0.7 },
-                        })
-                      }
-                      className="h-8 text-xs font-mono"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center text-xs">
-                      <Label className="text-xs">Top P</Label>
-                      <span className="text-[10px] text-muted-foreground">{formData.modelConfig.topP ?? 1.0}</span>
-                    </div>
-                    <Input
-                      type="number"
-                      step="0.05"
-                      min="0"
-                      max="1"
-                      value={formData.modelConfig.topP ?? 1.0}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          modelConfig: { ...formData.modelConfig, topP: parseFloat(e.target.value) || 1.0 },
-                        })
-                      }
-                      className="h-8 text-xs font-mono"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-xs">Max Tokens</Label>
-                    <Input
-                      type="number"
-                      step="128"
-                      min="128"
-                      max="32768"
-                      value={formData.modelConfig.maxTokens ?? 2048}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          modelConfig: { ...formData.modelConfig, maxTokens: parseInt(e.target.value, 10) || 2048 },
-                        })
-                      }
-                      className="h-8 text-xs font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-xs">Response Format</Label>
-                  <select
-                    value={formData.modelConfig.responseFormat || "text"}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        modelConfig: { ...formData.modelConfig, responseFormat: e.target.value },
-                      })
-                    }
-                    className="w-full h-8 px-2 rounded-md text-xs bg-background border border-input text-foreground focus:outline-none"
+                    aria-hidden
                   >
-                    <option value="text">Plain Text</option>
-                    <option value="json_object">JSON Object</option>
-                  </select>
+                    {profile.name.slice(0, 1).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <button onClick={() => handleOpenEdit(profile)} className="block max-w-full text-left after:absolute after:inset-0 after:rounded-2xl">
+                      <h3 className="truncate text-base">{profile.name}</h3>
+                    </button>
+                    <p className="truncate text-xs text-muted-foreground">{profile.role}</p>
+                  </div>
+                  <div className="relative z-10 flex items-center gap-1">
+                    <Switch
+                      checked={profile.isActive}
+                      onCheckedChange={(checked) => handleToggleActive(profile, checked)}
+                      aria-label={profile.isActive ? `Turn off ${profile.name}` : `Turn on ${profile.name}`}
+                    />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon-sm" aria-label={`More for ${profile.name}`}><MoreHorizontal /></Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuItem onClick={() => handleOpenEdit(profile)}><Edit className="mr-2 size-4" />Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenCompiler(profile)}><Zap className="mr-2 size-4" />Test a message</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenBoundWebhooks(profile)}><MessageSquare className="mr-2 size-4" />Pages using it</DropdownMenuItem>
+                        {!profile.isDefault && (
+                          <DropdownMenuItem onClick={() => handleSetDefault(profile)}><Star className="mr-2 size-4" />Make default</DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => { setProfileToDelete(profile); setDeleteModalOpen(true) }}
+                        >
+                          <Trash2 className="mr-2 size-4" />Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
+
+                <p className="mt-3 line-clamp-2 min-h-10 text-sm text-muted-foreground">
+                  {profile.description || "No description yet."}
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {profile.isDefault && <Badge variant="brand"><Star className="fill-current" />Default</Badge>}
+                  {!profile.isActive && <Badge variant="secondary">Off</Badge>}
+                  {profile.tone && <Badge variant="outline" className="capitalize">{profile.tone}</Badge>}
+                  <Badge variant="outline">{profile.modelConfig?.modelName || "gpt-4o"}</Badge>
+                </div>
+
+                <dl className="mt-4 grid grid-cols-3 gap-2 border-t pt-3 text-center">
+                  {[
+                    ["Rules", (profile.dos?.length || 0) + (profile.donts?.length || 0)],
+                    ["Facts", profile.knowledgeSnippets?.length || 0],
+                    ["Variables", profile.customVariables?.length || 0],
+                  ].map(([label, n]) => (
+                    <div key={label as string}>
+                      <dd className="font-display text-lg font-semibold">{n}</dd>
+                      <dt className="text-2xs text-muted-foreground">{label}</dt>
+                    </div>
+                  ))}
+                </dl>
+
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="relative z-10 mt-3 w-full"
+                  onClick={() => handleOpenCompiler(profile)}
+                >
+                  <Zap className="size-3.5" />
+                  Test a message
+                </Button>
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <p>
+              {totalCount || profiles.length} assistant{(totalCount || profiles.length) === 1 ? "" : "s"}
+              {defaultProfile && <> · default is <span className="font-medium text-foreground">{defaultProfile.name}</span></>}
+            </p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <span>Page {currentPage} of {totalPages}</span>
+                <Button variant="outline" size="icon-sm" disabled={currentPage <= 1 || loading} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} aria-label="Previous page"><ChevronLeft /></Button>
+                <Button variant="outline" size="icon-sm" disabled={currentPage >= totalPages || loading} onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} aria-label="Next page"><ChevronRight /></Button>
               </div>
             )}
+          </div>
+        </>
+      )}
 
-            <DialogFooter className="pt-4 border-t border-border flex items-center justify-between sm:justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsModalOpen(false)}
-                className="h-8 text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={saveLoading}
-                className="h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                {saveLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />}
-                {modalMode === "create" ? "Create Persona" : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* ── Editor ─────────────────────────────────────────── */}
+      <Sheet open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <SheetContent
+          side="right"
+          title={modalMode === "create" ? "New assistant" : `Edit ${formData.name}`}
+          className="flex w-full flex-col gap-0 p-0 sm:max-w-3xl"
+        >
+          <form onSubmit={handleSaveProfile} className="flex min-h-0 flex-1 flex-col">
+            <div className="border-b px-6 py-5 pr-14">
+              <h2 className="text-2xl">{modalMode === "create" ? "New assistant" : formData.name || "Edit assistant"}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Changes apply to every page that uses this assistant.</p>
+            </div>
 
-      {/* ========================================================================= */}
-      {/* PROMPT COMPILER PLAYGROUND MODAL                                          */}
-      {/* ========================================================================= */}
-      <Dialog open={compilerModalOpen} onOpenChange={setCompilerModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-4 sm:p-5 border-border bg-card gap-3.5">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Zap className="h-5 w-5 text-primary" />
-              Prompt Compiler & Simulator: {compilerProfile?.name}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Synthesize and inspect the full LLM prompt bundle generated for {compilerProfile?.role}.
-            </DialogDescription>
-          </DialogHeader>
+            <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+              <nav aria-label="Assistant settings" className="flex shrink-0 gap-1 overflow-x-auto border-b px-4 py-2 sm:w-48 sm:flex-col sm:border-b-0 sm:border-r sm:px-3 sm:py-4">
+                {sections.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setActiveTab(s.id)}
+                    aria-current={activeTab === s.id ? "step" : undefined}
+                    className={cn(
+                      "flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground",
+                      activeTab === s.id && "bg-brand text-brand-foreground hover:bg-brand"
+                    )}
+                  >
+                    <s.icon className="size-4" />
+                    <span className="flex-1 text-left">{s.label}</span>
+                    {!!s.count && <span className="text-2xs tabular-nums opacity-70">{s.count}</span>}
+                  </button>
+                ))}
+              </nav>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
-            {/* Input Controls */}
-            <form onSubmit={handleRunCompiler} className="space-y-3.5">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">User Inquiry Prompt *</Label>
-                <Textarea
-                  rows={3}
-                  placeholder="Ask a question or enter user input..."
-                  value={compilerUserPrompt}
-                  onChange={(e) => setCompilerUserPrompt(e.target.value)}
-                  required
-                  className="text-xs font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Dynamic Session Context (Optional)</Label>
-                <Input
-                  placeholder="e.g. Prospect is looking at penthouse suite #402"
-                  value={compilerAdditionalContext}
-                  onChange={(e) => setCompilerAdditionalContext(e.target.value)}
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-2 rounded-md border border-border/70 bg-muted/20">
-                <div className="space-y-0.5">
-                  <Label className="text-xs">Include Few-Shot Dialogs</Label>
-                  <p className="text-[10px] text-muted-foreground">Appends sample Q&A before user inquiry</p>
-                </div>
-                <Switch
-                  checked={compilerIncludeFewShot}
-                  onCheckedChange={setCompilerIncludeFewShot}
-                />
-              </div>
-
-              {/* Dynamic Variables Map */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center justify-between">
-                  <span>Dynamic Session Variables</span>
-                  <span className="text-[10px] text-muted-foreground">Injected into &#123;&#123;tags&#125;&#125;</span>
-                </Label>
-                <div className="space-y-1.5 max-h-36 overflow-y-auto p-2 rounded-md border border-border/60 bg-muted/10">
-                  {Object.keys(compilerVariables).length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground text-center py-2">
-                      No custom variables defined on this persona.
-                    </p>
-                  ) : (
-                    Object.entries(compilerVariables).map(([key, val]) => (
-                      <div key={key} className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-semibold text-primary w-1/3 truncate">
-                          {key}:
-                        </span>
-                        <Input
-                          value={val}
-                          onChange={(e) =>
-                            setCompilerVariables({ ...compilerVariables, [key]: e.target.value })
-                          }
-                          className="h-7 text-xs flex-1"
-                        />
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={compilerLoading}
-                className="w-full h-9 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                {compilerLoading ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-3.5 w-3.5" />
-                )}
-                Synthesize & Compile Prompt
-              </Button>
-            </form>
-
-            {/* Compiled Result Inspection */}
-            <div className="flex flex-col border border-border rounded-lg bg-muted/10 overflow-hidden min-h-[380px]">
-              {compiledResult ? (
-                <div className="flex-1 flex flex-col">
-                  {/* Results Subtabs */}
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/40">
-                    <div className="flex gap-1">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={compilerActiveResultTab === "messages" ? "secondary" : "ghost"}
-                        onClick={() => setCompilerActiveResultTab("messages")}
-                        className="h-7 px-2.5 text-[11px]"
-                      >
-                        Messages ({compiledResult.messages.length})
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={compilerActiveResultTab === "systemPrompt" ? "secondary" : "ghost"}
-                        onClick={() => setCompilerActiveResultTab("systemPrompt")}
-                        className="h-7 px-2.5 text-[11px]"
-                      >
-                        System Prompt
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={compilerActiveResultTab === "variables" ? "secondary" : "ghost"}
-                        onClick={() => setCompilerActiveResultTab("variables")}
-                        className="h-7 px-2.5 text-[11px]"
-                      >
-                        Variables ({Object.keys(compiledResult.appliedVariables || {}).length})
-                      </Button>
+              <div className="custom-scrollbar min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
+                {activeTab === "identity" && (
+                  <>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Name" required>
+                        <Input placeholder="e.g. Chippy for Nakshi Threads" value={formData.name} onChange={(e) => patch({ name: e.target.value })} required />
+                      </Field>
+                      <Field label="Role" required hint="Shown to you, and used in the AI’s instructions.">
+                        <Input placeholder="e.g. Sales assistant" value={formData.role} onChange={(e) => patch({ role: e.target.value })} required />
+                      </Field>
                     </div>
-
-                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono">
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border">
-                        {compiledResult.estimatedTokens.total} tokens
-                      </Badge>
+                    <Field label="Description">
+                      <Textarea rows={2} placeholder="What this assistant is for, in a sentence." value={formData.description} onChange={(e) => patch({ description: e.target.value })} />
+                    </Field>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Category">
+                        <NativeSelect value={formData.category} onChange={(e) => patch({ category: e.target.value })}>
+                          {CATEGORIES.filter((c) => c.value !== "ALL").map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                        </NativeSelect>
+                      </Field>
+                      <Field label="Reply language">
+                        <NativeSelect value={formData.language} onChange={(e) => patch({ language: e.target.value })}>
+                          {LANGUAGES.some((l) => l.value === formData.language) ? null : <option value={formData.language}>{formData.language}</option>}
+                          {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+                        </NativeSelect>
+                      </Field>
+                      <Field label="Tone" hint="e.g. friendly, polite, playful">
+                        <Input value={formData.tone} onChange={(e) => patch({ tone: e.target.value })} />
+                      </Field>
+                      <Field label="Style" hint="e.g. conversational, short and direct">
+                        <Input value={formData.style} onChange={(e) => patch({ style: e.target.value })} />
+                      </Field>
                     </div>
-                  </div>
-
-                  {/* Results Body */}
-                  <div className="p-3 flex-1 overflow-y-auto max-h-[460px] text-xs">
-                    {compilerActiveResultTab === "messages" && (
-                      <div className="space-y-2.5">
-                        {compiledResult.messages.map((msg, i) => (
-                          <div
-                            key={i}
+                    <div className="space-y-1.5">
+                      <p id="reply-length" className="text-sm font-medium">Reply length</p>
+                      <div role="radiogroup" aria-labelledby="reply-length" className="grid grid-cols-3 gap-2">
+                        {(["concise", "balanced", "detailed"] as const).map((len) => (
+                          <button
+                            key={len}
+                            type="button"
+                            role="radio"
+                            aria-checked={formData.responseLength === len}
+                            onClick={() => patch({ responseLength: len })}
                             className={cn(
-                              "p-2.5 rounded-md border text-xs leading-relaxed",
-                              msg.role === "system" && "bg-muted/40 border-border/80",
-                              msg.role === "user" && "bg-primary/5 border-primary/20",
-                              msg.role === "assistant" && "bg-emerald-500/5 border-emerald-500/20"
+                              "rounded-lg border px-3 py-2 text-left text-sm",
+                              formData.responseLength === len ? "border-ink bg-brand-soft" : "hover:border-input"
                             )}
                           >
-                            <div className="flex items-center justify-between mb-1.5">
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[10px] uppercase font-bold",
-                                  msg.role === "system" && "text-muted-foreground",
-                                  msg.role === "user" && "text-primary border-primary/40",
-                                  msg.role === "assistant" && "text-emerald-500 border-emerald-500/40"
-                                )}
-                              >
-                                {msg.role}
-                              </Badge>
-                              <button
-                                type="button"
-                                onClick={() => copyToClipboard(msg.content, `msg-${i}`)}
-                                className="text-muted-foreground hover:text-foreground p-0.5"
-                                title="Copy content"
-                              >
-                                {copiedKey === `msg-${i}` ? (
-                                  <Check className="h-3 w-3 text-emerald-500" />
-                                ) : (
-                                  <Copy className="h-3 w-3" />
-                                )}
-                              </button>
-                            </div>
-                            <pre className="whitespace-pre-wrap font-sans text-xs">{msg.content}</pre>
+                            <span className="block font-medium capitalize">{len === "concise" ? "Short" : len === "balanced" ? "Medium" : "Detailed"}</span>
+                            <span className="block text-xs text-muted-foreground">{len === "concise" ? "1–2 lines" : len === "balanced" ? "A short paragraph" : "Full explanations"}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="divide-y rounded-xl border">
+                      <ToggleRow label="Turned on" hint="When off, this assistant never replies." checked={formData.isActive} onChange={(v) => patch({ isActive: v })} />
+                      <ToggleRow label="Default assistant" hint="Replies on pages that don’t have their own assistant." checked={formData.isDefault} onChange={(v) => patch({ isDefault: v })} />
+                    </div>
+                  </>
+                )}
+
+                {activeTab === "prompts" && (
+                  <>
+                    <Field label="Main instructions" hint="Tell it who it is, what your shop sells, and how to handle orders. Use {{variable}} for values you set under Variables.">
+                      <Textarea rows={9} className="font-mono text-sm" value={formData.systemPrompt} onChange={(e) => patch({ systemPrompt: e.target.value })} placeholder="You are the sales assistant for {{company_name}}…" />
+                    </Field>
+                    <Field label="Goal" hint="One line on what a good conversation achieves.">
+                      <Input value={formData.mission} onChange={(e) => patch({ mission: e.target.value })} placeholder="Answer quickly and help the customer place an order." />
+                    </Field>
+                    <Field label="When it doesn’t know" hint="Sent when the answer isn’t in its instructions or knowledge.">
+                      <Textarea rows={3} value={formData.fallbackResponse} onChange={(e) => patch({ fallbackResponse: e.target.value })} placeholder="Ekjon team member ekhuni apnake janabe." />
+                    </Field>
+                  </>
+                )}
+
+                {activeTab === "rules" && (
+                  <div className="grid gap-5 lg:grid-cols-2">
+                    <RuleList
+                      title="Always"
+                      tone="success"
+                      items={formData.dos}
+                      draft={newDo}
+                      setDraft={setNewDo}
+                      placeholder="e.g. Mention cash on delivery"
+                      onAdd={() => { if (newDo.trim()) { patch({ dos: [...formData.dos, newDo.trim()] }); setNewDo("") } }}
+                      onRemove={(i) => patch({ dos: formData.dos.filter((_, j) => j !== i) })}
+                    />
+                    <RuleList
+                      title="Never"
+                      tone="destructive"
+                      items={formData.donts}
+                      draft={newDont}
+                      setDraft={setNewDont}
+                      placeholder="e.g. Promise a discount"
+                      onAdd={() => { if (newDont.trim()) { patch({ donts: [...formData.donts, newDont.trim()] }); setNewDont("") } }}
+                      onRemove={(i) => patch({ donts: formData.donts.filter((_, j) => j !== i) })}
+                    />
+                  </div>
+                )}
+
+                {activeTab === "knowledge" && (
+                  <>
+                    <SectionHead
+                      title="Facts about your shop"
+                      hint="Delivery charges, return policy, sizes. The assistant looks here before answering."
+                      onAdd={() => patch({ knowledgeSnippets: [...formData.knowledgeSnippets, { id: `snippet-${Date.now()}`, title: "", content: "", tags: [] }] })}
+                      addLabel="Add fact"
+                    />
+                    {formData.knowledgeSnippets.length === 0 && <Hint>No facts yet.</Hint>}
+                    {formData.knowledgeSnippets.map((snip, i) => (
+                      <div key={snip.id} className="space-y-2 rounded-xl border p-3">
+                        <div className="flex gap-2">
+                          <Input placeholder="Title, e.g. Delivery charges" value={snip.title} aria-label="Fact title"
+                            onChange={(e) => patch({ knowledgeSnippets: formData.knowledgeSnippets.map((s, j) => (j === i ? { ...s, title: e.target.value } : s)) })} />
+                          <RemoveButton label="Remove fact" onClick={() => patch({ knowledgeSnippets: formData.knowledgeSnippets.filter((_, j) => j !== i) })} />
+                        </div>
+                        <Textarea rows={3} placeholder="Inside Dhaka ৳60, outside Dhaka ৳120. 2–4 days." value={snip.content} aria-label="Fact details"
+                          onChange={(e) => patch({ knowledgeSnippets: formData.knowledgeSnippets.map((s, j) => (j === i ? { ...s, content: e.target.value } : s)) })} />
+                      </div>
+                    ))}
+
+                    <SectionHead
+                      title="Links"
+                      hint="Pages the assistant can share, like your size chart or website."
+                      onAdd={() => patch({ referenceUrls: [...formData.referenceUrls, { title: "", url: "", description: "" }] })}
+                      addLabel="Add link"
+                    />
+                    {formData.referenceUrls.length === 0 && <Hint>No links yet.</Hint>}
+                    {formData.referenceUrls.map((ref, i) => (
+                      <div key={i} className="grid gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_1.4fr_auto]">
+                        <Input placeholder="Title" value={ref.title} aria-label="Link title"
+                          onChange={(e) => patch({ referenceUrls: formData.referenceUrls.map((r, j) => (j === i ? { ...r, title: e.target.value } : r)) })} />
+                        <Input type="url" placeholder="https://" value={ref.url} aria-label="Link address"
+                          onChange={(e) => patch({ referenceUrls: formData.referenceUrls.map((r, j) => (j === i ? { ...r, url: e.target.value } : r)) })} />
+                        <RemoveButton label="Remove link" onClick={() => patch({ referenceUrls: formData.referenceUrls.filter((_, j) => j !== i) })} />
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {activeTab === "variables" && (
+                  <>
+                    <SectionHead
+                      title="Variables"
+                      hint={<>Reusable values like your shop name or phone number. Write <code className="rounded bg-secondary px-1 font-mono text-xs">{"{{key}}"}</code> in instructions and rules to use them.</>}
+                      onAdd={() => patch({ customVariables: [...formData.customVariables, { key: "", defaultValue: "", description: "" }] })}
+                      addLabel="Add variable"
+                    />
+                    {formData.customVariables.length === 0 && <Hint>No variables yet.</Hint>}
+                    {formData.customVariables.length > 0 && (
+                      <div className="overflow-hidden rounded-xl border">
+                        <div className="hidden grid-cols-[1fr_1.3fr_auto] gap-2 border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground sm:grid">
+                          <span>Key</span><span>Value</span><span className="w-8" />
+                        </div>
+                        {formData.customVariables.map((v, i) => (
+                          <div key={i} className="grid gap-2 border-b p-3 last:border-0 sm:grid-cols-[1fr_1.3fr_auto]">
+                            <Input className="font-mono text-sm" placeholder="shop_phone" value={v.key} aria-label="Variable key"
+                              onChange={(e) => patch({ customVariables: formData.customVariables.map((c, j) => (j === i ? { ...c, key: e.target.value.replace(/\s+/g, "_") } : c)) })} />
+                            <Input placeholder="01712-345678" value={v.defaultValue} aria-label="Variable value"
+                              onChange={(e) => patch({ customVariables: formData.customVariables.map((c, j) => (j === i ? { ...c, defaultValue: e.target.value } : c)) })} />
+                            <RemoveButton label="Remove variable" onClick={() => patch({ customVariables: formData.customVariables.filter((_, j) => j !== i) })} />
                           </div>
                         ))}
                       </div>
                     )}
+                  </>
+                )}
 
-                    {compilerActiveResultTab === "systemPrompt" && (
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(compiledResult.compiledSystemPrompt, "full-sys")}
-                          className="absolute right-2 top-2 p-1 rounded bg-background/80 border border-border text-muted-foreground hover:text-foreground"
-                          title="Copy Full System Prompt"
-                        >
-                          {copiedKey === "full-sys" ? (
-                            <Check className="h-3.5 w-3.5 text-emerald-500" />
-                          ) : (
-                            <Copy className="h-3.5 w-3.5" />
-                          )}
+                {activeTab === "examples" && (
+                  <>
+                    <SectionHead
+                      title="Example replies"
+                      hint="Show it how you’d answer. A few good examples teach tone better than long instructions."
+                      onAdd={() => patch({ fewShotExamples: [...formData.fewShotExamples, { user: "", assistant: "" }] })}
+                      addLabel="Add example"
+                    />
+                    {formData.fewShotExamples.length === 0 && <Hint>No examples yet.</Hint>}
+                    {formData.fewShotExamples.map((ex, i) => (
+                      <div key={i} className="space-y-2 rounded-xl border bg-muted/40 p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">Example {i + 1}</span>
+                          <RemoveButton label="Remove example" onClick={() => patch({ fewShotExamples: formData.fewShotExamples.filter((_, j) => j !== i) })} />
+                        </div>
+                        <Textarea rows={2} placeholder="Customer: XL ache?" value={ex.user} aria-label="Customer message" className="rounded-2xl rounded-bl-md"
+                          onChange={(e) => patch({ fewShotExamples: formData.fewShotExamples.map((x, j) => (j === i ? { ...x, user: e.target.value } : x)) })} />
+                        <Textarea rows={2} placeholder="Reply: Ji apu, XL ache!" value={ex.assistant} aria-label="Assistant reply" className="ml-auto w-[92%] rounded-2xl rounded-br-md border-ink bg-ink text-white placeholder:text-white/50"
+                          onChange={(e) => patch({ fewShotExamples: formData.fewShotExamples.map((x, j) => (j === i ? { ...x, assistant: e.target.value } : x)) })} />
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {activeTab === "model" && (
+                  <>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Provider">
+                        <NativeSelect value={formData.modelConfig.provider} onChange={(e) => patchModel({ provider: e.target.value })}>
+                          {LLM_PROVIDERS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                        </NativeSelect>
+                      </Field>
+                      <Field label="Model">
+                        <Input className="font-mono text-sm" placeholder="gpt-4o" value={formData.modelConfig.modelName} onChange={(e) => patchModel({ modelName: e.target.value })} />
+                      </Field>
+                    </div>
+                    <Field label={`Creativity · ${formData.modelConfig.temperature ?? 0.7}`} hint="Lower is more predictable. 0.3–0.7 works well for sales.">
+                      <input type="range" min={0} max={2} step={0.05} value={formData.modelConfig.temperature ?? 0.7}
+                        onChange={(e) => patchModel({ temperature: parseFloat(e.target.value) })} className="w-full accent-ink" />
+                    </Field>
+                    <details className="group rounded-xl border">
+                      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium">
+                        Advanced
+                        <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
+                      </summary>
+                      <div className="grid gap-4 border-t p-4 sm:grid-cols-3">
+                        <Field label="Top P">
+                          <Input type="number" step="0.05" min="0" max="1" value={formData.modelConfig.topP ?? 1} onChange={(e) => patchModel({ topP: parseFloat(e.target.value) })} />
+                        </Field>
+                        <Field label="Max reply tokens">
+                          <Input type="number" step="128" min="128" max="32768" value={formData.modelConfig.maxTokens ?? 2048} onChange={(e) => patchModel({ maxTokens: parseInt(e.target.value) })} />
+                        </Field>
+                        <Field label="Reply format">
+                          <NativeSelect value={formData.modelConfig.responseFormat ?? "text"} onChange={(e) => patchModel({ responseFormat: e.target.value })}>
+                            <option value="text">Plain text</option>
+                            <option value="json_object">JSON</option>
+                          </NativeSelect>
+                        </Field>
+                      </div>
+                    </details>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t bg-card px-6 py-3">
+              <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={saveLoading}>
+                {saveLoading && <RefreshCw className="animate-spin" />}
+                {modalMode === "create" ? "Create assistant" : "Save changes"}
+              </Button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Test a message ─────────────────────────────────── */}
+      <Sheet open={compilerModalOpen} onOpenChange={setCompilerModalOpen}>
+        <SheetContent side="right" title={`Test ${compilerProfile?.name ?? "assistant"}`} className="flex w-full flex-col gap-0 p-0 sm:max-w-4xl">
+          <div className="border-b px-6 py-5 pr-14">
+            <h2 className="text-2xl">Test {compilerProfile?.name}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">See exactly what the AI receives for a customer message. Nothing is sent to anyone.</p>
+          </div>
+          <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[1fr_1.2fr] lg:overflow-hidden">
+            <form onSubmit={handleRunCompiler} className="custom-scrollbar space-y-4 border-b p-6 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+              <Field label="Customer message" required>
+                <Textarea rows={3} value={compilerUserPrompt} onChange={(e) => setCompilerUserPrompt(e.target.value)} required />
+              </Field>
+              <Field label="Extra context" hint="Anything the bot would know about this chat, like the product they tapped.">
+                <Input value={compilerAdditionalContext} onChange={(e) => setCompilerAdditionalContext(e.target.value)} />
+              </Field>
+              <div className="rounded-xl border">
+                <ToggleRow label="Include example replies" hint="Adds your examples before the message." checked={compilerIncludeFewShot} onChange={setCompilerIncludeFewShot} />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Variables</p>
+                {Object.keys(compilerVariables).length === 0 ? (
+                  <Hint>This assistant has no variables.</Hint>
+                ) : (
+                  Object.entries(compilerVariables).map(([key, val]) => (
+                    <div key={key} className="grid grid-cols-[8rem_1fr] items-center gap-2">
+                      <code className="truncate font-mono text-xs text-muted-foreground">{key}</code>
+                      <Input value={val} aria-label={key} onChange={(e) => setCompilerVariables({ ...compilerVariables, [key]: e.target.value })} />
+                    </div>
+                  ))
+                )}
+              </div>
+              <Button type="submit" className="w-full" disabled={compilerLoading}>
+                {compilerLoading ? <RefreshCw className="animate-spin" /> : <Send />}
+                Build preview
+              </Button>
+            </form>
+
+            <div className="flex min-h-[380px] flex-col bg-muted/40 lg:min-h-0">
+              {compiledResult ? (
+                <>
+                  <div className="flex items-center justify-between gap-2 border-b bg-card px-4 py-2">
+                    <div role="tablist" className="flex gap-1 text-sm">
+                      {([
+                        ["messages", `Conversation (${compiledResult.messages.length})`],
+                        ["systemPrompt", "Full instructions"],
+                        ["variables", "Variables"],
+                      ] as const).map(([id, label]) => (
+                        <button key={id} role="tab" aria-selected={compilerActiveResultTab === id} onClick={() => setCompilerActiveResultTab(id)}
+                          className={cn("rounded-md px-2.5 py-1 font-medium text-muted-foreground", compilerActiveResultTab === id && "bg-secondary text-foreground")}>
+                          {label}
                         </button>
-                        <pre className="p-3 rounded-md bg-muted/40 border border-border/70 font-mono text-[11px] whitespace-pre-wrap leading-relaxed">
-                          {compiledResult.compiledSystemPrompt}
-                        </pre>
+                      ))}
+                    </div>
+                    <Badge variant="outline" className="font-mono">{compiledResult.estimatedTokens.total} tokens</Badge>
+                  </div>
+                  <div className="custom-scrollbar flex-1 overflow-y-auto p-4">
+                    {compilerActiveResultTab === "messages" && (
+                      <div className="flex flex-col gap-2">
+                        {compiledResult.messages.map((msg, i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              "group relative max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm",
+                              msg.role === "system" && "max-w-full border border-dashed bg-card text-muted-foreground",
+                              msg.role === "user" && "self-start rounded-bl-md border bg-card",
+                              msg.role === "assistant" && "self-end rounded-br-md bg-ink text-white"
+                            )}
+                          >
+                            <div className="mb-1 flex items-center justify-between gap-3 text-2xs font-medium opacity-70">
+                              {msg.role === "system" ? "Instructions" : msg.role === "user" ? "Customer" : "Assistant"}
+                              <button type="button" onClick={() => copyToClipboard(msg.content, `msg-${i}`)} aria-label="Copy">
+                                {copiedKey === `msg-${i}` ? <Check className="size-3" /> : <Copy className="size-3" />}
+                              </button>
+                            </div>
+                            <p className={cn("whitespace-pre-wrap", msg.role === "system" && "line-clamp-6 font-mono text-xs")}>{msg.content}</p>
+                          </div>
+                        ))}
                       </div>
                     )}
-
+                    {compilerActiveResultTab === "systemPrompt" && (
+                      <div className="relative">
+                        <Button type="button" variant="outline" size="sm" className="absolute right-2 top-2" onClick={() => copyToClipboard(compiledResult.compiledSystemPrompt, "full-sys")}>
+                          {copiedKey === "full-sys" ? <Check /> : <Copy />} Copy
+                        </Button>
+                        <pre className="whitespace-pre-wrap rounded-xl border bg-card p-4 pt-12 font-mono text-xs leading-relaxed">{compiledResult.compiledSystemPrompt}</pre>
+                      </div>
+                    )}
                     {compilerActiveResultTab === "variables" && (
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs font-semibold text-emerald-500">Applied Variables</Label>
-                          <div className="space-y-1 max-h-40 overflow-y-auto">
-                            {Object.entries(compiledResult.appliedVariables || {}).map(([k, v]) => (
-                              <div
-                                key={k}
-                                className="flex justify-between items-center p-1.5 rounded bg-muted/40 text-xs font-mono"
-                              >
-                                <span className="font-semibold text-primary">{k}</span>
-                                <span className="text-muted-foreground">{v}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {compiledResult.missingVariables && compiledResult.missingVariables.length > 0 && (
-                          <div className="space-y-1">
-                            <Label className="text-xs font-semibold text-rose-500">Missing Placeholders</Label>
-                            <div className="flex flex-wrap gap-1">
-                              {compiledResult.missingVariables.map((m) => (
-                                <Badge key={m} variant="destructive" className="text-[10px]">
-                                  {m}
-                                </Badge>
-                              ))}
+                      <div className="space-y-4">
+                        <dl className="divide-y rounded-xl border bg-card">
+                          {Object.entries(compiledResult.appliedVariables || {}).map(([k, v]) => (
+                            <div key={k} className="grid grid-cols-[8rem_1fr] gap-3 px-3 py-2 text-sm">
+                              <dt className="truncate font-mono text-xs text-muted-foreground">{k}</dt>
+                              <dd className="truncate">{v}</dd>
                             </div>
+                          ))}
+                          {Object.keys(compiledResult.appliedVariables || {}).length === 0 && <p className="p-3 text-sm text-muted-foreground">No variables used.</p>}
+                        </dl>
+                        {compiledResult.missingVariables?.length > 0 && (
+                          <div className="rounded-xl bg-destructive-soft p-3 text-sm text-destructive">
+                            <p className="font-medium">Missing values</p>
+                            <p className="mt-1 text-xs">These are used in the instructions but have no value: {compiledResult.missingVariables.join(", ")}</p>
                           </div>
                         )}
                       </div>
                     )}
                   </div>
-                </div>
+                </>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
-                  <Zap className="h-10 w-10 opacity-30 mb-2" />
-                  <p className="text-xs font-semibold">Simulator Ready</p>
-                  <p className="text-[11px] max-w-xs mt-0.5">
-                    Click &quot;Synthesize & Compile Prompt&quot; to test persona assembly, dynamic variable replacement, and token consumption.
-                  </p>
+                <div className="m-auto max-w-[32ch] p-6 text-center text-sm text-muted-foreground">
+                  <Zap className="mx-auto mb-3 size-6" />
+                  Write a customer message and press Build preview to see the full conversation the AI receives.
                 </div>
               )}
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
-      {/* ========================================================================= */}
-      {/* BOUND WEBHOOKS MODAL                                                      */}
-      {/* ========================================================================= */}
+      {/* ── Pages using this assistant ─────────────────────── */}
       <Dialog open={webhooksModalOpen} onOpenChange={setWebhooksModalOpen}>
-        <DialogContent className="max-w-md p-4 sm:p-5 border-border bg-card gap-3">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <MessageSquare className="h-4 w-4 text-primary" />
-              Webhooks Bound to {selectedProfileForWebhooks?.name}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              All Meta Messenger integrations using this persona for automatic prompt generation.
-            </DialogDescription>
+            <DialogTitle>Pages using {selectedProfileForWebhooks?.name}</DialogTitle>
+            <DialogDescription>Pages without their own assistant use the default one.</DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-2 py-2">
-            {boundWebhooksLoading ? (
-              <div className="py-8 flex justify-center text-muted-foreground">
-                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : boundWebhooks.length === 0 ? (
-              <div className="py-6 text-center text-xs text-muted-foreground">
-                No webhooks currently bound to this AI persona.
-                <div className="mt-3">
-                  <Button asChild size="sm" variant="outline" className="h-7 text-xs">
-                    <Link href="/dashboard/messenger">Manage Webhooks</Link>
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              boundWebhooks.map((hook) => (
-                <div
-                  key={hook.id}
-                  className="p-2.5 rounded-md border border-border/70 bg-muted/20 flex items-center justify-between"
-                >
-                  <div>
-                    <h4 className="text-xs font-bold text-foreground">{hook.name}</h4>
-                    <p className="text-[10px] text-muted-foreground">
-                      {hook.pageName ? hook.pageName : hook.pageId ? `Page ID: ${hook.pageId}` : "No page linked"}
-                    </p>
+          {boundWebhooksLoading ? (
+            <div className="flex justify-center py-8"><RefreshCw className="size-5 animate-spin text-muted-foreground" /></div>
+          ) : boundWebhooks.length === 0 ? (
+            <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+              No page uses this assistant yet.
+              <Button asChild variant="outline" size="sm" className="mt-3"><Link href="/dashboard/messenger">Choose it on a page</Link></Button>
+            </div>
+          ) : (
+            <ul className="divide-y rounded-xl border">
+              {boundWebhooks.map((hook) => (
+                <li key={hook.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{hook.pageName || hook.name}</p>
+                    <p className="text-xs text-muted-foreground">{hook.isActive ? "Replying" : "Paused"}</p>
                   </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <Badge
-                      className={cn(
-                        "text-[10px]",
-                        hook.isActive
-                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                          : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {hook.isActive ? "Active" : "Disabled"}
-                    </Badge>
-                    <Button asChild variant="ghost" size="sm" className="h-7 w-7 p-0">
-                      <Link href="/dashboard/messenger" title="Go to Webhook">
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+                  <Button asChild variant="ghost" size="sm"><Link href={`/dashboard/messenger/${hook.id}/inbox`}>Open inbox</Link></Button>
+                </li>
+              ))}
+            </ul>
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* ========================================================================= */}
-      {/* DELETE CONFIRMATION MODAL                                                 */}
-      {/* ========================================================================= */}
+      {/* ── Delete ─────────────────────────────────────────── */}
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-        <DialogContent className="max-w-md p-4 sm:p-5 border-border bg-card gap-3">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base text-destructive">
-              <Trash2 className="h-4 w-4" />
-              Delete AI Persona
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Are you sure you want to delete &quot;{profileToDelete?.name}&quot;? Any Messenger webhooks bound to this profile will fall back to your default profile.
+            <DialogTitle>Delete {profileToDelete?.name}?</DialogTitle>
+            <DialogDescription>
+              This can’t be undone. Pages using it will switch to your default assistant{profileToDelete?.isDefault ? ", and you’ll need to choose a new default" : ""}.
             </DialogDescription>
           </DialogHeader>
-
-          <DialogFooter className="pt-4 border-t border-border flex items-center justify-between sm:justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setDeleteModalOpen(false)}
-              className="h-8 text-xs"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              disabled={deleteLoading}
-              onClick={handleDeleteProfile}
-              className="h-8 text-xs"
-            >
-              {deleteLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />}
-              Delete Permanently
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>Keep it</Button>
+            <Button variant="destructive" onClick={handleDeleteProfile} disabled={deleteLoading}>
+              {deleteLoading && <RefreshCw className="animate-spin" />}
+              Delete assistant
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+function Field({ label, hint, required, children }: { label: string; hint?: React.ReactNode; required?: boolean; children: React.ReactNode }) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-sm font-medium">
+        {label}
+        {required && <span className="text-muted-foreground"> *</span>}
+      </span>
+      {children}
+      {hint && <span className="block text-xs text-muted-foreground">{hint}</span>}
+    </label>
+  )
+}
+
+function ToggleRow({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
+      <span>
+        <span className="block text-sm font-medium">{label}</span>
+        {hint && <span className="block text-xs text-muted-foreground">{hint}</span>}
+      </span>
+      <Switch checked={checked} onCheckedChange={onChange} />
+    </label>
+  )
+}
+
+function SectionHead({ title, hint, onAdd, addLabel }: { title: string; hint?: React.ReactNode; onAdd: () => void; addLabel: string }) {
+  return (
+    <div className="flex items-end justify-between gap-4 pt-1">
+      <div>
+        <h3 className="text-base">{title}</h3>
+        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      </div>
+      <Button type="button" variant="outline" size="sm" onClick={onAdd}><Plus className="size-3.5" />{addLabel}</Button>
+    </div>
+  )
+}
+
+function Hint({ children }: { children: React.ReactNode }) {
+  return <p className="rounded-xl border border-dashed px-3 py-4 text-center text-sm text-muted-foreground">{children}</p>
+}
+
+function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <Button type="button" variant="ghost" size="icon-sm" onClick={onClick} aria-label={label} className="shrink-0 hover:text-destructive">
+      <Trash2 />
+    </Button>
+  )
+}
+
+function RuleList({
+  title, tone, items, draft, setDraft, placeholder, onAdd, onRemove,
+}: {
+  title: string
+  tone: "success" | "destructive"
+  items: string[]
+  draft: string
+  setDraft: (v: string) => void
+  placeholder: string
+  onAdd: () => void
+  onRemove: (i: number) => void
+}) {
+  return (
+    <div className="space-y-2">
+      <h3 className="flex items-center gap-2 text-base">
+        <span className={cn("size-2 rounded-full", tone === "success" ? "bg-success" : "bg-destructive")} />
+        {title}
+      </h3>
+      <div className="flex gap-2">
+        <Input
+          value={draft}
+          placeholder={placeholder}
+          aria-label={`Add “${title}” rule`}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onAdd() } }}
+        />
+        <Button type="button" variant="outline" size="icon" onClick={onAdd} aria-label="Add rule"><Plus /></Button>
+      </div>
+      {items.length === 0 ? (
+        <Hint>No rules yet.</Hint>
+      ) : (
+        <ul className="divide-y rounded-xl border">
+          {items.map((item, i) => (
+            <li key={i} className="flex items-start gap-2 py-1.5 pl-3 pr-1.5 text-sm">
+              <span className="flex-1 py-1">{item}</span>
+              <RemoveButton label="Remove rule" onClick={() => onRemove(i)} />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

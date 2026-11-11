@@ -1,52 +1,55 @@
 import type { Metadata, Viewport } from "next";
-import { Anek_Bangla, JetBrains_Mono } from "next/font/google";
+import { Anek_Bangla, Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
-const anekBangla = Anek_Bangla({
-  variable: "--font-anek",
-  subsets: ["latin", "bengali"],
-  axes: ["wdth"],
+const geist = Geist({
+  variable: "--font-geist",
+  subsets: ["latin"],
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains",
+// Bengali glyphs fall through to Anek Bangla.
+const anekBangla = Anek_Bangla({
+  variable: "--font-anek",
+  subsets: ["bengali"],
+  display: "swap",
+});
+
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  axes: ["opsz", "wdth"],
+  display: "swap",
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "BDChatPro — AI E-Commerce & Facebook Messenger Automation",
-    template: "%s | BDChatPro",
+    default: "Chippy — Your Facebook page, answering and selling on its own",
+    template: "%s · Chippy",
   },
   description:
-    "Empower your e-commerce business with BDChatPro. Automated AI chatbot responses, intelligent order taking, product catalog semantic search, and multi-tenant team collaboration for Facebook Messenger.",
-  keywords: [
-    "AI Chatbot",
-    "F-Commerce",
-    "Facebook Messenger Automation",
-    "E-Commerce Chatbot",
-    "Order Management",
-    "Bangladesh E-Commerce",
-  ],
-  authors: [{ name: "BDChatPro Team" }],
-  icons: {
-    icon: "/favicon.ico",
-  },
+    "Chippy replies to Messenger customers in Bangla, Banglish, and English, checks your stock, and turns chats into orders.",
+  keywords: ["Messenger chatbot", "F-commerce", "Facebook page automation", "Bangladesh e-commerce", "AI sales assistant"],
+  applicationName: "Chippy",
+  icons: { icon: "/favicon.ico" },
   openGraph: {
-    title: "BDChatPro — AI E-Commerce & Facebook Messenger Automation",
-    description: "Automate sales and customer support on Facebook Messenger with intelligent AI profiles and seamless order routing.",
-    siteName: "BDChatPro",
+    title: "Chippy — Your Facebook page, answering and selling on its own",
+    description: "Replies in Bangla and Banglish, checks stock, and creates the order.",
+    siteName: "Chippy",
     locale: "en_US",
     type: "website",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#00422F",
+  themeColor: "#F3F4F6",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -60,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth">
       <body
-        className={`${anekBangla.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        className={`${geist.variable} ${bricolage.variable} ${anekBangla.variable} ${geistMono.variable} font-sans antialiased`}
       >
         {children}
         <Toaster />

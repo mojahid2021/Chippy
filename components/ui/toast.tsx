@@ -23,15 +23,15 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName
 
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-xl border p-4 pr-8 shadow-lg backdrop-blur-sm transition-all min-h-[60px] data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
+  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-xl border p-3.5 pr-8 shadow-xl transition-all min-h-[60px] data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
   {
     variants: {
       variant: {
         default: "border-border bg-card text-foreground",
-        destructive: "border-destructive/30 bg-destructive-soft text-destructive",
-        success: "border-success/30 bg-success-soft text-success",
-        warning: "border-warning/30 bg-warning-soft text-warning",
-        info: "border-info/30 bg-info-soft text-info",
+        destructive: "border-border bg-card text-foreground",
+        success: "border-border bg-card text-foreground",
+        warning: "border-border bg-card text-foreground",
+        info: "border-border bg-card text-foreground",
       },
     },
     defaultVariants: {
@@ -49,7 +49,7 @@ const getToastIcon = (variant: VariantProps<typeof toastVariants>["variant"]) =>
     case "warning":
       return <AlertTriangle className="h-5 w-5 text-warning" />
     case "info":
-      return <Info className="h-5 w-5 text-primary" />
+      return <Info className="h-5 w-5 text-info" />
     default:
       return null
   }

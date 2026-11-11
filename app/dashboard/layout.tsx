@@ -5,8 +5,8 @@ import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { useUserStore } from "@/lib/stores/userStore"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Logo } from "@/components/logo"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Logo, LogoMark } from "@/components/logo"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,436 +14,339 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import {
-  Home,
-  Menu,
-  Search,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  User,
-  Calendar,
-  Crown,
-  ArrowRight,
-  MessageSquare,
-  Bot,
-} from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { ChevronsUpDown, CornerDownLeft, LogOut, Menu, PanelLeft, Search, Sparkles, UserCog, CreditCard } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { navSections, navItems, isActive, currentNavItem } from "@/lib/navigation"
 import { toast } from "@/hooks/use-toast"
 
-const navigationSections = [
-  {
-    title: "Overview",
-    items: [
-      { name: "Dashboard", href: "/dashboard", icon: Home },
-    ],
-  },
-  {
-    title: "AI & Integrations",
-    items: [
-      { name: "AI Personas", href: "/dashboard/ai-profiles", icon: Bot },
-      { name: "Meta Webhooks", href: "/dashboard/messenger", icon: MessageSquare },
-    ],
-  },
-  {
-    title: "Account",
-    items: [
-      { name: "Profile", href: "/dashboard/profile", icon: User },
-    ],
-  },
-  {
-    title: "Billing",
-    items: [
-      { name: "Subscriptions", href: "/dashboard/subscription", icon: Calendar },
-    ],
-  },
-]
+type ShellUser = {
+  firstName?: string
+  lastName?: string
+  name?: string
+  email?: string
+} | null
 
-interface SidebarProps {
-  mobile?: boolean
-  collapsed?: boolean
-  pathname?: string
-  user?: {
-    id: string
-    email: string
-    firstName: string
-    lastName: string
-    name?: string
-  } | null
-  onNavigate?: () => void
-  onToggleCollapse?: () => void
-}
+const initials = (u: ShellUser) => `${u?.firstName?.[0] ?? "U"}${u?.lastName?.[0] ?? ""}`.toUpperCase()
+const fullName = (u: ShellUser) => u?.name || `${u?.firstName ?? ""} ${u?.lastName ?? ""}`.trim() || "You"
 
-const Sidebar = ({
-  mobile = false,
+function Sidebar({
   collapsed = false,
-  pathname = "",
+  pathname,
   user,
   onNavigate,
-  onToggleCollapse,
-}: SidebarProps) => {
-  const expanded = mobile || !collapsed
-  const CollapseIcon = collapsed ? ChevronRight : ChevronLeft
-  const displayName = user?.name || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User"
-
+  onSearch,
+  onLogout,
+}: {
+  collapsed?: boolean
+  pathname: string
+  user: ShellUser
+  onNavigate?: () => void
+  onSearch: () => void
+  onLogout: () => void
+}) {
   return (
-    <div
-      className={cn(
-        "flex h-full flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-300",
-        mobile ? "w-full" : collapsed ? "w-18" : "w-64"
-      )}
-    >
-      <div className={cn("flex items-center justify-between px-3.5 py-3", !expanded && "flex-col gap-2.5 px-2")}>
-        <Link href="/dashboard" className="text-white" aria-label="Dashboard home">
-          <Logo compact={!expanded} />
-        </Link>
-        {!mobile && onToggleCollapse && (
-          <button
-            onClick={onToggleCollapse}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="grid size-6 place-items-center rounded-sm hover:bg-sidebar-accent hover:text-white"
-          >
-            <CollapseIcon className="size-3.5" />
-          </button>
+    <div className="flex h-full flex-col gap-4 px-3 py-4 text-sidebar-foreground">
+      <Link href="/dashboard" onClick={onNavigate} className={cn("flex items-center px-1.5 text-foreground", collapsed && "justify-center px-0")}>
+        {collapsed ? <LogoMark /> : <Logo />}
+      </Link>
+
+      <button
+        onClick={onSearch}
+        className={cn(
+          "flex h-8 items-center gap-2 rounded-lg border border-sidebar-border bg-card px-2.5 text-sm text-muted-foreground shadow-xs hover:text-foreground",
+          collapsed && "justify-center px-0"
         )}
-      </div>
+        aria-label="Search"
+      >
+        <Search className="size-3.5" />
+        {!collapsed && (
+          <>
+            <span className="flex-1 text-left">Search</span>
+            <kbd className="rounded border bg-muted px-1 font-mono text-2xs">⌘K</kbd>
+          </>
+        )}
+      </button>
 
-      <nav className="custom-scrollbar flex-1 space-y-3.5 overflow-y-auto px-2.5 py-2">
-        {navigationSections.map((section) => (
-          <div key={section.title}>
-            {expanded && <h3 className="mb-1 px-2.5 text-[11px] font-medium opacity-70 [font-stretch:100%]">{section.title}</h3>}
-            <div className="space-y-0.5">
+      <nav className="custom-scrollbar -mx-1 flex-1 space-y-5 overflow-y-auto px-1">
+        {navSections.map((section, i) => (
+          <div key={section.title ?? i}>
+            {section.title && !collapsed && (
+              <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">{section.title}</p>
+            )}
+            <ul className="space-y-0.5">
               {section.items.map((item) => {
-                const isActive =
-                  pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
-
+                const active = isActive(item, pathname)
                 return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    title={expanded ? undefined : item.name}
-                    aria-current={isActive ? "page" : undefined}
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                      isActive
-                        ? "bg-sidebar-primary font-semibold text-sidebar-primary-foreground"
-                        : "hover:bg-sidebar-accent hover:text-white",
-                      !expanded && "justify-center px-1.5"
-                    )}
-                    onClick={() => mobile && onNavigate?.()}
-                  >
-                    <item.icon className="size-4 shrink-0" />
-                    {expanded && <span className="truncate">{item.name}</span>}
-                  </Link>
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onNavigate}
+                      title={collapsed ? item.name : undefined}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-xs"
+                          : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                        collapsed && "justify-center px-0"
+                      )}
+                    >
+                      <item.icon className="size-4 shrink-0" strokeWidth={active ? 2.25 : 1.75} />
+                      {!collapsed && <span className="truncate">{item.name}</span>}
+                    </Link>
+                  </li>
                 )
               })}
-            </div>
+            </ul>
           </div>
         ))}
       </nav>
 
-      <Link
-        href="/dashboard/profile"
-        className={cn("m-2 flex items-center gap-2 rounded-md p-1.5 hover:bg-sidebar-accent", !expanded && "justify-center p-1")}
-      >
-        <Avatar className="size-8">
-          <AvatarImage src="" />
-          <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
-            {user?.firstName?.[0] || "U"}
-            {user?.lastName?.[0] || ""}
-          </AvatarFallback>
-        </Avatar>
-        {expanded && (
-          <span className="min-w-0">
-            <span className="block truncate text-xs font-semibold text-white">
-              {displayName}
-            </span>
-            <span className="block truncate text-[11px] opacity-75">{user?.email}</span>
-          </span>
-        )}
-      </Link>
+      {!collapsed && (
+        <Link
+          href="/dashboard/purchase"
+          onClick={onNavigate}
+          className="group rounded-xl border border-sidebar-border bg-card p-3 shadow-xs hover:border-input"
+        >
+          <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+            <Sparkles className="size-3.5" /> Unlock more replies
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Compare plans and upgrade in a minute.</p>
+        </Link>
+      )}
+
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className={cn(
+            "flex items-center gap-2 rounded-lg p-1.5 text-left hover:bg-sidebar-accent focus-visible:outline-2",
+            collapsed && "justify-center"
+          )}
+        >
+          <Avatar className="size-7">
+            <AvatarFallback className="bg-ink text-2xs font-semibold text-white">{initials(user)}</AvatarFallback>
+          </Avatar>
+          {!collapsed && (
+            <>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-foreground">{fullName(user)}</span>
+                <span className="block truncate text-2xs text-muted-foreground">{user?.email}</span>
+              </span>
+              <ChevronsUpDown className="size-3.5 text-muted-foreground" />
+            </>
+          )}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top" align="start" className="w-56">
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/profile" onClick={onNavigate}><UserCog className="mr-2 size-4" />Profile & security</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/subscription" onClick={onNavigate}><CreditCard className="mr-2 size-4" />Plan & billing</Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={onLogout} className="text-destructive focus:text-destructive">
+            <LogOut className="mr-2 size-4" />Sign out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const {
-    user,
-    token,
-    isLoading,
-    initializeAuth,
-    logout,
-  } = useUserStore()
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { user, token, isLoading, initializeAuth, logout } = useUserStore()
   const router = useRouter()
   const pathname = usePathname()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [searchModalOpen, setSearchModalOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const [cursor, setCursor] = useState(0)
 
   useEffect(() => {
     void initializeAuth()
   }, [initializeAuth])
 
   useEffect(() => {
-    if (!isLoading && !user && !token) {
-      router.push("/auth/signin")
-    }
+    if (!isLoading && !user && !token) router.push("/auth/signin")
   }, [user, token, isLoading, router])
 
-  // Keyboard shortcut for Cmd+K command palette
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault()
-        setSearchModalOpen((open) => !open)
+        setSearchOpen((o) => !o)
       }
     }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
   }, [])
 
   const handleLogout = () => {
     logout()
-    toast({
-      variant: "info",
-      title: "Signed out",
-      description: "You have been successfully signed out.",
-    })
+    toast({ variant: "info", title: "Signed out", description: "See you soon." })
     router.push("/auth/signin")
   }
 
-  const allRoutes = [
-    { title: "Dashboard Overview", href: "/dashboard", desc: "View account and subscription overview", icon: Home },
-    { title: "AI Persona Profiles", href: "/dashboard/ai-profiles", desc: "Manage AI personas, guardrails, and compile prompts", icon: Bot },
-    { title: "Meta Messenger Webhooks", href: "/dashboard/messenger", desc: "Manage Facebook Messenger webhooks and audit events", icon: MessageSquare },
-    { title: "Subscription & Billing", href: "/dashboard/subscription", desc: "Manage billing, renewals, and history", icon: Calendar },
-    { title: "User Profile", href: "/dashboard/profile", desc: "View account info and credentials", icon: User },
-  ]
+  const commands = [
+    ...navItems.map((i) => ({ title: i.name, href: i.href, desc: i.desc, icon: i.icon })),
+    { title: "Change plan", href: "/dashboard/purchase", desc: "Compare plans and upgrade", icon: Sparkles },
+  ].filter((c) => `${c.title} ${c.desc}`.toLowerCase().includes(query.toLowerCase()))
 
-  const filteredCommands = allRoutes.filter((r) =>
-    r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.desc.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const go = (href: string) => {
+    setSearchOpen(false)
+    setQuery("")
+    router.push(href)
+  }
 
-  if (isLoading) {
+  if (isLoading || (!user && !token)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent mx-auto mb-3" />
-          <p className="text-sm font-medium">Loading session...</p>
+      <div className="grid min-h-screen place-items-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
+          <LogoMark className="size-9 animate-bounce" />
+          {isLoading ? "Opening your workspace" : "Taking you to sign in"}
         </div>
       </div>
     )
   }
 
-  if (!user && !token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent mx-auto mb-3" />
-          <p className="text-xs">Redirecting to sign in...</p>
-        </div>
-      </div>
-    )
-  }
-
-  const displayName = user?.name || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User"
+  const current = currentNavItem(pathname)
+  const crumb = pathname.endsWith("/inbox") ? "Inbox" : pathname === "/dashboard/purchase" ? "Choose a plan" : null
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex">
+    // App shell: the window never scrolls, only the content panel does, so menus and panels
+    // that lock scrolling can’t shift the layout.
+    <div className="h-dvh overflow-hidden bg-background">
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 hidden transition-[width] duration-200 lg:block",
+          collapsed ? "w-16" : "w-60"
+        )}
+      >
         <Sidebar
-          collapsed={sidebarCollapsed}
+          collapsed={collapsed}
           pathname={pathname}
           user={user}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onSearch={() => setSearchOpen(true)}
+          onLogout={handleLogout}
         />
-      </div>
+      </aside>
 
-      {/* Mobile Drawer */}
-      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="p-0 w-64 bg-background border-r border-border">
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="w-64 border-r-0 bg-sidebar p-0">
           <Sidebar
-            mobile
             pathname={pathname}
             user={user}
-            onNavigate={() => setMobileMenuOpen(false)}
+            onNavigate={() => setMobileOpen(false)}
+            onSearch={() => {
+              setMobileOpen(false)
+              setSearchOpen(true)
+            }}
+            onLogout={handleLogout}
           />
         </SheetContent>
       </Sheet>
 
-      {/* Main Content Area */}
-      <div
-        className={cn(
-          "flex-1 flex flex-col min-w-0 transition-all duration-300",
-          sidebarCollapsed ? "lg:pl-18" : "lg:pl-64"
-        )}
-      >
-        {/* Top Navbar */}
-        <header className="sticky top-0 z-40 bg-background backdrop-blur-2xl border-b border-border">
-          <div className="px-3.5 sm:px-5 py-2">
-            <div className="flex items-center justify-between">
-              
-              {/* Left breadcrumb trail / Mobile trigger */}
-              <div className="flex items-center gap-2.5">
-                <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                  <SheetTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="lg:hidden h-7 w-7 p-0 text-foreground/80 hover:bg-muted rounded-md"
-                    >
-                      <Menu className="h-4 w-4" />
-                    </Button>
-                  </SheetTrigger>
-                </Sheet>
-
-                <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Link href="/dashboard" className="hover:text-foreground font-medium">Dashboard</Link>
-                  <span>/</span>
-                  <span className="text-foreground capitalize">
-                    {pathname.split("/").filter(Boolean).pop() || "Overview"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Right Action Stack */}
-              <div className="flex items-center gap-2">
-                {/* Global Command Palette search bar */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSearchModalOpen(true)}
-                  className="hidden md:flex items-center justify-between w-56 h-7 px-2 bg-muted/40 border-border text-muted-foreground hover:bg-muted hover:text-foreground rounded-md text-xs font-normal"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Search className="h-3 w-3" />
-                    <span>Quick navigation...</span>
-                  </span>
-                  <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border border-border bg-card px-1 font-mono text-[10px] font-medium text-muted-foreground">
-                    <span className="text-[11px]">⌘</span>K
-                  </kbd>
-                </Button>
-
-                {/* User Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-7 w-7 rounded-full p-0">
-                      <Avatar className="h-7 w-7">
-                        <AvatarImage src="" />
-                        <AvatarFallback className="bg-primary text-[11px] font-bold text-primary-foreground">
-                          {user?.firstName?.[0] || "U"}
-                          {user?.lastName?.[0] || ""}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" align="end">
-                    <div className="flex items-center justify-start gap-2 p-2">
-                      <div className="flex flex-col space-y-0.5 leading-none">
-                        <p className="font-semibold text-xs text-foreground">{displayName}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
-                      </div>
-                    </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard/profile" className="flex items-center gap-2 cursor-pointer text-xs">
-                        <User className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>Profile & Account</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard/subscription" className="flex items-center gap-2 cursor-pointer text-xs">
-                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>Subscription & Billing</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard/purchase" className="flex items-center gap-2 cursor-pointer text-xs">
-                        <Crown className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>Upgrade / Change Plan</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleLogout}
-                      className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer text-xs"
-                    >
-                      <LogOut className="h-3.5 w-3.5" />
-                      <span>Sign Out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+      <div className={cn("h-full transition-[padding] duration-200 lg:py-2 lg:pr-2", collapsed ? "lg:pl-16" : "lg:pl-60")}>
+        <div className="flex h-full flex-col overflow-hidden bg-card lg:rounded-2xl lg:border lg:shadow-sm">
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-card px-3 sm:px-5">
+            <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+              <Menu />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="hidden lg:inline-flex"
+              onClick={() => setCollapsed((c) => !c)}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <PanelLeft />
+            </Button>
+            <span className="mx-1 hidden h-4 w-px bg-border lg:block" />
+            <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
+              {current && crumb ? (
+                <>
+                  <Link href={current.href} className="truncate text-muted-foreground hover:text-foreground">{current.name}</Link>
+                  <span className="text-input">/</span>
+                  <span className="truncate font-medium">{crumb}</span>
+                </>
+              ) : (
+                <span className="truncate font-medium">{current?.name ?? "Home"}</span>
+              )}
+            </nav>
+            <div className="ml-auto lg:hidden">
+              <Button variant="ghost" size="icon-sm" onClick={() => setSearchOpen(true)} aria-label="Search">
+                <Search />
+              </Button>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Dynamic Page Container */}
-        <main className="flex-1 p-3 sm:p-4 lg:p-5 max-w-7xl w-full mx-auto">
-          {children}
-        </main>
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
+            <main className="mx-auto w-full max-w-site px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+          </div>
+        </div>
       </div>
 
-      {/* Command Palette Modal */}
-      <Dialog open={searchModalOpen} onOpenChange={setSearchModalOpen}>
-        <DialogContent className="p-0 max-w-lg overflow-hidden border-border bg-card shadow-2xl">
+      <Dialog
+        open={searchOpen}
+        onOpenChange={(o) => {
+          setSearchOpen(o)
+          if (!o) setQuery("")
+        }}
+      >
+        <DialogContent className="top-[20%] max-w-lg translate-y-0 gap-0 overflow-hidden p-0 data-[state=open]:slide-in-from-top-[18%]">
           <DialogHeader className="sr-only">
-            <DialogTitle>Quick Search</DialogTitle>
+            <DialogTitle>Search</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center px-3 border-b border-border">
-            <Search className="h-4 w-4 text-muted-foreground mr-2 shrink-0" />
+          <div className="flex items-center gap-2 border-b px-4">
+            <Search className="size-4 text-muted-foreground" />
             <input
-              type="text"
-              placeholder="Type a destination or feature..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-11 bg-transparent text-foreground placeholder:text-muted-foreground text-xs focus:outline-none"
               autoFocus
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setCursor(0)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault()
+                  setCursor((c) => Math.min(c + 1, commands.length - 1))
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault()
+                  setCursor((c) => Math.max(c - 1, 0))
+                } else if (e.key === "Enter" && commands[cursor]) {
+                  go(commands[cursor].href)
+                }
+              }}
+              placeholder="Where to?"
+              className="h-12 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
             />
           </div>
-          <div className="max-h-72 overflow-y-auto p-2 divide-y divide-border/40">
-            {filteredCommands.length === 0 ? (
-              <p className="text-center py-6 text-xs text-muted-foreground">No matches found.</p>
+          <ul className="max-h-80 overflow-y-auto p-1.5">
+            {commands.length === 0 ? (
+              <li className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches. Try “inbox”, “plan”, or “password”.</li>
             ) : (
-              filteredCommands.map((command) => (
-                <Link
-                  key={command.href}
-                  href={command.href}
-                  onClick={() => setSearchModalOpen(false)}
-                  className="flex items-center justify-between p-2.5 hover:bg-muted rounded-md transition-colors group cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-md bg-muted group-hover:bg-card border border-border flex items-center justify-center text-muted-foreground group-hover:text-primary shrink-0 transition-colors">
-                      <command.icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">{command.title}</p>
-                      <p className="text-[11px] text-muted-foreground">{command.desc}</p>
-                    </div>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
+              commands.map((c, i) => (
+                <li key={c.href + c.title}>
+                  <button
+                    onMouseEnter={() => setCursor(i)}
+                    onClick={() => go(c.href)}
+                    className={cn("flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left", i === cursor && "bg-secondary")}
+                  >
+                    <span className={cn("grid size-8 place-items-center rounded-lg border bg-card", i === cursor && "border-transparent bg-brand")}>
+                      <c.icon className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium">{c.title}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{c.desc}</span>
+                    </span>
+                    {i === cursor && <CornerDownLeft className="size-3.5 text-muted-foreground" />}
+                  </button>
+                </li>
               ))
             )}
-          </div>
+          </ul>
         </DialogContent>
       </Dialog>
     </div>

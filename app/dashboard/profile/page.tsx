@@ -1,27 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useUserStore } from "@/lib/stores/userStore"
 import { useToast } from "@/hooks/use-toast"
-import {
-  User,
-  Mail,
-  Phone,
-  Calendar,
-  Shield,
-  Hash,
-  Loader2,
-  KeyRound,
-  CheckCircle2,
-  XCircle,
-  ShieldCheck
-} from "lucide-react"
+import { PageHeader, EmptyState } from "@/components/page-header"
+import { Check, CheckCircle2, Copy, Loader2, UserX, XCircle } from "lucide-react"
 
 interface UserProfile {
   id: string
@@ -41,337 +28,184 @@ export default function ProfilePage() {
   const { toast } = useToast()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
-
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [changingPassword, setChangingPassword] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const mismatch = confirmPassword.length > 0 && newPassword !== confirmPassword
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (newPassword.length < 8) {
-      toast({ title: "Validation Error", description: "New password must be at least 8 characters long.", variant: "destructive" })
+      toast({ title: "Password too short", description: "Use at least 8 characters.", variant: "destructive" })
       return
     }
     if (newPassword !== confirmPassword) {
-      toast({ title: "Validation Error", description: "New passwords do not match.", variant: "destructive" })
+      toast({ title: "Passwords don’t match", description: "Type the new password the same way twice.", variant: "destructive" })
       return
     }
-
     try {
       setChangingPassword(true)
-      const response = await fetch('/api/user/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/user/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPassword, newPassword }),
       })
       const data = await response.json()
-
       if (data.success) {
-        toast({ title: "Success", description: "Your password has been changed." })
+        toast({ variant: "success", title: "Password changed", description: "Use your new password next time you sign in." })
         setCurrentPassword("")
         setNewPassword("")
         setConfirmPassword("")
       } else {
-        toast({ title: "Notice", description: data.message || "Password change service unavailable", variant: "destructive" })
+        toast({ title: "Password not changed", description: data.message || "Check your current password and try again.", variant: "destructive" })
       }
     } catch {
-      toast({ title: "Error", description: "Network error. Please try again.", variant: "destructive" })
+      toast({ title: "Password not changed", description: "Couldn’t reach the server. Try again in a moment.", variant: "destructive" })
     } finally {
       setChangingPassword(false)
     }
   }
 
-  // Fetch user profile data from /api/v1/auth/me
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setLoading(true)
-        const response = await fetch('/api/v1/auth/me')
+        const response = await fetch("/api/v1/auth/me")
         const data = await response.json()
-
-        if (response.ok && data.data) {
-          setProfile(data.data)
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error)
+        if (response.ok && data.data) setProfile(data.data)
+      } catch {
+        // Falls through to the empty state below.
       } finally {
         setLoading(false)
       }
     }
-
-    fetchProfile()
+    void fetchProfile()
   }, [token])
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground font-medium">Loading profile...</p>
-        </div>
+      <div className="flex items-center justify-center gap-2 py-24 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" /> Loading your profile
       </div>
     )
   }
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="text-center">
-          <p className="text-muted-foreground font-medium">Failed to load profile</p>
-          <Button
-            variant="outline"
-            onClick={() => window.location.reload()}
-            className="mt-4"
-          >
-            Try Again
-          </Button>
-        </div>
-      </div>
+      <EmptyState
+        icon={<UserX />}
+        title="Your profile didn’t load"
+        body="Check your connection, then try again."
+        action={<Button variant="outline" onClick={() => window.location.reload()}>Try again</Button>}
+      />
     )
   }
 
   const displayName = profile.name || `${profile.firstName} ${profile.lastName}`.trim()
+  const initials = `${profile.firstName?.[0] ?? ""}${profile.lastName?.[0] ?? ""}`.toUpperCase() || "U"
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 h-fit">
-        {/* Profile Overview */}
-        <div className="lg:col-span-1">
-          <Card className="border border-border h-full py-0 gap-0">
-            <CardHeader className="text-center pb-2 pt-4">
-              <div className="flex justify-center mb-2.5">
-                <Avatar className="h-14 w-14">
-                  <AvatarImage src="" />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-base font-bold">
-                    {profile.firstName?.[0]}{profile.lastName?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-              <CardTitle className="text-base text-foreground">
-                {displayName}
-              </CardTitle>
-              <div className="flex items-center justify-center gap-1.5 mt-0.5">
-                <Badge variant="outline" className="text-[10px] py-0 px-1.5 capitalize font-medium">
-                  {profile.role || 'USER'}
-                </Badge>
-                {profile.isEmailVerified ? (
-                  <Badge className="bg-success-soft text-success border-success/30 text-[10px] py-0 px-1.5 flex items-center gap-1">
-                    <CheckCircle2 className="w-2.5 h-2.5" />
-                    Verified
-                  </Badge>
-                ) : (
-                  <Badge className="bg-warning-soft text-warning border-warning/30 text-[10px] py-0 px-1.5 flex items-center gap-1">
-                    <XCircle className="w-2.5 h-2.5" />
-                    Unverified
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 flex-1 pb-4">
-              {/* Account Status */}
-              <div className={`flex items-center space-x-2.5 p-2 rounded-lg border ${
-                profile.isActive
-                  ? 'bg-success-soft border-success/30'
-                  : 'bg-destructive-soft border-destructive/30'
-              }`}>
-                <div className={`h-2.5 w-2.5 rounded-full ${
-                  profile.isActive ? 'bg-success' : 'bg-destructive'
-                }`}></div>
-                <div>
-                  <p className={`text-xs font-semibold ${
-                    profile.isActive ? 'text-success' : 'text-destructive'
-                  }`}>
-                    {profile.isActive ? 'Active Account' : 'Inactive Account'}
-                  </p>
-                  <p className={`text-[10px] ${
-                    profile.isActive ? 'text-success' : 'text-destructive'
-                  }`}>
-                    {profile.isActive ? 'Account in good standing' : 'Account needs attention'}
-                  </p>
-                </div>
-              </div>
+    <div className="space-y-8">
+      <PageHeader title="Profile & security" description="Your account details and password." />
 
-              {/* Account Details */}
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2.5 text-xs">
-                  <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] text-muted-foreground tracking-wide">User ID</p>
-                    <p className="text-foreground font-mono text-[11px] truncate">{profile.id}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2.5 text-xs">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] text-muted-foreground tracking-wide">Member Since</p>
-                    <p className="text-foreground text-xs">
-                      {new Date(profile.createdAt).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2.5 text-xs">
-                  <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] text-muted-foreground tracking-wide">Role & Permissions</p>
-                    <p className="text-foreground text-xs font-medium">{profile.role || 'USER'}</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <section className="flex flex-col gap-5 rounded-3xl border bg-card p-6 sm:flex-row sm:items-center">
+        <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-brand font-display text-2xl font-bold">{initials}</span>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-2xl">{displayName}</h2>
+          <p className="truncate text-sm text-muted-foreground">{profile.email}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <Badge variant="outline" className="capitalize">{(profile.role || "user").toLowerCase()}</Badge>
+            {profile.isEmailVerified ? <Badge variant="success"><CheckCircle2 />Email verified</Badge> : <Badge variant="warning"><XCircle />Email not verified</Badge>}
+            {!profile.isActive && <Badge variant="destructive">Account inactive</Badge>}
+          </div>
         </div>
+      </section>
 
-        {/* Profile Details */}
-        <div className="lg:col-span-1">
-          <Card className="border border-border h-full py-0 gap-0">
-            <CardHeader className="pt-4 pb-2">
-              <CardTitle className="flex items-center space-x-2 text-sm font-bold">
-                <User className="h-4 w-4 text-primary" />
-                <span>Personal Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 flex-1 pb-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <Label htmlFor="firstName" className="flex items-center space-x-1.5 text-xs font-medium">
-                    <User className="h-3.5 w-3.5 text-primary" />
-                    <span>First Name</span>
-                  </Label>
-                  <Input
-                    id="firstName"
-                    value={profile.firstName || ""}
-                    disabled
-                    className="bg-background border-border h-8 text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="lastName" className="flex items-center space-x-1.5 text-xs font-medium">
-                    <User className="h-3.5 w-3.5 text-primary" />
-                    <span>Last Name</span>
-                  </Label>
-                  <Input
-                    id="lastName"
-                    value={profile.lastName || ""}
-                    disabled
-                    className="bg-background border-border h-8 text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="fullName" className="flex items-center space-x-1.5 text-xs font-medium">
-                  <Shield className="h-3.5 w-3.5 text-primary" />
-                  <span>Display Name</span>
-                </Label>
-                <Input
-                  id="fullName"
-                  value={displayName}
-                  disabled
-                  className="bg-background border-border h-8 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="email" className="flex items-center space-x-1.5 text-xs font-medium">
-                  <Mail className="h-3.5 w-3.5 text-primary" />
-                  <span>Email Address</span>
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={profile.email || ""}
-                  disabled
-                  className="bg-background border-border h-8 text-xs"
-                />
-                <p className="text-[10px] text-muted-foreground">This email is used for account notifications and login</p>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="phone" className="flex items-center space-x-1.5 text-xs font-medium">
-                  <Phone className="h-3.5 w-3.5 text-primary" />
-                  <span>Phone Number</span>
-                </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={profile.phone || ""}
-                  disabled
-                  className="bg-background border-border h-8 text-xs"
-                  placeholder="Not provided"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <Card className="border border-border py-0 gap-0">
-        <CardHeader className="pt-3 pb-2">
-          <CardTitle className="flex items-center space-x-2 text-sm font-bold">
-            <KeyRound className="h-4 w-4 text-primary" />
-            <span>Change Password</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pb-3.5">
-          <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-2xl">
-            <div className="space-y-1">
-              <Label htmlFor="currentPassword" className="text-xs">Current Password</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                required
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="h-8 text-xs"
-              />
+      <Section title="Personal details" hint="Contact support to change your name or email.">
+        <dl className="divide-y rounded-2xl border">
+          {[
+            ["First name", profile.firstName],
+            ["Last name", profile.lastName],
+            ["Email", profile.email],
+            ["Phone", profile.phone],
+          ].map(([label, value]) => (
+            <div key={label} className="grid grid-cols-[8rem_1fr] gap-4 px-4 py-3 text-sm">
+              <dt className="text-muted-foreground">{label}</dt>
+              <dd className="truncate">{value || <span className="text-muted-foreground">Not added</span>}</dd>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="newPassword" className="text-xs">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                required
-                minLength={8}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="h-8 text-xs"
-              />
+          ))}
+        </dl>
+      </Section>
+
+      <Section title="Password" hint="Use at least 8 characters. You’ll stay signed in on this device.">
+        <form onSubmit={handleChangePassword} className="space-y-4 rounded-2xl border p-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="currentPassword">Current password</Label>
+            <Input id="currentPassword" type="password" autoComplete="current-password" required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="newPassword">New password</Label>
+              <Input id="newPassword" type="password" autoComplete="new-password" required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="confirmNewPassword" className="text-xs">Confirm New Password</Label>
-              <Input
-                id="confirmNewPassword"
-                type="password"
-                required
-                minLength={8}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="h-8 text-xs"
-              />
+            <div className="space-y-1.5">
+              <Label htmlFor="confirmNewPassword">Type it again</Label>
+              <Input id="confirmNewPassword" type="password" autoComplete="new-password" required minLength={8} value={confirmPassword} aria-invalid={mismatch || undefined} onChange={(e) => setConfirmPassword(e.target.value)} />
+              {mismatch && <p className="text-xs text-destructive">Doesn’t match the new password.</p>}
             </div>
-            <div className="md:col-span-3">
-              <Button type="submit" size="sm" className="h-8 text-xs" disabled={changingPassword}>
-                {changingPassword ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Changing...
-                  </>
-                ) : (
-                  "Change Password"
-                )}
+          </div>
+          <Button type="submit" disabled={changingPassword || mismatch}>
+            {changingPassword && <Loader2 className="animate-spin" />}
+            Change password
+          </Button>
+        </form>
+      </Section>
+
+      <Section title="Account">
+        <dl className="divide-y rounded-2xl border">
+          <div className="grid grid-cols-[8rem_1fr] gap-4 px-4 py-3 text-sm">
+            <dt className="text-muted-foreground">Member since</dt>
+            <dd>{new Date(profile.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</dd>
+          </div>
+          <div className="grid grid-cols-[8rem_1fr] gap-4 px-4 py-3 text-sm">
+            <dt className="text-muted-foreground">Status</dt>
+            <dd>{profile.isActive ? "Active" : "Inactive — contact support"}</dd>
+          </div>
+          <div className="grid grid-cols-[8rem_1fr] items-center gap-4 px-4 py-2 text-sm">
+            <dt className="text-muted-foreground">Account ID</dt>
+            <dd className="flex items-center gap-1">
+              <code className="min-w-0 truncate font-mono text-xs">{profile.id}</code>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Copy account ID"
+                onClick={() => {
+                  navigator.clipboard.writeText(profile.id)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 1500)
+                }}
+              >
+                {copied ? <Check /> : <Copy />}
               </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+            </dd>
+          </div>
+        </dl>
+      </Section>
     </div>
+  )
+}
+
+function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section className="grid gap-4 lg:grid-cols-[16rem_1fr]">
+      <div>
+        <h2 className="text-lg">{title}</h2>
+        {hint && <p className="mt-1 text-sm text-muted-foreground">{hint}</p>}
+      </div>
+      <div className="min-w-0">{children}</div>
+    </section>
   )
 }

@@ -2,426 +2,280 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageHeader } from "@/components/page-header"
 import { useUserStore } from "@/lib/stores/userStore"
-import {
-  Crown,
-  Calendar,
-  CheckCircle2,
-  XCircle,
-  Activity,
-  ArrowRight,
-  ShieldCheck,
-  FileText,
-  Loader2,
-  Sparkles,
-  Zap,
-  RefreshCw,
-  CheckCircle,
-  Bot,
-  MessageSquare,
-} from "lucide-react"
-import type { UserSubscription, SubscriptionInvoice, HealthData } from "@/lib/types/woombat"
+import { Bot, Check, CreditCard, FileText, Inbox, Loader2, Plug, RefreshCw } from "lucide-react"
+import type { UserSubscription, SubscriptionInvoice, MessengerWebhook, AiProfile } from "@/lib/types/woombat"
+import { cn } from "@/lib/utils"
+
+async function getData<T>(url: string, fallback: T): Promise<T> {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return fallback
+    const json = await res.json()
+    return (json.data ?? fallback) as T
+  } catch {
+    return fallback
+  }
+}
+
+const formatCurrency = (amount: number, currency = "USD") =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "USD" }).format(amount)
+
+const formatDate = (date?: string | null) =>
+  date ? new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—"
+
+const daysLeft = (end: string) => Math.max(0, Math.ceil((new Date(end).getTime() - Date.now()) / 86_400_000))
 
 export default function Dashboard() {
   const { user } = useUserStore()
   const [subscription, setSubscription] = useState<UserSubscription | null>(null)
   const [invoices, setInvoices] = useState<SubscriptionInvoice[]>([])
-  const [health, setHealth] = useState<HealthData | null>(null)
+  const [pages, setPages] = useState<MessengerWebhook[]>([])
+  const [assistants, setAssistants] = useState<AiProfile[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      setLoading(true)
-      const [subRes, invRes, healthRes] = await Promise.all([
-        fetch('/api/v1/subscriptions/current').catch(() => null),
-        fetch('/api/v1/subscriptions/history?page=1&limit=5').catch(() => null),
-        fetch('/health').catch(() => null),
-      ])
-
-      if (subRes && subRes.ok) {
-        const subJson = await subRes.json()
-        setSubscription(subJson.data || null)
-      } else {
-        setSubscription(null)
-      }
-
-      if (invRes && invRes.ok) {
-        const invJson = await invRes.json()
-        setInvoices(invJson.data || [])
-      }
-
-      if (healthRes && healthRes.ok) {
-        const healthJson = await healthRes.json()
-        setHealth(healthJson.data || null)
-      }
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err)
-    } finally {
-      setLoading(false)
-    }
+  const load = useCallback(async () => {
+    setLoading(true)
+    const [sub, inv, hooks, profiles] = await Promise.all([
+      getData<UserSubscription | null>("/api/v1/subscriptions/current", null),
+      getData<SubscriptionInvoice[]>("/api/v1/subscriptions/history?page=1&limit=5", []),
+      getData<MessengerWebhook[]>("/api/v1/messenger/webhooks", []),
+      getData<AiProfile[]>("/api/v1/ai-profiles?limit=50", []),
+    ])
+    setSubscription(sub)
+    setInvoices(Array.isArray(inv) ? inv : [])
+    setPages(Array.isArray(hooks) ? hooks : [])
+    setAssistants(Array.isArray(profiles) ? profiles : [])
+    setLoading(false)
   }, [])
 
   useEffect(() => {
-    fetchDashboardData()
-  }, [fetchDashboardData])
+    void load()
+  }, [load])
 
-  const formatCurrency = (amount: number, currency = "USD") => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "USD",
-    }).format(amount)
-  }
+  const defaultAssistant = assistants.find((a) => a.isDefault)
+  const activePages = pages.filter((p) => p.isActive).length
 
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return "N/A"
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  }
+  // The order merchants actually have to do things in.
+  const steps = [
+    { title: "Choose a plan", body: "Pick a plan to switch on automatic replies.", done: !!subscription, href: "/dashboard/purchase", cta: "See plans" },
+    { title: "Create an AI assistant", body: "Tell it about your shop, products, and how to talk to customers.", done: assistants.length > 0, href: "/dashboard/ai-profiles", cta: "Create assistant" },
+    { title: "Connect your Facebook page", body: "Link the page your customers already message.", done: pages.length > 0, href: "/dashboard/messenger", cta: "Connect page" },
+    {
+      title: "Choose who replies",
+      body: "Set a default assistant, or pick one for each page.",
+      done: !!defaultAssistant || pages.some((p) => p.aiProfileId),
+      href: pages.length > 0 ? "/dashboard/messenger" : "/dashboard/ai-profiles",
+      cta: "Choose assistant",
+    },
+  ]
+  const doneCount = steps.filter((s) => s.done).length
+  const nextStep = steps.findIndex((s) => !s.done)
 
-  const getDaysUntilExpiry = (endDate: string) => {
-    const end = new Date(endDate)
-    const now = new Date()
-    const diffTime = end.getTime() - now.getTime()
-    return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
-  }
+  const stats = [
+    {
+      label: "Facebook pages",
+      value: pages.length,
+      note: pages.length ? `${activePages} replying now` : "None connected",
+      href: "/dashboard/messenger",
+      icon: Plug,
+    },
+    {
+      label: "AI assistants",
+      value: assistants.length,
+      note: defaultAssistant ? `Default: ${defaultAssistant.name}` : "No default set",
+      href: "/dashboard/ai-profiles",
+      icon: Bot,
+    },
+    {
+      label: subscription?.plan?.name ?? "No plan",
+      value: subscription ? `${daysLeft(subscription.currentPeriodEnd)} days` : "—",
+      note: subscription
+        ? `${subscription.autoRenew ? "Renews" : "Ends"} ${formatDate(subscription.currentPeriodEnd)}`
+        : "Choose a plan to start",
+      href: "/dashboard/subscription",
+      icon: CreditCard,
+    },
+  ]
 
-  const displayName = user?.name || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User"
+  const firstName = user?.firstName || user?.name?.split(" ")[0] || "there"
 
   return (
-    <div className="space-y-4">
-      {/* Welcome Hero Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-            Welcome back, {displayName}
-          </h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Manage your account, view your active subscription tier, and track billing renewals.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchDashboardData()}
-            disabled={loading}
-            className="h-8 text-xs flex items-center gap-1.5"
-          >
-            <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
-            <span>Refresh</span>
-          </Button>
-          <Button asChild size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
-            <Link href="/dashboard/subscription">Manage Billing</Link>
-          </Button>
-        </div>
-      </div>
-
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Account Role & Verification */}
-        <Card className="border-border bg-card p-3.5 sm:p-4 gap-0">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Account Role</p>
-            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <span className="text-xl font-bold text-foreground">{user?.role || "USER"}</span>
-            {user?.isEmailVerified ? (
-              <Badge className="bg-success-soft text-success border-success/30 text-[10px] py-0 px-1.5 flex items-center gap-1">
-                <CheckCircle2 className="w-2.5 h-2.5" /> Verified
-              </Badge>
-            ) : (
-              <Badge className="bg-warning-soft text-warning border-warning/30 text-[10px] py-0 px-1.5 flex items-center gap-1">
-                <XCircle className="w-2.5 h-2.5" /> Unverified
-              </Badge>
+    <div className="space-y-5">
+      <PageHeader
+        title={<>Hi, {firstName} <span aria-hidden>👋</span></>}
+        description={doneCount < steps.length ? "Finish setup so your page can start taking orders on its own." : "Your page is set up and replying to customers."}
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+              <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
+              Refresh
+            </Button>
+            {pages.length > 0 && (
+              <Button asChild size="sm">
+                {/* One page: straight to its inbox. Several: pick the page first. */}
+                <Link href={pages.length === 1 ? `/dashboard/messenger/${pages[0].id}/inbox` : "/dashboard/messenger"}>
+                  <Inbox className="size-3.5" />
+                  {pages.length === 1 ? "Open inbox" : "Open an inbox"}
+                </Link>
+              </Button>
             )}
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground truncate">{user?.email}</p>
-        </Card>
+          </>
+        }
+      />
 
-        {/* Current Plan */}
-        <Card className="border-border bg-card p-3.5 sm:p-4 gap-0">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Subscription Tier</p>
-            <Crown className="h-3.5 w-3.5 text-primary" />
+      {!loading && doneCount < steps.length && (
+        <Card className="gap-0 overflow-hidden py-0">
+          <div className="flex items-center justify-between gap-4 border-b px-5 py-4">
+            <div>
+              <h2 className="text-lg">Get your page ready</h2>
+              <p className="text-xs text-muted-foreground">{doneCount} of {steps.length} done</p>
+            </div>
+            <div className="h-2 w-32 overflow-hidden rounded-full bg-secondary" aria-hidden>
+              <div className="h-full rounded-full bg-brand transition-[width]" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+            </div>
           </div>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <span className="text-xl font-bold text-foreground">
-              {subscription ? subscription.plan?.name : "Free / Inactive"}
-            </span>
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {subscription ? `Status: ${subscription.status}` : "No active subscription"}
-          </p>
-        </Card>
-
-        {/* Billing Cycle / Expiry */}
-        <Card className="border-border bg-card p-3.5 sm:p-4 gap-0">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Billing Period</p>
-            <Calendar className="h-3.5 w-3.5 text-primary" />
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <span className="text-xl font-bold text-foreground">
-              {subscription ? `${getDaysUntilExpiry(subscription.currentPeriodEnd)} days` : "—"}
-            </span>
-            {subscription && (
-              <span className="text-[11px] text-muted-foreground">left in cycle</span>
-            )}
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {subscription ? `Renews: ${formatDate(subscription.currentPeriodEnd)}` : "Select a plan to start"}
-          </p>
-        </Card>
-
-        {/* System Health */}
-        <Card className="border-border bg-card p-3.5 sm:p-4 gap-0">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">System Service</p>
-            <Activity className="h-3.5 w-3.5 text-success" />
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <span className="text-xl font-bold text-foreground capitalize">{health?.status || "Online"}</span>
-            <span className="inline-block h-2 w-2 rounded-full bg-success animate-pulse" />
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Uptime: {health ? `${Math.round(health.uptime)}s` : "Healthy"}
-          </p>
-        </Card>
-      </div>
-
-      {/* Main Grid: Active Subscription Overview + Recent Invoices */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left Column (2 Cols): Active Subscription Card */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="border-border bg-card shadow-sm py-3.5 gap-3">
-            <CardHeader className="border-b border-border pb-2.5">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-bold flex items-center gap-1.5">
-                  <Crown className="h-4 w-4 text-primary" />
-                  Subscription Details
-                </CardTitle>
-                <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
-                  <Link href="/dashboard/subscription" className="flex items-center gap-1">
-                    Manage <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-1">
-              {loading ? (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <span className="ml-2 text-xs text-muted-foreground">Loading subscription...</span>
-                </div>
-              ) : subscription ? (
-                <div className="space-y-3.5">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 border border-border">
-                    <div>
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h3 className="text-base font-bold text-foreground">{subscription.plan?.name}</h3>
-                        <Badge className="bg-success-soft text-success border-success/30 text-[10px] py-0 px-1.5">
-                          {subscription.status}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{subscription.plan?.description}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-extrabold text-foreground">
-                        {formatCurrency(subscription.plan?.price || 0, subscription.plan?.currency)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground uppercase">
-                        /{subscription.plan?.interval}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                    <div className="p-2.5 rounded-md border border-border bg-card">
-                      <p className="text-muted-foreground text-[11px]">Current Billing Period</p>
-                      <p className="font-semibold text-foreground mt-0.5">
-                        {formatDate(subscription.currentPeriodStart)} – {formatDate(subscription.currentPeriodEnd)}
-                      </p>
-                    </div>
-                    <div className="p-2.5 rounded-md border border-border bg-card">
-                      <p className="text-muted-foreground text-[11px]">Auto-Renewal Status</p>
-                      <p className="font-semibold text-foreground mt-0.5">
-                        {subscription.autoRenew ? "Enabled (Auto-renews)" : "Disabled (Cancels at period end)"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {subscription.plan?.features && subscription.plan.features.length > 0 && (
-                    <div className="space-y-1.5 pt-1">
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        Plan Features
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                        {subscription.plan.features.map((feature, idx) => (
-                          <div key={idx} className="flex items-center gap-1.5 text-xs text-foreground/90">
-                            <Zap className="h-3 w-3 text-primary shrink-0" />
-                            <span>{feature}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+          <ol className="divide-y">
+            {steps.map((step, i) => (
+              <li key={step.title} className={cn("flex items-center gap-3.5 px-5 py-3", i === nextStep && "bg-brand-soft")}>
+                <span
+                  className={cn(
+                    "grid size-6 shrink-0 place-items-center rounded-full border text-xs font-medium",
+                    step.done ? "border-ink bg-brand text-brand-foreground" : "bg-card text-muted-foreground"
                   )}
-
-                  <div className="flex items-center gap-2 pt-1">
-                    <Button asChild size="sm" className="h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
-                      <Link href="/dashboard/subscription">View Full Billing Details</Link>
-                    </Button>
-                    <Button asChild size="sm" variant="outline" className="h-7 text-xs">
-                      <Link href="/dashboard/purchase">Change Plan Tier</Link>
-                    </Button>
-                  </div>
+                >
+                  {step.done ? <Check className="size-3.5" aria-label="Done" /> : i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={cn("text-sm font-medium", step.done && "text-muted-foreground line-through decoration-border")}>{step.title}</p>
+                  {!step.done && <p className="text-xs text-muted-foreground">{step.body}</p>}
                 </div>
-              ) : (
-                <div className="text-center py-6 space-y-2">
-                  <div className="h-10 w-10 rounded-lg bg-info-soft flex items-center justify-center mx-auto text-primary">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-xs text-foreground">No active subscription</h3>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 max-w-sm mx-auto">
-                      Enroll in one of our flexible subscription tiers to unlock all premium capabilities.
-                    </p>
-                  </div>
-                  <Button asChild size="sm" className="h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground mt-1">
-                    <Link href="/dashboard/purchase">
-                      Explore Plans <ArrowRight className="h-3 w-3 ml-1" />
-                    </Link>
+                {!step.done && (
+                  <Button asChild size="sm" variant={i === nextStep ? "default" : "outline"}>
+                    <Link href={step.href}>{step.cta}</Link>
                   </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </li>
+            ))}
+          </ol>
+        </Card>
+      )}
 
-          {/* AI Personas & Messenger Integrations Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Card className="border-border bg-card shadow-sm p-3.5 gap-0 flex flex-col justify-between">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="h-7 w-7 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                    <Bot className="h-4 w-4" />
-                  </div>
-                  <Badge variant="outline" className="text-[10px] py-0 px-1.5">AI Engine</Badge>
-                </div>
-                <div>
-                  <h4 className="font-bold text-foreground text-xs">AI Personas & Prompt Compiler</h4>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                    Manage system instructions, behavioral guidelines, knowledge base snippets, and simulate LLM prompt synthesis.
-                  </p>
-                </div>
-              </div>
-              <div className="pt-2.5">
-                <Button asChild size="sm" variant="outline" className="w-full h-7 text-xs">
-                  <Link href="/dashboard/ai-profiles" className="flex items-center justify-center gap-1.5">
-                    <span>Manage Personas</span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </Button>
-              </div>
-            </Card>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {stats.map((s) => (
+          <Link
+            key={s.href}
+            href={s.href}
+            className="group rounded-2xl border bg-card p-5 shadow-xs transition-shadow hover:shadow-md"
+          >
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="truncate">{s.label}</span>
+              <span className="grid size-8 place-items-center rounded-lg bg-secondary transition-colors group-hover:bg-brand"><s.icon className="size-4 text-foreground" /></span>
+            </div>
+            <p className="mt-3 font-display text-3xl font-bold tracking-tight">{loading ? "…" : s.value}</p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{loading ? "Loading" : s.note}</p>
+          </Link>
+        ))}
+      </div>
 
-            <Card className="border-border bg-card shadow-sm p-3.5 gap-0 flex flex-col justify-between">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="h-7 w-7 rounded-md bg-info-soft border border-border flex items-center justify-center text-primary">
-                    <MessageSquare className="h-4 w-4" />
-                  </div>
-                  <Badge variant="outline" className="text-[10px] py-0 px-1.5">Meta API</Badge>
-                </div>
-                <div>
-                  <h4 className="font-bold text-foreground text-xs">Meta Messenger Webhooks</h4>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                    HMAC-SHA256 signature verification, Facebook Page graph sync, and MongoDB audit logs.
-                  </p>
-                </div>
-              </div>
-              <div className="pt-2.5">
-                <Button asChild size="sm" variant="outline" className="w-full h-7 text-xs">
-                  <Link href="/dashboard/messenger" className="flex items-center justify-center gap-1.5">
-                    <span>View Webhooks</span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </Button>
-              </div>
-            </Card>
-          </div>
-        </div>
-
-        {/* Right Column: Recent Invoices & Quick Links */}
-        <div className="space-y-4">
-          <Card className="border-border bg-card shadow-sm py-3.5 gap-3">
-            <CardHeader className="border-b border-border pb-2.5">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-bold flex items-center gap-1.5">
-                  <FileText className="h-3.5 w-3.5 text-primary" />
-                  Recent Invoices
-                </CardTitle>
-                <Button asChild variant="ghost" size="sm" className="h-6 text-xs px-2">
-                  <Link href="/dashboard/subscription">
-                    All
-                  </Link>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {loading ? (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                </div>
-              ) : invoices.length === 0 ? (
-                <div className="text-center py-5 text-xs text-muted-foreground">
-                  <FileText className="h-6 w-6 mx-auto mb-1 opacity-40" />
-                  No invoice transactions yet.
-                </div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {invoices.map((inv) => (
-                    <div key={inv.id} className="py-2 flex items-center justify-between text-xs">
-                      <div>
-                        <p className="font-semibold text-foreground text-xs">
-                          {inv.billingReason === "INITIAL_PAYMENT" ? "Initial Plan" : "Renewal"}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">{formatDate(inv.paidAt || inv.createdAt)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-foreground text-xs">
-                          {formatCurrency(inv.amount, inv.currency)}
-                        </p>
-                        <span className="inline-flex items-center gap-0.5 text-[10px] text-success">
-                          <CheckCircle className="h-2.5 w-2.5" /> {inv.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Quick Profile Summary Card */}
-          <Card className="border-border bg-card shadow-sm p-3.5 gap-2">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Account</p>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="border-b">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="font-bold text-xs text-foreground">{displayName}</p>
-                <p className="text-[11px] text-muted-foreground truncate max-w-[140px] sm:max-w-none">{user?.email}</p>
-              </div>
-              <Button asChild size="sm" variant="outline" className="h-7 text-xs">
-                <Link href="/dashboard/profile">Profile</Link>
+              <CardTitle>Your plan</CardTitle>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/dashboard/subscription">Manage billing</Link>
               </Button>
             </div>
-          </Card>
-        </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center py-8"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+            ) : subscription ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-display text-xl font-semibold">{subscription.plan?.name}</p>
+                    <p className="text-xs text-muted-foreground">{subscription.plan?.description}</p>
+                  </div>
+                  <p className="text-right">
+                    <span className="font-display text-2xl font-bold">{formatCurrency(subscription.plan?.price || 0, subscription.plan?.currency)}</span>
+                    <span className="text-xs text-muted-foreground"> / {subscription.plan?.interval?.toLowerCase()}</span>
+                  </p>
+                </div>
+                <dl className="grid gap-3 rounded-lg border bg-background p-3 text-xs sm:grid-cols-3">
+                  <div>
+                    <dt className="text-muted-foreground">Status</dt>
+                    <dd className="mt-0.5 font-medium capitalize">{subscription.status.toLowerCase()}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Current period</dt>
+                    <dd className="mt-0.5 font-medium">{formatDate(subscription.currentPeriodStart)} – {formatDate(subscription.currentPeriodEnd)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Auto-renew</dt>
+                    <dd className="mt-0.5 font-medium">{subscription.autoRenew ? "On" : "Off, ends at period end"}</dd>
+                  </div>
+                </dl>
+                {!!subscription.plan?.features?.length && (
+                  <ul className="grid gap-1.5 text-xs sm:grid-cols-2">
+                    {subscription.plan.features.map((f) => (
+                      <li key={f} className="flex gap-1.5"><Check className="mt-0.5 size-3.5 shrink-0" />{f}</li>
+                    ))}
+                  </ul>
+                )}
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/dashboard/purchase">Change plan</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="py-8 text-center">
+                <p className="text-sm font-medium">You’re not on a plan yet</p>
+                <p className="mx-auto mt-1 max-w-[40ch] text-xs text-muted-foreground">Choose a plan to switch on automatic replies. Pay with bKash, Nagad, or bank transfer.</p>
+                <Button asChild size="sm" className="mt-4"><Link href="/dashboard/purchase">See plans</Link></Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="border-b">
+            <div className="flex items-center justify-between">
+              <CardTitle>Recent invoices</CardTitle>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/dashboard/subscription">View all</Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center py-8"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+            ) : invoices.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">
+                <FileText className="mx-auto mb-2 size-5 opacity-50" />
+                Invoices appear here after your first payment.
+              </div>
+            ) : (
+              <ul className="-my-2 divide-y">
+                {invoices.map((inv) => (
+                  <li key={inv.id} className="flex items-center justify-between py-2.5 text-xs">
+                    <div>
+                      <p className="font-medium">{inv.billingReason === "INITIAL_PAYMENT" ? "First payment" : "Renewal"}</p>
+                      <p className="text-muted-foreground">{formatDate(inv.paidAt || inv.createdAt)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">{formatCurrency(inv.amount, inv.currency)}</p>
+                      <p className="capitalize text-success">{inv.status.toLowerCase()}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

@@ -1,22 +1,27 @@
 "use client"
 
-import { useEffect, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
-import { Loader2, ArrowRight, Check, Sparkles, Shield, Zap, ArrowLeft } from 'lucide-react'
-import { toast } from '@/hooks/use-toast'
-import type { SubscriptionPlan, UserSubscription } from '@/lib/types/woombat'
+import { useEffect, useState } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
+import { Check, Loader2 } from "lucide-react"
+import { PageHeader, EmptyState } from "@/components/page-header"
+import { toast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
+import type { SubscriptionPlan, UserSubscription } from "@/lib/types/woombat"
+
+const formatCurrency = (amount: number, currency = "USD") =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "USD" }).format(amount)
 
 export default function PurchasePage() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const planId = searchParams?.get('planId')
+  const planId = searchParams?.get("planId")
 
-  const [plan, setPlan] = useState<SubscriptionPlan | null>(null)
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [currentSubscription, setCurrentSubscription] = useState<UserSubscription | null>(null)
   const [loading, setLoading] = useState(false)
   const [fetchingPlan, setFetchingPlan] = useState(true)
@@ -27,249 +32,156 @@ export default function PurchasePage() {
       try {
         setFetchingPlan(true)
         const [plansRes, subRes] = await Promise.all([
-          fetch('/api/v1/subscriptions/plans'),
-          fetch('/api/v1/subscriptions/current').catch(() => null),
+          fetch("/api/v1/subscriptions/plans"),
+          fetch("/api/v1/subscriptions/current").catch(() => null),
         ])
-
         const plansJson = await plansRes.json()
-        if (plansRes.ok && Array.isArray(plansJson.data)) {
-          if (planId) {
-            const found = plansJson.data.find((p: SubscriptionPlan) => p.id === planId)
-            setPlan(found || null)
-          } else if (plansJson.data.length > 0) {
-            setPlan(plansJson.data[0])
-          }
-        }
-
+        let sub: UserSubscription | null = null
         if (subRes && subRes.ok) {
-          const subJson = await subRes.json()
-          if (subJson.data) {
-            setCurrentSubscription(subJson.data)
-          }
+          sub = (await subRes.json()).data ?? null
+          setCurrentSubscription(sub)
         }
-      } catch (err) {
-        console.error('Error loading subscription details:', err)
+        if (plansRes.ok && Array.isArray(plansJson.data)) {
+          const list = (plansJson.data as SubscriptionPlan[]).filter((p) => p.isActive !== false)
+          setPlans(list)
+          const preferred = list.find((p) => p.id === planId) ?? list.find((p) => p.id !== sub?.planId) ?? list[0]
+          setSelectedId(preferred?.id ?? null)
+        }
+      } catch {
+        toast({ variant: "destructive", title: "Couldn’t load plans", description: "Check your connection and refresh." })
       } finally {
         setFetchingPlan(false)
       }
     }
-
-    load()
+    void load()
   }, [planId])
 
-  const confirmSubscription = async () => {
-    if (!plan) {
-      toast({ variant: 'destructive', title: 'Missing Plan', description: 'Please select a valid plan' })
-      return
-    }
+  const plan = plans.find((p) => p.id === selectedId) ?? null
+  const isCurrentPlan = !!plan && currentSubscription?.planId === plan.id
+  const isPlanChange = !!currentSubscription && currentSubscription.status === "ACTIVE"
 
+  const confirmSubscription = async () => {
+    if (!plan) return
     try {
       setLoading(true)
-
-      const isPlanChange = !!currentSubscription && currentSubscription.status === 'ACTIVE'
-      const endpoint = isPlanChange ? '/api/v1/subscriptions/change-plan' : '/api/v1/subscriptions/subscribe'
-      const payload = isPlanChange
-        ? { newPlanId: plan.id, autoRenew }
-        : { planId: plan.id, autoRenew }
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+      const res = await fetch(isPlanChange ? "/api/v1/subscriptions/change-plan" : "/api/v1/subscriptions/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(isPlanChange ? { newPlanId: plan.id, autoRenew } : { planId: plan.id, autoRenew }),
       })
-
       const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.message || data.error || 'Failed to process subscription')
-      }
-
+      if (!res.ok) throw new Error(data.message || data.error || "Try again in a moment.")
       toast({
-        variant: 'success',
-        title: isPlanChange ? 'Plan Updated' : 'Subscription Created',
-        description: data.message || `Successfully enrolled into ${plan.name}.`,
+        variant: "success",
+        title: isPlanChange ? "Plan switched" : "You’re subscribed",
+        description: `Welcome to ${plan.name}.`,
       })
-
-      router.push('/dashboard/subscription')
+      router.push("/dashboard/subscription")
     } catch (err) {
-      console.error('Subscription error:', err)
-      toast({
-        variant: 'destructive',
-        title: 'Subscription Failed',
-        description: err instanceof Error ? err.message : 'An unexpected error occurred.',
-      })
+      toast({ variant: "destructive", title: "Couldn’t complete this", description: err instanceof Error ? err.message : "Try again in a moment." })
     } finally {
       setLoading(false)
     }
   }
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD',
-    }).format(amount)
-  }
-
   if (fetchingPlan) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-sm text-muted-foreground">Loading plan details...</span>
+      <div className="flex items-center justify-center gap-2 py-24 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" /> Loading plans
       </div>
     )
   }
 
-  const isCurrentPlan = currentSubscription?.planId === plan?.id
+  if (plans.length === 0) {
+    return (
+      <EmptyState
+        title="No plans available right now"
+        body="Check back soon, or contact us on WhatsApp for a custom plan."
+        action={<Button asChild variant="outline"><Link href="/dashboard/subscription">Back to Plan & billing</Link></Button>}
+      />
+    )
+  }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-3.5 py-1">
-      <div className="flex items-center gap-2">
-        <Link 
-          href="/dashboard/subscription" 
-          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-        >
-          <ArrowLeft className="h-3 w-3" /> Back to Subscriptions
-        </Link>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title={isPlanChange ? "Change your plan" : "Choose a plan"}
+        description="Switch anytime. Pay with bKash, Nagad, or bank transfer."
+      />
 
-      <Card className="border-border bg-card shadow-sm py-0 gap-0">
-        <CardHeader className="border-b border-border pb-2.5 pt-3 px-3.5 sm:px-4">
-          <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-            {currentSubscription ? 'Update Subscription' : 'Review & Confirm Subscription'}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            {currentSubscription
-              ? 'Switch your billing plan to the selected tier.'
-              : 'Complete your subscription enrollment to access premium merchant features.'}
-          </p>
-        </CardHeader>
-        <CardContent className="pt-3 pb-3.5 px-3.5 sm:px-4">
-          {plan ? (
-            <div className="space-y-3.5">
-              {/* Plan Overview Card */}
-              <div className="p-3 rounded-lg bg-muted/30 border border-border space-y-2">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-9 w-9 rounded-lg bg-info-soft flex items-center justify-center text-primary shrink-0">
-                      {plan.price > 20 ? <Shield className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-foreground">{plan.name}</h3>
-                      <p className="text-xs text-muted-foreground">{plan.description}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-extrabold text-foreground">
-                      {formatCurrency(plan.price, plan.currency)}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground uppercase font-medium">
-                      /{plan.interval}
-                    </p>
-                  </div>
-                </div>
-
-                {plan.trialDays > 0 && (
-                  <div className="pt-1.5 border-t border-border/60">
-                    <Badge className="bg-success-soft text-success border-success/30 text-[10px] py-0 px-1.5">
-                      <Sparkles className="h-2.5 w-2.5 mr-1" />
-                      Includes {plan.trialDays}-day free trial with initial $0 invoice
-                    </Badge>
-                  </div>
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
+        <div role="radiogroup" aria-label="Plans" className="space-y-3">
+          {plans.map((p) => {
+            const selected = p.id === selectedId
+            const current = currentSubscription?.planId === p.id
+            return (
+              <button
+                key={p.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setSelectedId(p.id)}
+                className={cn(
+                  "flex w-full gap-4 rounded-2xl border bg-card p-5 text-left transition-shadow",
+                  selected ? "border-ink shadow-md ring-1 ring-ink" : "hover:border-input"
                 )}
-              </div>
-
-              {/* Plan Features */}
-              <div className="space-y-1.5">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  Features Included
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-0.5">
-                  {plan.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-start gap-1.5 text-xs">
-                      <Check className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
-                      <span className="text-foreground/90">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Auto Renew Setting */}
-              <div className="flex items-center justify-between p-3 rounded-lg bg-card border border-border">
-                <div className="space-y-0.5">
-                  <p className="text-xs font-semibold text-foreground">Enable Automatic Renewal</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Automatically renew billing at the end of each {plan.interval?.toLowerCase() || 'period'}.
-                  </p>
-                </div>
-                <Switch 
-                  checked={autoRenew} 
-                  onCheckedChange={setAutoRenew} 
-                />
-              </div>
-
-              {/* Summary note */}
-              <div className="text-xs text-muted-foreground bg-muted/20 p-2.5 rounded-lg border border-border">
-                {plan.trialDays > 0 ? (
-                  <p className="text-[11px]">
-                    Your subscription will start in <strong>TRIALING</strong> status for {plan.trialDays} days. An initial invoice of $0 will be generated immediately.
-                  </p>
-                ) : (
-                  <p className="text-[11px]">
-                    Your subscription will start immediately in <strong>ACTIVE</strong> status.
-                  </p>
-                )}
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex items-center gap-2 pt-1">
-                <Button
-                  className="flex-1 h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-                  onClick={confirmSubscription}
-                  disabled={loading || isCurrentPlan}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Processing...
-                    </>
-                  ) : isCurrentPlan ? (
-                    'Already Subscribed to This Plan'
-                  ) : currentSubscription ? (
-                    <>
-                      Confirm Plan Change <ArrowRight className="h-3 w-3 ml-1.5" />
-                    </>
-                  ) : (
-                    <>
-                      Start Subscription <ArrowRight className="h-3 w-3 ml-1.5" />
-                    </>
-                  )}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={() => router.push('/dashboard/subscription')}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="py-8 text-center space-y-2">
-              <p className="text-xs text-muted-foreground">Plan not found.</p>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => router.push('/dashboard/subscription')}
               >
-                Back to Plans
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <span className={cn("mt-1 grid size-5 shrink-0 place-items-center rounded-full border-2", selected ? "border-ink bg-brand" : "border-input")}>
+                  {selected && <span className="size-2 rounded-full bg-ink" />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="font-display text-lg font-semibold">{p.name}</span>
+                    {current && <Badge variant="secondary">Your current plan</Badge>}
+                    {p.trialDays > 0 && !current && <Badge variant="info">{p.trialDays}-day free trial</Badge>}
+                  </span>
+                  <span className="mt-0.5 block text-sm text-muted-foreground">{p.description}</span>
+                  {selected && (
+                    <span className="mt-3 grid gap-1.5 text-sm sm:grid-cols-2">
+                      {p.features.map((f, i) => (
+                        <span key={i} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0" />{f}</span>
+                      ))}
+                    </span>
+                  )}
+                </span>
+                <span className="shrink-0 text-right">
+                  <span className="block font-display text-2xl font-bold">{formatCurrency(p.price, p.currency)}</span>
+                  <span className="text-xs text-muted-foreground">per {p.interval.toLowerCase()}</span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        {plan && (
+          <aside className="space-y-4 rounded-2xl border bg-card p-5 lg:sticky lg:top-4">
+            <h2 className="text-lg">Summary</h2>
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between"><dt className="text-muted-foreground">Plan</dt><dd className="font-medium">{plan.name}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Billed</dt><dd>Every {plan.interval.toLowerCase()}</dd></div>
+              {plan.trialDays > 0 && !isPlanChange && (
+                <div className="flex justify-between"><dt className="text-muted-foreground">Free trial</dt><dd>{plan.trialDays} days</dd></div>
+              )}
+              <div className="flex items-baseline justify-between border-t pt-3">
+                <dt className="font-medium">{plan.trialDays > 0 && !isPlanChange ? "Due after trial" : "Due today"}</dt>
+                <dd className="font-display text-2xl font-bold">{formatCurrency(plan.price, plan.currency)}</dd>
+              </div>
+            </dl>
+            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-muted px-3 py-2.5">
+              <span>
+                <span className="block text-sm font-medium">Renew automatically</span>
+                <span className="block text-xs text-muted-foreground">Turn off anytime in Plan & billing.</span>
+              </span>
+              <Switch checked={autoRenew} onCheckedChange={setAutoRenew} />
+            </label>
+            <Button size="lg" className="w-full" onClick={confirmSubscription} disabled={loading || isCurrentPlan}>
+              {loading && <Loader2 className="animate-spin" />}
+              {isCurrentPlan ? "You’re on this plan" : isPlanChange ? `Switch to ${plan.name}` : plan.trialDays > 0 ? "Start free trial" : `Subscribe to ${plan.name}`}
+            </Button>
+            <Button asChild variant="ghost" className="w-full"><Link href="/dashboard/subscription">Not now</Link></Button>
+          </aside>
+        )}
+      </div>
     </div>
   )
 }
