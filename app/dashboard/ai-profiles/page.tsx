@@ -33,6 +33,7 @@ import {
   Copy,
   Edit,
   MessageSquare,
+  MessageSquareQuote,
   MoreHorizontal,
   Phone,
   Plug,
@@ -78,6 +79,7 @@ export default function AiProfilesPage() {
   const [boundWebhooks, setBoundWebhooks] = useState<MessengerWebhook[]>([])
   const [boundInstagramWebhooks, setBoundInstagramWebhooks] = useState<Array<{ id: string; name: string; username?: string | null; isActive: boolean }>>([])
   const [boundWhatsAppWebhooks, setBoundWhatsAppWebhooks] = useState<Array<{ id: string; name: string; displayPhoneNumber?: string | null; verifiedName?: string | null; isActive: boolean }>>([])
+  const [boundFacebookFeedWebhooks, setBoundFacebookFeedWebhooks] = useState<Array<{ id: string; name: string; pageName?: string | null; replyMode?: string; autoReply?: boolean; isActive: boolean }>>([])
   const [boundWebhooksLoading, setBoundWebhooksLoading] = useState(false)
   const [selectedProfileForWebhooks, setSelectedProfileForWebhooks] = useState<AiProfile | null>(null)
 
@@ -257,26 +259,30 @@ export default function AiProfilesPage() {
       setWebhooksModalOpen(true)
       setBoundWebhooksLoading(true)
 
-      const [fbRes, igRes, waRes] = await Promise.all([
+      const [fbRes, igRes, waRes, feedRes] = await Promise.all([
         fetch(`/api/v1/ai-profiles/${profile.id}/webhooks`),
         fetch(`/api/v1/ai-profiles/${profile.id}/webhooks/instagram`),
         fetch(`/api/v1/ai-profiles/${profile.id}/webhooks/whatsapp`),
+        fetch(`/api/v1/ai-profiles/${profile.id}/webhooks/facebook-feed`),
       ])
 
-      const [fbJson, igJson, waJson] = await Promise.all([
+      const [fbJson, igJson, waJson, feedJson] = await Promise.all([
         fbRes.json().catch(() => null),
         igRes.json().catch(() => null),
         waRes.json().catch(() => null),
+        feedRes.json().catch(() => null),
       ])
 
       setBoundWebhooks(Array.isArray(fbJson?.data) ? fbJson.data : [])
       setBoundInstagramWebhooks(Array.isArray(igJson?.data) ? igJson.data : [])
       setBoundWhatsAppWebhooks(Array.isArray(waJson?.data) ? waJson.data : [])
+      setBoundFacebookFeedWebhooks(Array.isArray(feedJson?.data) ? feedJson.data : [])
     } catch (err) {
       console.error("Failed to load bound webhooks:", err)
       setBoundWebhooks([])
       setBoundInstagramWebhooks([])
       setBoundWhatsAppWebhooks([])
+      setBoundFacebookFeedWebhooks([])
     } finally {
       setBoundWebhooksLoading(false)
     }
@@ -696,11 +702,12 @@ export default function AiProfilesPage() {
           </DialogHeader>
           {boundWebhooksLoading ? (
             <div className="flex justify-center py-8"><RefreshCw className="size-5 animate-spin text-muted-foreground" /></div>
-          ) : boundWebhooks.length === 0 && boundInstagramWebhooks.length === 0 && boundWhatsAppWebhooks.length === 0 ? (
+          ) : boundWebhooks.length === 0 && boundInstagramWebhooks.length === 0 && boundWhatsAppWebhooks.length === 0 && boundFacebookFeedWebhooks.length === 0 ? (
             <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
               <p>No channels use this assistant yet.</p>
               <div className="mt-3 flex flex-wrap justify-center gap-2">
                 <Button asChild variant="outline" size="sm"><Link href="/dashboard/messenger">Facebook Page</Link></Button>
+                <Button asChild variant="outline" size="sm"><Link href="/dashboard/facebook-feed">Comments</Link></Button>
                 <Button asChild variant="outline" size="sm"><Link href="/dashboard/instagram">Instagram</Link></Button>
                 <Button asChild variant="outline" size="sm"><Link href="/dashboard/whatsapp">WhatsApp</Link></Button>
               </div>
@@ -721,6 +728,28 @@ export default function AiProfilesPage() {
                           </div>
                         </div>
                         <Button asChild variant="ghost" size="sm"><Link href={`/dashboard/messenger/${hook.id}/inbox`}>Inbox</Link></Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {boundFacebookFeedWebhooks.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">Facebook Comments ({boundFacebookFeedWebhooks.length})</p>
+                  <ul className="divide-y rounded-xl border">
+                    {boundFacebookFeedWebhooks.map((hook) => (
+                      <li key={hook.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <MessageSquareQuote className="size-4 text-blue-600 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{hook.pageName || hook.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {hook.replyMode || "PUBLIC_COMMENT"} • {hook.isActive ? (hook.autoReply ? "Auto-reply on" : "Manual reply only") : "Paused"}
+                            </p>
+                          </div>
+                        </div>
+                        <Button asChild variant="ghost" size="sm"><Link href="/dashboard/facebook-feed">Manage</Link></Button>
                       </li>
                     ))}
                   </ul>

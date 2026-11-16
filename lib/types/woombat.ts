@@ -1110,5 +1110,247 @@ export interface AiProfileWhatsAppWebhooksResponse {
   }>
 }
 
+export interface AiProfileFacebookFeedWebhooksResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: Array<{
+    id: string
+    userId: string
+    name: string
+    aiProfileId: string
+    pageId?: string | null
+    pageName?: string | null
+    replyMode?: FacebookFeedReplyMode
+    autoReply?: boolean
+    isActive: boolean
+    webhookUrl?: string
+  }>
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Section 9: Facebook Page Feed Webhooks & Comment Reply Automation
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+export type FacebookFeedReplyMode = 'PUBLIC_COMMENT' | 'PRIVATE_MESSAGE' | 'BOTH'
+
+export interface FacebookFeedWebhook {
+  id: string
+  userId: string
+  name: string
+  pageId: string
+  pageName?: string | null
+  pageCategory?: string | null
+  pagePictureUrl?: string | null
+  pageLink?: string | null
+  pageSubscribedAt?: string | null
+  verifyToken: string
+  webhookUrl: string
+  aiProfileId?: string | null
+  replyMode: FacebookFeedReplyMode
+  autoReply: boolean
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FacebookFeedWebhooksResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: FacebookFeedWebhook[]
+}
+
+export interface FacebookFeedWebhookResponse {
+  message: string
+  data: FacebookFeedWebhook
+}
+
+export interface CreateFacebookFeedWebhookRequest {
+  name: string
+  appSecret: string
+  verifyToken?: string
+  pageId?: string
+  pageAccessToken?: string
+  aiProfileId?: string
+  replyMode?: FacebookFeedReplyMode
+  autoReply?: boolean
+}
+
+export interface UpdateFacebookFeedWebhookRequest {
+  name?: string
+  appSecret?: string
+  verifyToken?: string
+  pageId?: string
+  pageAccessToken?: string
+  aiProfileId?: string | null
+  replyMode?: FacebookFeedReplyMode
+  autoReply?: boolean
+  isActive?: boolean
+}
+
+export interface SyncFacebookFeedPageResponse {
+  message: string
+  data: {
+    webhook: FacebookFeedWebhook
+    pageDetails?: {
+      id: string
+      name: string
+      category?: string
+      link?: string
+      pictureUrl?: string
+    }
+    isSubscribed?: boolean
+  }
+}
+
+export interface FacebookFeedEvent {
+  id: string
+  userId: string
+  webhookId: string
+  pageId?: string
+  postId?: string
+  commentId?: string
+  parentId?: string | null
+  eventType: string
+  senderId: string
+  senderName?: string
+  recipientId: string
+  metaTimestamp: number
+  status: 'PROCESSED' | 'DUPLICATE' | 'ERROR' | string
+  errorMessage?: string | null
+  eventData?: Record<string, unknown>
+  rawPayload?: Record<string, unknown>
+  createdAt: string
+}
+
+export interface FacebookFeedEventsResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: FacebookFeedEvent[]
+}
+
+export interface FacebookFeedEventResponse {
+  message: string
+  data: FacebookFeedEvent
+}
+
+export interface CompileFacebookFeedPromptRequest {
+  additionalContext?: string
+  humanize?: boolean
+}
+
+export interface CompileFacebookFeedPromptResponse {
+  message: string
+  data: {
+    systemPrompt: string
+    messages: CompilePromptMessage[]
+    modelConfig?: {
+      provider?: string
+      model?: string
+      modelName?: string
+      temperature?: number
+      maxTokens?: number
+      [key: string]: unknown
+    }
+    userPrompt?: string
+  }
+}
+
+export interface GenerateFacebookFeedResponseRequest {
+  commentId?: string
+  postId?: string
+  userInquiry?: string
+  replyModeOverride?: FacebookFeedReplyMode
+  sendReply?: boolean
+  additionalContext?: string
+  humanize?: boolean
+}
+
+export interface GenerateFacebookFeedResponseResponse {
+  message: string
+  data: {
+    aiProfileId?: string
+    generatedResponse: string
+    replyMode: FacebookFeedReplyMode
+    publicCommentReplyId?: string | null
+    privateMessageId?: string | null
+    isFallback?: boolean
+    provider?: string
+    modelName?: string
+    latencyMs: number
+    postContext?: {
+      postId: string
+      message?: string | null
+      story?: string | null
+      permalinkUrl?: string | null
+    }
+    parentCommentContext?: unknown
+    tokenUsage?: {
+      promptTokens: number
+      completionTokens: number
+      totalTokens: number
+    }
+  }
+}
+
+export interface FacebookFeedCommentMessage {
+  id: string
+  webhookId: string
+  userId: string
+  postId: string
+  commentId: string
+  parentId?: string | null
+  role: 'user' | 'assistant'
+  content: string
+  replyMode?: FacebookFeedReplyMode
+  aiProfileId?: string
+  metaCommentId?: string
+  createdAt: string
+}
+
+export interface FacebookFeedCommentsResponse {
+  pagination?: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: FacebookFeedCommentMessage[]
+}
+
+export interface SendFacebookFeedCommentRequest {
+  commentId: string
+  messageText: string
+}
+
+export interface SendFacebookFeedCommentResponse {
+  message: string
+  data?: unknown
+}
+
+export interface SendFacebookFeedPrivateReplyRequest {
+  commentId: string
+  messageText: string
+}
+
+export interface SendFacebookFeedPrivateReplyResponse {
+  message: string
+  data?: unknown
+}
+
+
 
 
