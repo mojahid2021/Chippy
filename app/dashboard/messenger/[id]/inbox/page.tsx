@@ -34,7 +34,7 @@ export default function PageInbox() {
             icon={<Inbox />}
             title="This inbox didn’t open"
             body={error}
-            action={<Button asChild><Link href="/dashboard/messenger">Back to Facebook pages</Link></Button>}
+            action={<Button asChild><Link href="/dashboard/messenger">Back to Messenger</Link></Button>}
           />
         </div>
       ) : !page ? (

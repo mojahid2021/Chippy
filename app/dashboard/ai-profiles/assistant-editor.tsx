@@ -318,7 +318,7 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
               </span>
             </div>
             <p className="hidden truncate text-xs text-muted-foreground sm:block">
-              {creating ? "Starts from a template for Messenger shops. Change what doesn’t fit." : "Changes apply to every Facebook page that uses this assistant."}
+              {creating ? "Starts from a template for Messenger shops. Change what doesn’t fit." : "Changes apply to every channel (Messenger, Facebook Feed, Instagram, WhatsApp) using this assistant."}
             </p>
           </div>
           <Button type="button" variant="ghost" className="hidden sm:inline-flex" onClick={() => router.push("/dashboard/ai-profiles")}>
@@ -427,7 +427,7 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
             </Field>
             <div className="-mx-5 -mb-5 divide-y border-t bg-muted/40 [&>label]:px-5">
               <ToggleRow label="Turned on" hint="When off, this assistant never replies." checked={formData.isActive} onChange={(v) => patch({ isActive: v })} />
-              <ToggleRow label="Default assistant" hint="Replies on pages that don’t have their own assistant." checked={formData.isDefault} onChange={(v) => patch({ isDefault: v })} />
+              <ToggleRow label="Default assistant" hint="Replies on channels that don’t have their own assistant." checked={formData.isDefault} onChange={(v) => patch({ isDefault: v })} />
             </div>
           </Section>
           )}

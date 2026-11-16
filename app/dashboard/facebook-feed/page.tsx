@@ -640,11 +640,11 @@ export default function FacebookFeedWebhooksPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Facebook Page Comments"
+        title="Facebook Feed"
         description="Connect Facebook Page Feed webhooks to automate comment replies with AI, ground responses in post context, and reply publicly or privately."
         actions={
           <Button onClick={() => setCreateModalOpen(true)}>
-            <Plus className="mr-1.5 size-4" /> Connect Page Comments
+            <Plus className="mr-1.5 size-4" /> Connect Facebook Feed
           </Button>
         }
       />

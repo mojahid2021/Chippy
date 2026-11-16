@@ -63,10 +63,10 @@ export default function Dashboard() {
   const steps = [
     { title: "Choose a plan", body: "Pick a plan to switch on automatic replies.", done: !!subscription, href: "/dashboard/purchase", cta: "See plans" },
     { title: "Create an AI assistant", body: "Tell it about your shop, products, and how to talk to customers.", done: assistants.length > 0, href: "/dashboard/ai-profiles", cta: "Create assistant" },
-    { title: "Connect your Facebook page", body: "Link the page your customers already message.", done: pages.length > 0, href: "/dashboard/messenger", cta: "Connect page" },
+    { title: "Connect your channels", body: "Link Messenger, Facebook Feed, Instagram, or WhatsApp.", done: pages.length > 0, href: "/dashboard/messenger", cta: "Connect channel" },
     {
       title: "Choose who replies",
-      body: "Set a default assistant, or pick one for each page.",
+      body: "Set a default assistant, or pick one for each channel.",
       done: !!defaultAssistant || pages.some((p) => p.aiProfileId),
       href: pages.length > 0 ? "/dashboard/messenger" : "/dashboard/ai-profiles",
       cta: "Choose assistant",
@@ -77,7 +77,7 @@ export default function Dashboard() {
 
   const stats = [
     {
-      label: "Facebook pages",
+      label: "Messenger",
       value: pages.length,
       note: pages.length ? `${activePages} replying now` : "None connected",
       href: "/dashboard/messenger",

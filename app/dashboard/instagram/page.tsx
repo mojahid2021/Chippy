@@ -507,7 +507,7 @@ export default function InstagramWebhooksPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Instagram Accounts"
+        title="Instagram"
         description="Connect Instagram Business accounts to auto-reply to direct messages, test AI prompts, and audit delivery logs."
         actions={
           <Button onClick={() => setCreateModalOpen(true)}>

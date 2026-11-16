@@ -698,7 +698,7 @@ export default function AiProfilesPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Channels using {selectedProfileForWebhooks?.name}</DialogTitle>
-            <DialogDescription>Facebook Pages, Instagram Accounts, and WhatsApp Numbers bound to this assistant.</DialogDescription>
+            <DialogDescription>Messenger, Facebook Feed, Instagram, and WhatsApp channels bound to this assistant.</DialogDescription>
           </DialogHeader>
           {boundWebhooksLoading ? (
             <div className="flex justify-center py-8"><RefreshCw className="size-5 animate-spin text-muted-foreground" /></div>
@@ -706,8 +706,8 @@ export default function AiProfilesPage() {
             <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
               <p>No channels use this assistant yet.</p>
               <div className="mt-3 flex flex-wrap justify-center gap-2">
-                <Button asChild variant="outline" size="sm"><Link href="/dashboard/messenger">Facebook Page</Link></Button>
-                <Button asChild variant="outline" size="sm"><Link href="/dashboard/facebook-feed">Comments</Link></Button>
+                <Button asChild variant="outline" size="sm"><Link href="/dashboard/messenger">Messenger</Link></Button>
+                <Button asChild variant="outline" size="sm"><Link href="/dashboard/facebook-feed">Facebook Feed</Link></Button>
                 <Button asChild variant="outline" size="sm"><Link href="/dashboard/instagram">Instagram</Link></Button>
                 <Button asChild variant="outline" size="sm"><Link href="/dashboard/whatsapp">WhatsApp</Link></Button>
               </div>
@@ -716,7 +716,7 @@ export default function AiProfilesPage() {
             <div className="custom-scrollbar max-h-[60vh] space-y-4 overflow-y-auto">
               {boundWebhooks.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">Facebook Pages ({boundWebhooks.length})</p>
+                  <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">Messenger ({boundWebhooks.length})</p>
                   <ul className="divide-y rounded-xl border">
                     {boundWebhooks.map((hook) => (
                       <li key={hook.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
@@ -736,7 +736,7 @@ export default function AiProfilesPage() {
 
               {boundFacebookFeedWebhooks.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">Facebook Comments ({boundFacebookFeedWebhooks.length})</p>
+                  <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">Facebook Feed ({boundFacebookFeedWebhooks.length})</p>
                   <ul className="divide-y rounded-xl border">
                     {boundFacebookFeedWebhooks.map((hook) => (
                       <li key={hook.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
@@ -758,7 +758,7 @@ export default function AiProfilesPage() {
 
               {boundInstagramWebhooks.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">Instagram Accounts ({boundInstagramWebhooks.length})</p>
+                  <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">Instagram ({boundInstagramWebhooks.length})</p>
                   <ul className="divide-y rounded-xl border">
                     {boundInstagramWebhooks.map((hook) => (
                       <li key={hook.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
@@ -778,7 +778,7 @@ export default function AiProfilesPage() {
 
               {boundWhatsAppWebhooks.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">WhatsApp Numbers ({boundWhatsAppWebhooks.length})</p>
+                  <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">WhatsApp ({boundWhatsAppWebhooks.length})</p>
                   <ul className="divide-y rounded-xl border">
                     {boundWhatsAppWebhooks.map((hook) => (
                       <li key={hook.id} className="flex items-center justify-between gap-3 px-3 py-2.5">

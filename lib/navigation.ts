@@ -1,4 +1,4 @@
-import { Bot, Camera, CreditCard, House, MessageSquareQuote, Phone, Plug, UserCog, type LucideIcon } from "lucide-react"
+import { Bot, Camera, CreditCard, House, MessageCircle, MessageSquareQuote, Phone, UserCog, type LucideIcon } from "lucide-react"
 
 export type NavItem = {
   name: string
@@ -20,10 +20,10 @@ export const navSections: { title?: string; items: NavItem[] }[] = [
     title: "Automation",
     items: [
       { name: "AI assistants", href: "/dashboard/ai-profiles", icon: Bot, desc: "How your bot talks, what it knows, and which model it uses" },
-      { name: "Facebook pages", href: "/dashboard/messenger", icon: Plug, desc: "Connect pages, open each page’s inbox, choose the replying assistant, and review the message log" },
-      { name: "Facebook comments", href: "/dashboard/facebook-feed", icon: MessageSquareQuote, desc: "Auto-reply to post comments with AI via public replies or private Messenger DMs" },
-      { name: "Instagram accounts", href: "/dashboard/instagram", icon: Camera, desc: "Connect Instagram Business accounts, auto-reply to direct messages, and review event logs" },
-      { name: "WhatsApp numbers", href: "/dashboard/whatsapp", icon: Phone, desc: "Connect WhatsApp Business Cloud API numbers, sync quality ratings, and auto-reply" },
+      { name: "Messenger", href: "/dashboard/messenger", icon: MessageCircle, desc: "Connect Facebook Pages, open live chat inboxes, and auto-reply to messages" },
+      { name: "Facebook Feed", href: "/dashboard/facebook-feed", icon: MessageSquareQuote, desc: "Auto-reply to post comments with AI via public replies or private Messenger DMs" },
+      { name: "Instagram", href: "/dashboard/instagram", icon: Camera, desc: "Connect Instagram Business accounts, auto-reply to direct messages, and review event logs" },
+      { name: "WhatsApp", href: "/dashboard/whatsapp", icon: Phone, desc: "Connect WhatsApp Business Cloud API numbers, sync quality ratings, and auto-reply" },
     ],
   },
   {

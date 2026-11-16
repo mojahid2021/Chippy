@@ -246,8 +246,8 @@ export default function MessengerWebhooksPage() {
       console.error("Failed to fetch webhooks:", err)
       toast({
         variant: "destructive",
-        title: "Couldn’t load pages",
-        description: "Couldn’t load your Facebook pages. Refresh to try again.",
+        title: "Couldn’t load Messenger integrations",
+        description: "Couldn’t load your Messenger integrations. Refresh to try again.",
       })
     } finally {
       setLoading(false)
@@ -852,8 +852,8 @@ export default function MessengerWebhooksPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Facebook pages"
-        description="Connect the pages your customers message, choose which assistant replies on each, and check what came in."
+        title="Messenger"
+        description="Connect Facebook Pages to auto-reply to customer chats, open live inboxes, and review delivery logs."
         actions={
           <>
             <Button variant="outline" size="sm" onClick={fetchWebhooks} disabled={loading}>

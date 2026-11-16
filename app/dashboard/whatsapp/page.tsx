@@ -521,7 +521,7 @@ export default function WhatsAppWebhooksPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="WhatsApp Numbers"
+        title="WhatsApp"
         description="Connect WhatsApp Business Cloud API numbers, inspect verified quality ratings, test AI prompts, and automate customer care."
         actions={
           <Button onClick={() => setCreateModalOpen(true)}>
