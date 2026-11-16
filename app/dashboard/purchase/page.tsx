@@ -43,6 +43,20 @@ export default function PurchasePage() {
         }
         if (plansRes.ok && Array.isArray(plansJson.data)) {
           const list = (plansJson.data as SubscriptionPlan[]).filter((p) => p.isActive !== false)
+          if (planId) {
+            try {
+              const singleRes = await fetch(`/api/v1/subscriptions/plans/${encodeURIComponent(planId)}`)
+              const singleJson = await singleRes.json()
+              if (singleRes.ok && singleJson.data) {
+                const found = singleJson.data as SubscriptionPlan
+                if (!list.some((p) => p.id === found.id)) {
+                  list.unshift(found)
+                }
+              }
+            } catch {
+              // fallback to general list
+            }
+          }
           setPlans(list)
           const preferred = list.find((p) => p.id === planId) ?? list.find((p) => p.id !== sub?.planId) ?? list[0]
           setSelectedId(preferred?.id ?? null)

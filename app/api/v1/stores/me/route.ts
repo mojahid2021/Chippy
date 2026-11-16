@@ -38,6 +38,26 @@ export async function GET(request: NextRequest) {
   }
 }
 
+function sanitizeStoreBody(body: Record<string, unknown>): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = { ...body }
+  const optionalStringFields = [
+    'contactEmail',
+    'contactPhone',
+    'address',
+    'city',
+    'country',
+    'description',
+    'logoUrl',
+    'bannerUrl',
+  ]
+  for (const field of optionalStringFields) {
+    if (typeof cleaned[field] === 'string' && (cleaned[field] as string).trim() === '') {
+      delete cleaned[field]
+    }
+  }
+  return cleaned
+}
+
 export async function POST(request: NextRequest) {
   try {
     const token = getAuthToken(request)
@@ -48,7 +68,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeStoreBody(rawBody)
     const backendUrl = getBackendUrl()
     const response = await fetch(`${backendUrl}/api/v1/stores/me`, {
       method: 'POST',
@@ -80,7 +101,8 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeStoreBody(rawBody)
     const backendUrl = getBackendUrl()
     const response = await fetch(`${backendUrl}/api/v1/stores/me`, {
       method: 'PATCH',

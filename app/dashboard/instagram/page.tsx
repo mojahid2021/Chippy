@@ -390,6 +390,22 @@ export default function InstagramWebhooksPage() {
     fetchEvents(webhook.id, 1)
   }
 
+  const handleInspectEvent = async (ev: InstagramEvent) => {
+    setSelectedEvent(ev)
+    setSingleEventModalOpen(true)
+    if (selectedWebhook) {
+      try {
+        const res = await fetch(`/api/v1/instagram/webhooks/${selectedWebhook.id}/events/${ev.id}`)
+        const json = await res.json()
+        if (res.ok && json.data) {
+          setSelectedEvent(json.data)
+        }
+      } catch {
+        // Fallback to ev
+      }
+    }
+  }
+
   const handleSendManualMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedWebhook || !manualRecipientId.trim() || !manualMessageText.trim()) return
@@ -960,10 +976,7 @@ export default function InstagramWebhooksPage() {
                         variant="ghost"
                         size="sm"
                         className="h-7 text-2xs px-2"
-                        onClick={() => {
-                          setSelectedEvent(ev)
-                          setSingleEventModalOpen(true)
-                        }}
+                        onClick={() => void handleInspectEvent(ev)}
                       >
                         Inspect Payload
                       </Button>

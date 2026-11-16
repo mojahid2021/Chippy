@@ -8,6 +8,40 @@ function getAuthToken(request: NextRequest): string | null {
   return cookieToken || (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null)
 }
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const token = getAuthToken(request)
+    if (!token) {
+      return NextResponse.json(
+        { statusCode: 401, error: 'Unauthorized', message: 'Missing or invalid authentication token' },
+        { status: 401 }
+      )
+    }
+
+    const backendUrl = getBackendUrl()
+    const response = await fetch(`${backendUrl}/api/v1/stores/me/categories/${id}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+    return NextResponse.json(data, { status: response.status })
+  } catch (error) {
+    console.error('Get category error:', error)
+    return NextResponse.json(
+      { statusCode: 500, error: 'Internal Server Error', message: 'Failed to fetch category' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

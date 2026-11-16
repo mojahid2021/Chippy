@@ -244,6 +244,25 @@ export default function MerchantStorePage() {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: curr }).format(amount || 0)
   }
 
+  const cleanStorePayload = (form: typeof storeForm) => {
+    const payload: Record<string, unknown> = {
+      name: form.name.trim(),
+      slug: form.slug.trim(),
+      currency: form.currency || "USD",
+      isActive: form.isActive,
+      isPublished: form.isPublished,
+    }
+
+    if (form.description?.trim()) payload.description = form.description.trim()
+    if (form.contactEmail?.trim()) payload.contactEmail = form.contactEmail.trim()
+    if (form.contactPhone?.trim()) payload.contactPhone = form.contactPhone.trim()
+    if (form.address?.trim()) payload.address = form.address.trim()
+    if (form.city?.trim()) payload.city = form.city.trim()
+    if (form.country?.trim()) payload.country = form.country.trim()
+
+    return payload
+  }
+
   // Handle Create Store
   const handleCreateStore = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -252,12 +271,22 @@ export default function MerchantStorePage() {
       return
     }
 
+    if (storeForm.contactEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(storeForm.contactEmail.trim())) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid contact email address or leave it blank.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setSubmitting(true)
     try {
+      const payload = cleanStorePayload(storeForm)
       const res = await fetch("/api/v1/stores/me", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(storeForm),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || "Failed to create store")
@@ -275,12 +304,23 @@ export default function MerchantStorePage() {
   // Handle Update Store Settings
   const handleUpdateStore = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (storeForm.contactEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(storeForm.contactEmail.trim())) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid contact email address or leave it blank.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setSubmitting(true)
     try {
+      const payload = cleanStorePayload(storeForm)
       const res = await fetch("/api/v1/stores/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(storeForm),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || "Failed to update store")

@@ -471,6 +471,22 @@ export default function FacebookFeedWebhooksPage() {
     fetchEvents(webhook.id)
   }
 
+  const handleInspectEvent = async (ev: FacebookFeedEvent) => {
+    setSelectedEvent(ev)
+    setSingleEventModalOpen(true)
+    if (selectedWebhook) {
+      try {
+        const res = await fetch(`/api/v1/facebook-feed/webhooks/${selectedWebhook.id}/events/${ev.id}`)
+        const json = await res.json()
+        if (res.ok && json.data) {
+          setSelectedEvent(json.data)
+        }
+      } catch {
+        // Fallback to ev
+      }
+    }
+  }
+
   const openCommentsModal = (webhook: FacebookFeedWebhook, initialPostId = "") => {
     setSelectedWebhook(webhook)
     const pid = initialPostId || webhook.pageId || ""
@@ -1372,10 +1388,7 @@ export default function FacebookFeedWebhooksPage() {
                           variant="ghost"
                           size="icon-sm"
                           title="View Payload"
-                          onClick={() => {
-                            setSelectedEvent(ev)
-                            setSingleEventModalOpen(true)
-                          }}
+                          onClick={() => void handleInspectEvent(ev)}
                         >
                           <ListChecks className="size-3" />
                         </Button>

@@ -107,6 +107,35 @@ export default function CategoriesPage() {
     }
   }
 
+  const handleOpenEditCategory = async (c: StoreCategory) => {
+    setEditingCategory(c)
+    setForm({
+      name: c.name,
+      slug: c.slug,
+      description: c.description || "",
+      sortOrder: c.sortOrder ?? 0,
+      parentId: c.parentId || "",
+    })
+    setCategoryModalOpen(true)
+    try {
+      const res = await fetch(`/api/v1/stores/me/categories/${c.id}`)
+      const data = await res.json()
+      if (res.ok && data.data) {
+        const fresh = data.data as StoreCategory
+        setEditingCategory(fresh)
+        setForm({
+          name: fresh.name,
+          slug: fresh.slug,
+          description: fresh.description || "",
+          sortOrder: fresh.sortOrder ?? 0,
+          parentId: fresh.parentId || "",
+        })
+      }
+    } catch {
+      // Keep existing c
+    }
+  }
+
   const handleDelete = async () => {
     if (!categoryToDelete) return
     setSubmitting(true)
@@ -195,17 +224,7 @@ export default function CategoriesPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          setEditingCategory(c)
-                          setForm({
-                            name: c.name,
-                            slug: c.slug,
-                            description: c.description || "",
-                            sortOrder: c.sortOrder ?? 0,
-                            parentId: c.parentId || "",
-                          })
-                          setCategoryModalOpen(true)
-                        }}
+                        onClick={() => void handleOpenEditCategory(c)}
                       >
                         <Edit className="size-3.5" />
                       </Button>
