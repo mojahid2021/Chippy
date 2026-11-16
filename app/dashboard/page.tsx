@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/page-header"
 import { useUserStore } from "@/lib/stores/userStore"
-import { Bot, Check, CreditCard, FileText, Inbox, Loader2, Plug, RefreshCw } from "lucide-react"
-import type { UserSubscription, SubscriptionInvoice, MessengerWebhook, AiProfile } from "@/lib/types/woombat"
+import { Bot, Check, CreditCard, FileText, Inbox, Loader2, Plug, RefreshCw, Store } from "lucide-react"
+import type { UserSubscription, SubscriptionInvoice, MessengerWebhook, AiProfile, StoreProfile, StoreAnalytics } from "@/lib/types/woombat"
 import { cn } from "@/lib/utils"
 
 async function getData<T>(url: string, fallback: T): Promise<T> {
@@ -35,20 +35,26 @@ export default function Dashboard() {
   const [invoices, setInvoices] = useState<SubscriptionInvoice[]>([])
   const [pages, setPages] = useState<MessengerWebhook[]>([])
   const [assistants, setAssistants] = useState<AiProfile[]>([])
+  const [store, setStore] = useState<StoreProfile | null>(null)
+  const [analytics, setAnalytics] = useState<StoreAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [sub, inv, hooks, profiles] = await Promise.all([
+    const [sub, inv, hooks, profiles, storeData, analyticsData] = await Promise.all([
       getData<UserSubscription | null>("/api/v1/subscriptions/current", null),
       getData<SubscriptionInvoice[]>("/api/v1/subscriptions/history?page=1&limit=5", []),
       getData<MessengerWebhook[]>("/api/v1/messenger/webhooks", []),
       getData<AiProfile[]>("/api/v1/ai-profiles?limit=50", []),
+      getData<StoreProfile | null>("/api/v1/stores/me", null),
+      getData<StoreAnalytics | null>("/api/v1/stores/me/analytics", null),
     ])
     setSubscription(sub)
     setInvoices(Array.isArray(inv) ? inv : [])
     setPages(Array.isArray(hooks) ? hooks : [])
     setAssistants(Array.isArray(profiles) ? profiles : [])
+    setStore(storeData)
+    setAnalytics(analyticsData)
     setLoading(false)
   }, [])
 
@@ -62,6 +68,7 @@ export default function Dashboard() {
   // The order merchants actually have to do things in.
   const steps = [
     { title: "Choose a plan", body: "Pick a plan to switch on automatic replies.", done: !!subscription, href: "/dashboard/purchase", cta: "See plans" },
+    { title: "Set up your online store", body: "Launch your storefront, add products, categories, and inventory.", done: !!store, href: "/dashboard/store", cta: "Manage store" },
     { title: "Create an AI assistant", body: "Tell it about your shop, products, and how to talk to customers.", done: assistants.length > 0, href: "/dashboard/ai-profiles", cta: "Create assistant" },
     { title: "Connect your channels", body: "Link Messenger, Facebook Feed, Instagram, or WhatsApp.", done: pages.length > 0, href: "/dashboard/messenger", cta: "Connect channel" },
     {
@@ -76,6 +83,13 @@ export default function Dashboard() {
   const nextStep = steps.findIndex((s) => !s.done)
 
   const stats = [
+    {
+      label: "Online Store",
+      value: store ? (analytics ? `${analytics.totalProducts} items` : store.name) : "No store",
+      note: store ? (store.isPublished ? "Published & Live" : "Draft / Unpublished") : "Create your store",
+      href: "/dashboard/store",
+      icon: Store,
+    },
     {
       label: "Messenger",
       value: pages.length,
@@ -164,10 +178,10 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
           <Link
-            key={s.href}
+            key={s.label}
             href={s.href}
             className="group rounded-2xl border bg-card p-5 shadow-xs transition-shadow hover:shadow-md"
           >

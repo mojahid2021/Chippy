@@ -1351,6 +1351,469 @@ export interface SendFacebookFeedPrivateReplyResponse {
   data?: unknown
 }
 
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Section 10: Multi-Tenant E-Commerce Platform
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+export interface StoreProfile {
+  id: string
+  userId: string
+  name: string
+  slug: string
+  description?: string | null
+  logoUrl?: string | null
+  bannerUrl?: string | null
+  currency: string
+  contactEmail?: string | null
+  contactPhone?: string | null
+  address?: string | null
+  city?: string | null
+  country?: string | null
+  isActive: boolean
+  isPublished: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StoreProfileResponse {
+  message: string
+  data: StoreProfile
+}
+
+export interface CreateStoreRequest {
+  name: string
+  slug: string
+  description?: string
+  currency?: string
+  contactEmail?: string
+  contactPhone?: string
+  address?: string
+  city?: string
+  country?: string
+  logoUrl?: string
+  bannerUrl?: string
+}
+
+export interface UpdateStoreRequest {
+  name?: string
+  slug?: string
+  description?: string
+  logoUrl?: string | null
+  bannerUrl?: string | null
+  currency?: string
+  contactEmail?: string
+  contactPhone?: string
+  address?: string
+  city?: string
+  country?: string
+  isActive?: boolean
+  isPublished?: boolean
+}
+
+export interface StoreAnalytics {
+  totalProducts: number
+  activeProducts: number
+  totalOrders: number
+  pendingOrders: number
+  completedOrders: number
+  grossRevenue: number
+  currency: string
+  lowStockCount: number
+  recentOrders?: StoreOrder[]
+}
+
+export interface StoreAnalyticsResponse {
+  message: string
+  data: StoreAnalytics
+}
+
+export interface PresignedUploadUrlRequest {
+  fileName: string
+  contentType: string
+  assetType: 'logo' | 'banner' | 'product_image' | string
+}
+
+export interface PresignedUploadUrlResponse {
+  message: string
+  data: {
+    uploadUrl: string
+    fileUrl: string
+    key?: string
+  }
+}
+
+export interface StoreCategory {
+  id: string
+  storeId?: string
+  name: string
+  slug: string
+  description?: string | null
+  sortOrder?: number
+  parentId?: string | null
+  isActive?: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StoreCategoriesResponse {
+  message?: string
+  data: StoreCategory[]
+}
+
+export interface StoreCategoryResponse {
+  message: string
+  data: StoreCategory
+}
+
+export interface CreateStoreCategoryRequest {
+  name: string
+  slug: string
+  description?: string
+  sortOrder?: number
+  parentId?: string | null
+}
+
+export interface UpdateStoreCategoryRequest {
+  name?: string
+  slug?: string
+  description?: string
+  sortOrder?: number
+  parentId?: string | null
+  isActive?: boolean
+}
+
+export interface ProductVariant {
+  id?: string
+  productId?: string
+  title: string
+  sku?: string
+  price?: number
+  compareAtPrice?: number | null
+  inventoryQuantity: number
+  options?: Record<string, string>
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface StoreProduct {
+  id: string
+  storeId?: string
+  categoryId?: string | null
+  title: string
+  slug: string
+  description?: string | null
+  price: number
+  compareAtPrice?: number | null
+  costPrice?: number | null
+  sku?: string | null
+  barcode?: string | null
+  trackInventory: boolean
+  inventoryQuantity: number
+  lowStockThreshold?: number | null
+  images: string[]
+  isActive: boolean
+  variants?: ProductVariant[]
+  category?: StoreCategory | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StoreProductsResponse {
+  message?: string
+  pagination?: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: StoreProduct[]
+}
+
+export interface StoreProductResponse {
+  message: string
+  data: StoreProduct
+}
+
+export interface CreateStoreProductRequest {
+  title: string
+  slug: string
+  description?: string
+  price: number
+  compareAtPrice?: number
+  costPrice?: number
+  sku?: string
+  barcode?: string
+  trackInventory?: boolean
+  inventoryQuantity?: number
+  lowStockThreshold?: number
+  images?: string[]
+  categoryId?: string | null
+  isActive?: boolean
+  variants?: Array<{
+    title: string
+    sku?: string
+    price?: number
+    compareAtPrice?: number
+    inventoryQuantity: number
+    options?: Record<string, string>
+  }>
+}
+
+export interface UpdateStoreProductRequest {
+  title?: string
+  slug?: string
+  description?: string
+  price?: number
+  compareAtPrice?: number | null
+  costPrice?: number | null
+  sku?: string
+  barcode?: string
+  trackInventory?: boolean
+  inventoryQuantity?: number
+  lowStockThreshold?: number | null
+  images?: string[]
+  categoryId?: string | null
+  isActive?: boolean
+  variants?: ProductVariant[]
+}
+
+export type InventoryAdjustReason =
+  | 'RESTOCK'
+  | 'CORRECTION'
+  | 'SALE'
+  | 'RETURN'
+  | 'DAMAGE'
+  | string
+
+export interface InventoryAdjustRequest {
+  productId: string
+  variantId?: string
+  change: number
+  reason: InventoryAdjustReason
+  note?: string
+}
+
+export interface InventoryAdjustResponse {
+  message: string
+  data?: unknown
+}
+
+export interface InventoryLog {
+  id: string
+  storeId?: string
+  productId: string
+  variantId?: string | null
+  productTitle?: string
+  variantTitle?: string | null
+  previousQuantity: number
+  change: number
+  newQuantity: number
+  reason: string
+  note?: string | null
+  createdAt: string
+}
+
+export interface InventoryLogsResponse {
+  pagination?: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: InventoryLog[]
+}
+
+export type DiscountType = 'PERCENTAGE' | 'FIXED'
+
+export interface StoreCoupon {
+  id: string
+  storeId?: string
+  code: string
+  discountType: DiscountType
+  discountValue: number
+  minOrderAmount?: number | null
+  maxDiscountAmount?: number | null
+  usageLimit?: number | null
+  usageCount: number
+  startDate?: string | null
+  endDate?: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StoreCouponsResponse {
+  message?: string
+  pagination?: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: StoreCoupon[]
+}
+
+export interface StoreCouponResponse {
+  message: string
+  data: StoreCoupon
+}
+
+export interface CreateStoreCouponRequest {
+  code: string
+  discountType: DiscountType
+  discountValue: number
+  minOrderAmount?: number
+  maxDiscountAmount?: number
+  usageLimit?: number
+  startDate?: string | null
+  endDate?: string | null
+  isActive?: boolean
+}
+
+export interface UpdateStoreCouponRequest {
+  code?: string
+  discountType?: DiscountType
+  discountValue?: number
+  minOrderAmount?: number | null
+  maxDiscountAmount?: number | null
+  usageLimit?: number | null
+  startDate?: string | null
+  endDate?: string | null
+  isActive?: boolean
+}
+
+export type OrderStatus = 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
+export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
+
+export interface ShippingAddress {
+  fullName: string
+  addressLine1: string
+  addressLine2?: string
+  city: string
+  state?: string
+  postalCode?: string
+  country: string
+  phone?: string
+}
+
+export interface StoreOrderItem {
+  id: string
+  orderId?: string
+  productId: string
+  variantId?: string | null
+  title: string
+  variantTitle?: string | null
+  price: number
+  quantity: number
+  total: number
+  image?: string
+}
+
+export interface StoreOrder {
+  id: string
+  orderNumber: string
+  storeId?: string
+  customerEmail: string
+  customerName: string
+  customerPhone?: string
+  shippingAddress: ShippingAddress
+  billingAddress?: ShippingAddress
+  status: OrderStatus
+  paymentMethod: string
+  paymentStatus: PaymentStatus
+  currency: string
+  subtotal: number
+  discountAmount: number
+  shippingCost: number
+  totalAmount: number
+  couponCode?: string | null
+  trackingNumber?: string | null
+  items: StoreOrderItem[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StoreOrdersResponse {
+  message?: string
+  pagination?: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: StoreOrder[]
+}
+
+export interface StoreOrderResponse {
+  message: string
+  data: StoreOrder
+}
+
+export interface UpdateOrderStatusRequest {
+  status: OrderStatus
+  trackingNumber?: string
+}
+
+export interface CartItem {
+  id: string
+  productId: string
+  variantId?: string | null
+  title: string
+  variantTitle?: string | null
+  price: number
+  quantity: number
+  image?: string
+}
+
+export interface CartSession {
+  id: string
+  cartId?: string
+  storeId?: string
+  items: CartItem[]
+  couponCode?: string | null
+  discount?: number
+  subtotal?: number
+  total?: number
+  itemCount?: number
+}
+
+export interface CartResponse {
+  message: string
+  data: CartSession
+}
+
+export interface AddCartItemRequest {
+  productId: string
+  variantId?: string
+  quantity: number
+}
+
+export interface UpdateCartItemRequest {
+  quantity: number
+}
+
+export interface ApplyCartCouponRequest {
+  code: string
+}
+
+export interface CheckoutRequest {
+  cartId: string
+  customerEmail: string
+  customerName: string
+  customerPhone?: string
+  shippingAddress: ShippingAddress
+  billingAddress?: ShippingAddress
+  paymentMethod: string
+}
+
+export interface CheckoutResponse {
+  message: string
+  data: StoreOrder
+}
+
+
 
 
 

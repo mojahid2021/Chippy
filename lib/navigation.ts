@@ -1,4 +1,20 @@
-import { Bot, Camera, CreditCard, House, MessageCircle, MessageSquareQuote, Phone, UserCog, type LucideIcon } from "lucide-react"
+import {
+  ArrowUpDown,
+  Bot,
+  Camera,
+  CreditCard,
+  FolderTree,
+  House,
+  MessageCircle,
+  MessageSquareQuote,
+  Package,
+  Phone,
+  ShoppingBag,
+  Store,
+  Tag,
+  UserCog,
+  type LucideIcon,
+} from "lucide-react"
 
 export type NavItem = {
   name: string
@@ -24,6 +40,17 @@ export const navSections: { title?: string; items: NavItem[] }[] = [
       { name: "Facebook Feed", href: "/dashboard/facebook-feed", icon: MessageSquareQuote, desc: "Auto-reply to post comments with AI via public replies or private Messenger DMs" },
       { name: "Instagram", href: "/dashboard/instagram", icon: Camera, desc: "Connect Instagram Business accounts, auto-reply to direct messages, and review event logs" },
       { name: "WhatsApp", href: "/dashboard/whatsapp", icon: Phone, desc: "Connect WhatsApp Business Cloud API numbers, sync quality ratings, and auto-reply" },
+    ],
+  },
+  {
+    title: "E-Commerce",
+    items: [
+      { name: "My Store", href: "/dashboard/store", icon: Store, desc: "Store profile, analytics, branding, and storefront link" },
+      { name: "Products", href: "/dashboard/products", icon: Package, desc: "Catalog items, pricing, images, and product variants" },
+      { name: "Orders", href: "/dashboard/orders", icon: ShoppingBag, desc: "Order fulfillment, shipments, and customer tracking" },
+      { name: "Categories", href: "/dashboard/categories", icon: FolderTree, desc: "Organize products into hierarchical departments" },
+      { name: "Inventory", href: "/dashboard/inventory", icon: ArrowUpDown, desc: "Stock quantities, atomic adjustments, and audit logs" },
+      { name: "Coupons", href: "/dashboard/coupons", icon: Tag, desc: "Promotional discount codes and checkout vouchers" },
     ],
   },
   {
