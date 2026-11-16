@@ -696,5 +696,419 @@ export interface SendLiveSenderActionResponse {
   data: SendLiveSenderActionData
 }
 
+/**
+ * 7. Meta Instagram Platform Webhooks & Management
+ */
+export interface InstagramWebhook {
+  id: string
+  userId: string
+  name: string
+  instagramAccountId: string
+  username?: string | null
+  profilePictureUrl?: string | null
+  pageId?: string | null
+  verifyToken: string
+  webhookUrl: string
+  aiProfileId?: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface InstagramWebhooksResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: InstagramWebhook[]
+}
+
+export interface InstagramWebhookResponse {
+  message: string
+  data: InstagramWebhook
+}
+
+export interface CreateInstagramWebhookRequest {
+  name: string
+  appSecret: string
+  verifyToken?: string
+  instagramAccountId: string
+  pageId?: string
+  accessToken?: string
+  aiProfileId?: string
+}
+
+export interface UpdateInstagramWebhookRequest {
+  name?: string
+  aiProfileId?: string | null
+  isActive?: boolean
+  instagramAccountId?: string
+  pageId?: string
+  accessToken?: string
+  appSecret?: string
+}
+
+export interface SyncInstagramAccountResponse {
+  message: string
+  data: {
+    webhook: InstagramWebhook
+    accountDetails?: {
+      id: string
+      username: string
+      name?: string
+      profilePictureUrl?: string
+    }
+    isSubscribed?: boolean
+  }
+}
+
+export interface InstagramEvent {
+  id: string
+  userId: string
+  webhookId: string
+  instagramAccountId?: string
+  eventType: string
+  senderId: string
+  recipientId: string
+  metaTimestamp: number
+  status: 'PROCESSED' | 'DUPLICATE' | 'ERROR'
+  errorMessage?: string | null
+  eventData?: Record<string, unknown>
+  rawPayload?: Record<string, unknown>
+  createdAt: string
+}
+
+export interface InstagramEventsResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: InstagramEvent[]
+}
+
+export interface InstagramEventResponse {
+  message: string
+  data: InstagramEvent
+}
+
+export interface CompileInstagramEventPromptRequest {
+  aiProfileId?: string
+  dynamicVariables?: Record<string, string>
+  includeFewShot?: boolean
+  humanize?: boolean
+}
+
+export interface CompileInstagramEventPromptResponse {
+  message: string
+  data: {
+    profile: {
+      id: string
+      name: string
+      role: string
+    }
+    compiledSystemPrompt: string
+    messages: CompilePromptMessage[]
+    userPrompt: string
+    appliedVariables: Record<string, string>
+  }
+}
+
+export interface GenerateInstagramResponseRequest {
+  sendToUser?: boolean
+  aiProfileId?: string
+  dynamicVariables?: Record<string, string>
+  additionalContext?: string
+  includeFewShot?: boolean
+  humanize?: boolean
+}
+
+export interface GenerateInstagramResponseResponse {
+  message: string
+  data: {
+    eventId: string
+    webhookId: string
+    senderId: string
+    aiProfileId?: string
+    generatedResponse: string
+    isFallback?: boolean
+    provider?: string
+    modelName?: string
+    latencyMs: number
+    dispatchedToInstagram?: boolean
+    messageIds?: string[]
+    tokenUsage?: {
+      promptTokens: number
+      completionTokens: number
+      totalTokens: number
+    }
+  }
+}
+
+export interface InstagramConversationMessage {
+  id: string
+  webhookId: string
+  userId: string
+  senderId: string
+  role: 'user' | 'assistant'
+  content: string
+  aiProfileId?: string
+  messageId?: string
+  createdAt: string
+}
+
+export interface InstagramConversationsResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: InstagramConversationMessage[]
+}
+
+export interface SendInstagramMessageRequest {
+  recipientId: string
+  text: string
+}
+
+export interface SendInstagramMessageResponse {
+  message: string
+  data: {
+    recipientId: string
+    messageIds: string[]
+    chunksSent?: number
+  }
+}
+
+/**
+ * 8. WhatsApp Business Cloud API Webhooks & Management
+ */
+export interface WhatsAppWebhook {
+  id: string
+  userId: string
+  name: string
+  phoneNumberId: string
+  wabaId?: string | null
+  displayPhoneNumber?: string | null
+  verifiedName?: string | null
+  qualityRating?: 'GREEN' | 'YELLOW' | 'RED' | 'UNKNOWN' | string | null
+  verifyToken: string
+  webhookUrl: string
+  aiProfileId?: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface WhatsAppWebhooksResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: WhatsAppWebhook[]
+}
+
+export interface WhatsAppWebhookResponse {
+  message: string
+  data: WhatsAppWebhook
+}
+
+export interface CreateWhatsAppWebhookRequest {
+  name: string
+  appSecret: string
+  verifyToken?: string
+  phoneNumberId: string
+  wabaId?: string
+  accessToken?: string
+  aiProfileId?: string
+}
+
+export interface UpdateWhatsAppWebhookRequest {
+  name?: string
+  aiProfileId?: string | null
+  isActive?: boolean
+  phoneNumberId?: string
+  wabaId?: string
+  accessToken?: string
+  appSecret?: string
+}
+
+export interface SyncWhatsAppAccountResponse {
+  message: string
+  data: {
+    webhook: WhatsAppWebhook
+    verifiedName?: string
+    displayPhoneNumber?: string
+    qualityRating?: string
+    isSubscribed?: boolean
+  }
+}
+
+export interface WhatsAppEvent {
+  id: string
+  userId: string
+  webhookId: string
+  phoneNumberId?: string
+  eventType: string
+  senderId: string
+  recipientId: string
+  metaTimestamp: number
+  status: 'PROCESSED' | 'DUPLICATE' | 'ERROR'
+  errorMessage?: string | null
+  eventData?: Record<string, unknown>
+  rawPayload?: Record<string, unknown>
+  createdAt: string
+}
+
+export interface WhatsAppEventsResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: WhatsAppEvent[]
+}
+
+export interface WhatsAppEventResponse {
+  message: string
+  data: WhatsAppEvent
+}
+
+export interface CompileWhatsAppEventPromptRequest {
+  aiProfileId?: string
+  dynamicVariables?: Record<string, string>
+  includeFewShot?: boolean
+  humanize?: boolean
+}
+
+export interface CompileWhatsAppEventPromptResponse {
+  message: string
+  data: {
+    profile: {
+      id: string
+      name: string
+      role: string
+    }
+    compiledSystemPrompt: string
+    messages: CompilePromptMessage[]
+    userPrompt: string
+    appliedVariables: Record<string, string>
+  }
+}
+
+export interface GenerateWhatsAppResponseRequest {
+  sendToUser?: boolean
+  aiProfileId?: string
+  dynamicVariables?: Record<string, string>
+  additionalContext?: string
+  includeFewShot?: boolean
+  humanize?: boolean
+}
+
+export interface GenerateWhatsAppResponseResponse {
+  message: string
+  data: {
+    eventId: string
+    webhookId: string
+    senderId: string
+    aiProfileId?: string
+    generatedResponse: string
+    isFallback?: boolean
+    provider?: string
+    modelName?: string
+    latencyMs: number
+    dispatchedToWhatsApp?: boolean
+    messageIds?: string[]
+    tokenUsage?: {
+      promptTokens: number
+      completionTokens: number
+      totalTokens: number
+    }
+  }
+}
+
+export interface WhatsAppConversationMessage {
+  id: string
+  webhookId: string
+  userId: string
+  senderId: string
+  role: 'user' | 'assistant'
+  content: string
+  aiProfileId?: string
+  messageId?: string
+  createdAt: string
+}
+
+export interface WhatsAppConversationsResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: WhatsAppConversationMessage[]
+}
+
+export interface SendWhatsAppMessageRequest {
+  recipientId: string
+  text: string
+}
+
+export interface SendWhatsAppMessageResponse {
+  message: string
+  data: {
+    recipientId: string
+    messageIds: string[]
+    chunksSent?: number
+  }
+}
+
+/**
+ * AI Profile Multi-Channel Bound Webhooks Responses
+ */
+export interface AiProfileInstagramWebhooksResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: Array<{
+    id: string
+    userId: string
+    name: string
+    aiProfileId: string
+    instagramAccountId: string
+    username?: string | null
+    isActive: boolean
+  }>
+}
+
+export interface AiProfileWhatsAppWebhooksResponse {
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  data: Array<{
+    id: string
+    userId: string
+    name: string
+    aiProfileId: string
+    phoneNumberId: string
+    displayPhoneNumber?: string | null
+    verifiedName?: string | null
+    isActive: boolean
+  }>
+}
+
 
 

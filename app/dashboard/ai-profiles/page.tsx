@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
   Bot,
+  Camera,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -33,6 +34,8 @@ import {
   Edit,
   MessageSquare,
   MoreHorizontal,
+  Phone,
+  Plug,
   Plus,
   RefreshCw,
   Search,
@@ -73,6 +76,8 @@ export default function AiProfilesPage() {
   // Bound Webhooks State
   const [webhooksModalOpen, setWebhooksModalOpen] = useState(false)
   const [boundWebhooks, setBoundWebhooks] = useState<MessengerWebhook[]>([])
+  const [boundInstagramWebhooks, setBoundInstagramWebhooks] = useState<Array<{ id: string; name: string; username?: string | null; isActive: boolean }>>([])
+  const [boundWhatsAppWebhooks, setBoundWhatsAppWebhooks] = useState<Array<{ id: string; name: string; displayPhoneNumber?: string | null; verifiedName?: string | null; isActive: boolean }>>([])
   const [boundWebhooksLoading, setBoundWebhooksLoading] = useState(false)
   const [selectedProfileForWebhooks, setSelectedProfileForWebhooks] = useState<AiProfile | null>(null)
 
@@ -252,17 +257,26 @@ export default function AiProfilesPage() {
       setWebhooksModalOpen(true)
       setBoundWebhooksLoading(true)
 
-      const res = await fetch(`/api/v1/ai-profiles/${profile.id}/webhooks`)
-      const json = await res.json()
+      const [fbRes, igRes, waRes] = await Promise.all([
+        fetch(`/api/v1/ai-profiles/${profile.id}/webhooks`),
+        fetch(`/api/v1/ai-profiles/${profile.id}/webhooks/instagram`),
+        fetch(`/api/v1/ai-profiles/${profile.id}/webhooks/whatsapp`),
+      ])
 
-      if (res.ok && Array.isArray(json.data)) {
-        setBoundWebhooks(json.data)
-      } else {
-        setBoundWebhooks([])
-      }
+      const [fbJson, igJson, waJson] = await Promise.all([
+        fbRes.json().catch(() => null),
+        igRes.json().catch(() => null),
+        waRes.json().catch(() => null),
+      ])
+
+      setBoundWebhooks(Array.isArray(fbJson?.data) ? fbJson.data : [])
+      setBoundInstagramWebhooks(Array.isArray(igJson?.data) ? igJson.data : [])
+      setBoundWhatsAppWebhooks(Array.isArray(waJson?.data) ? waJson.data : [])
     } catch (err) {
       console.error("Failed to load bound webhooks:", err)
       setBoundWebhooks([])
+      setBoundInstagramWebhooks([])
+      setBoundWhatsAppWebhooks([])
     } finally {
       setBoundWebhooksLoading(false)
     }
@@ -463,7 +477,7 @@ export default function AiProfilesPage() {
                       <DropdownMenuContent align="end" className="w-52">
                         <DropdownMenuItem asChild><Link href={`/dashboard/ai-profiles/${profile.id}`}><Edit className="mr-2 size-4" />Edit</Link></DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleOpenCompiler(profile)}><Zap className="mr-2 size-4" />Test a message</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleOpenBoundWebhooks(profile)}><MessageSquare className="mr-2 size-4" />Pages using it</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenBoundWebhooks(profile)}><MessageSquare className="mr-2 size-4" />Connected channels</DropdownMenuItem>
                         {!profile.isDefault && (
                           <DropdownMenuItem onClick={() => handleSetDefault(profile)}><Star className="mr-2 size-4" />Make default</DropdownMenuItem>
                         )}
@@ -673,32 +687,86 @@ export default function AiProfilesPage() {
         </SheetContent>
       </Sheet>
 
-      {/* ── Pages using this assistant ─────────────────────── */}
+      {/* ── Connected Channels Modal ───────────────────────── */}
       <Dialog open={webhooksModalOpen} onOpenChange={setWebhooksModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Pages using {selectedProfileForWebhooks?.name}</DialogTitle>
-            <DialogDescription>Pages without their own assistant use the default one.</DialogDescription>
+            <DialogTitle>Channels using {selectedProfileForWebhooks?.name}</DialogTitle>
+            <DialogDescription>Facebook Pages, Instagram Accounts, and WhatsApp Numbers bound to this assistant.</DialogDescription>
           </DialogHeader>
           {boundWebhooksLoading ? (
             <div className="flex justify-center py-8"><RefreshCw className="size-5 animate-spin text-muted-foreground" /></div>
-          ) : boundWebhooks.length === 0 ? (
+          ) : boundWebhooks.length === 0 && boundInstagramWebhooks.length === 0 && boundWhatsAppWebhooks.length === 0 ? (
             <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-              No page uses this assistant yet.
-              <Button asChild variant="outline" size="sm" className="mt-3"><Link href="/dashboard/messenger">Choose it on a page</Link></Button>
+              <p>No channels use this assistant yet.</p>
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                <Button asChild variant="outline" size="sm"><Link href="/dashboard/messenger">Facebook Page</Link></Button>
+                <Button asChild variant="outline" size="sm"><Link href="/dashboard/instagram">Instagram</Link></Button>
+                <Button asChild variant="outline" size="sm"><Link href="/dashboard/whatsapp">WhatsApp</Link></Button>
+              </div>
             </div>
           ) : (
-            <ul className="divide-y rounded-xl border">
-              {boundWebhooks.map((hook) => (
-                <li key={hook.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{hook.pageName || hook.name}</p>
-                    <p className="text-xs text-muted-foreground">{hook.isActive ? "Replying" : "Paused"}</p>
-                  </div>
-                  <Button asChild variant="ghost" size="sm"><Link href={`/dashboard/messenger/${hook.id}/inbox`}>Open inbox</Link></Button>
-                </li>
-              ))}
-            </ul>
+            <div className="custom-scrollbar max-h-[60vh] space-y-4 overflow-y-auto">
+              {boundWebhooks.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">Facebook Pages ({boundWebhooks.length})</p>
+                  <ul className="divide-y rounded-xl border">
+                    {boundWebhooks.map((hook) => (
+                      <li key={hook.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Plug className="size-4 text-brand shrink-0" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{hook.pageName || hook.name}</p>
+                            <p className="text-xs text-muted-foreground">{hook.isActive ? "Auto-reply active" : "Paused"}</p>
+                          </div>
+                        </div>
+                        <Button asChild variant="ghost" size="sm"><Link href={`/dashboard/messenger/${hook.id}/inbox`}>Inbox</Link></Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {boundInstagramWebhooks.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">Instagram Accounts ({boundInstagramWebhooks.length})</p>
+                  <ul className="divide-y rounded-xl border">
+                    {boundInstagramWebhooks.map((hook) => (
+                      <li key={hook.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Camera className="size-4 text-rose-500 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{hook.name}</p>
+                            <p className="text-xs text-muted-foreground">{hook.username ? `@${hook.username}` : hook.isActive ? "Active" : "Paused"}</p>
+                          </div>
+                        </div>
+                        <Button asChild variant="ghost" size="sm"><Link href="/dashboard/instagram">Manage</Link></Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {boundWhatsAppWebhooks.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">WhatsApp Numbers ({boundWhatsAppWebhooks.length})</p>
+                  <ul className="divide-y rounded-xl border">
+                    {boundWhatsAppWebhooks.map((hook) => (
+                      <li key={hook.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Phone className="size-4 text-emerald-600 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{hook.name}</p>
+                            <p className="text-xs text-muted-foreground">{hook.displayPhoneNumber || (hook.isActive ? "Active" : "Paused")}</p>
+                          </div>
+                        </div>
+                        <Button asChild variant="ghost" size="sm"><Link href="/dashboard/whatsapp">Manage</Link></Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
         </DialogContent>
       </Dialog>
