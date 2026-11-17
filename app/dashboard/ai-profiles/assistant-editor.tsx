@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -19,17 +19,44 @@ import {
   Circle,
   Code2,
   Cpu,
+  Edit,
+  Layers,
   Loader2,
   MessageSquare,
   Mic,
+  Play,
   Plus,
   ShieldAlert,
+  ShoppingBag,
+  Sliders,
+  Sparkles,
   Trash2,
+  Users,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { EmptyState } from "@/components/page-header"
 import { toast } from "@/hooks/use-toast"
-import type { AiProfile, KnowledgeSnippet, ReferenceUrl, CustomVariable, FewShotExample, ModelConfig } from "@/lib/types/woombat"
+import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import type {
+  AiProfile,
+  KnowledgeSnippet,
+  ReferenceUrl,
+  CustomVariable,
+  FewShotExample,
+  ModelConfig,
+  AiProfileShoppingConfig,
+  SubAgentProfile,
+  SubAgentCapabilities,
+  SubAgentConfig,
+  SimulateRoutingResponse,
+} from "@/lib/types/woombat"
 
 export const CATEGORIES = [
   { value: "ALL", label: "All categories" },
@@ -57,6 +84,18 @@ const LLM_PROVIDERS = [
   { value: "ollama", label: "Ollama (Self-Hosted)" },
 ]
 
+export const DEFAULT_SHOPPING_CONFIG: AiProfileShoppingConfig = {
+  enabled: false,
+  visualSearchEnabled: false,
+  exactMatchThreshold: 0.8,
+  suggestionThreshold: 0.48,
+  maxExactMatches: 2,
+  maxSuggestions: 3,
+  sendSuggestedImages: true,
+  deliveryFormat: "CAROUSEL",
+  customSuggestionPrompt: "",
+}
+
 type FormData = {
   name: string
   role: string
@@ -77,6 +116,8 @@ type FormData = {
   customVariables: CustomVariable[]
   fewShotExamples: FewShotExample[]
   modelConfig: ModelConfig
+  shoppingConfig: AiProfileShoppingConfig
+  routingMode: string
   tags: string[]
   isActive: boolean
   isDefault: boolean
@@ -94,42 +135,28 @@ const DEFAULT_MODEL: ModelConfig = {
   responseFormat: "text",
 }
 
-// A ready-to-edit starter for a Bangladeshi Messenger shop, so a new assistant works on first save.
 const STARTER: FormData = {
   name: "",
   role: "",
   description: "",
   avatar: "",
-  category: "sales",
-  tone: "friendly",
-  style: "conversational",
-  language: "auto",
-  responseLength: "concise",
-  systemPrompt: "You are the Messenger sales assistant for {{company_name}}. Answer questions about products, prices, sizes, and delivery. When a customer wants to buy, collect their name, phone number, and full address, then confirm the order.",
-  mission: "Answer quickly and help the customer place an order.",
-  fallbackResponse: "Ekjon team member ekhuni apnake janabe. Call korte paren {{support_phone}} e.",
-  dos: [
-    "Reply in the customer’s language: Bangla, Banglish, or English",
-    "Show prices in {{currency}}",
-    "Mention cash on delivery when talking about payment",
-  ],
-  donts: [
-    "Promise a discount or free delivery that isn’t in your knowledge",
-    "Confirm an order without a phone number and address",
-  ],
-  knowledgeSnippets: [
-    { id: "delivery", title: "Delivery", content: "Inside Dhaka ৳60, 1–2 days. Outside Dhaka ৳120, 3–4 days. Cash on delivery available everywhere.", tags: ["delivery"] },
-  ],
+  category: "customer-support",
+  tone: "",
+  style: "",
+  language: "en",
+  responseLength: "balanced",
+  systemPrompt: "",
+  mission: "",
+  fallbackResponse: "",
+  dos: [],
+  donts: [],
+  knowledgeSnippets: [],
   referenceUrls: [],
-  customVariables: [
-    { key: "company_name", defaultValue: "My Shop", description: "Your shop’s name" },
-    { key: "support_phone", defaultValue: "01XXXXXXXXX", description: "Phone number customers can call" },
-    { key: "currency", defaultValue: "৳ (BDT)", description: "Currency for prices" },
-  ],
-  fewShotExamples: [
-    { user: "XL ache? Price koto?", assistant: "Ji apu, XL ache! Price ৳1,850. Order korte apnar naam, phone number ar address diben?" },
-  ],
+  customVariables: [],
+  fewShotExamples: [],
   modelConfig: DEFAULT_MODEL,
+  shoppingConfig: DEFAULT_SHOPPING_CONFIG,
+  routingMode: "KEYWORD_FIRST",
   tags: [],
   isActive: true,
   isDefault: false,
@@ -155,6 +182,8 @@ const fromProfile = (data: AiProfile): FormData => ({
   customVariables: data.customVariables || [],
   fewShotExamples: data.fewShotExamples || [],
   modelConfig: { ...DEFAULT_MODEL, ...(data.modelConfig || {}) },
+  shoppingConfig: { ...DEFAULT_SHOPPING_CONFIG, ...(data.shoppingConfig || {}) },
+  routingMode: data.routingMode || "KEYWORD_FIRST",
   tags: data.tags || [],
   isActive: data.isActive ?? true,
   isDefault: data.isDefault ?? false,
@@ -165,6 +194,8 @@ const SECTIONS = [
   { id: "voice", label: "Voice", icon: Mic, hint: "How it sounds to your customers." },
   { id: "instructions", label: "Instructions", icon: MessageSquare, hint: "The brief it reads before every reply." },
   { id: "rules", label: "Rules", icon: ShieldAlert, hint: "Short lines it always follows, or never does." },
+  { id: "shopping", label: "Shopping & Vision", icon: ShoppingBag, hint: "Catalog grounding and Messenger visual search." },
+  { id: "sub-agents", label: "Specialist Team", icon: Users, hint: "Specialized sub-agents and query routing." },
   { id: "knowledge", label: "Knowledge", icon: BookOpen, hint: "Facts and links it can answer from." },
   { id: "variables", label: "Variables", icon: Code2, hint: "Values you reuse across instructions and rules." },
   { id: "examples", label: "Example replies", icon: Bookmark, hint: "Show it how you’d answer a real customer." },
@@ -175,11 +206,13 @@ type SectionId = (typeof SECTIONS)[number]["id"]
 
 const TONE_SUGGESTIONS = ["Friendly", "Polite", "Playful", "Professional"]
 
-const isDone = (f: FormData): Record<SectionId, boolean> => ({
+const isDone = (f: FormData, subAgentsCount = 0): Record<SectionId, boolean> => ({
   basics: !!f.name.trim() && !!f.role.trim(),
   voice: !!f.tone.trim() && !!f.language,
   instructions: !!f.systemPrompt.trim(),
   rules: f.dos.length + f.donts.length > 0,
+  shopping: f.shoppingConfig?.enabled ?? false,
+  "sub-agents": subAgentsCount > 0,
   knowledge: f.knowledgeSnippets.length + f.referenceUrls.length > 0,
   variables: f.customVariables.length > 0,
   examples: f.fewShotExamples.length > 0,
@@ -196,8 +229,16 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
   const [saveLoading, setSaveLoading] = useState(false)
   const [newDo, setNewDo] = useState("")
   const [newDont, setNewDont] = useState("")
-  const [tab, setTab] = useState<SectionId>("basics")
+  const [tab, setTab] = useState<SectionId>(() => {
+    if (typeof window !== "undefined") {
+      const q = new URLSearchParams(window.location.search).get("tab") as SectionId | null
+      if (q && SECTIONS.some((s) => s.id === q)) return q
+    }
+    return "basics"
+  })
   const formRef = useRef<HTMLFormElement>(null)
+
+  const [autoProvisionOnCreate, setAutoProvisionOnCreate] = useState(false)
 
   useEffect(() => {
     if (creating) {
@@ -233,7 +274,14 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
     return () => window.removeEventListener("beforeunload", warn)
   }, [dirty])
 
-  const done = useMemo(() => (formData ? isDone(formData) : null), [formData])
+  // Sub-agents state
+  const [subAgents, setSubAgents] = useState<SubAgentProfile[]>([])
+  const [subAgentsLoading, setSubAgentsLoading] = useState(false)
+  const [autoProvisioning, setAutoProvisioning] = useState(false)
+  const [subAgentModalOpen, setSubAgentModalOpen] = useState(false)
+  const [editingSubAgent, setEditingSubAgent] = useState<SubAgentProfile | null>(null)
+
+  const done = useMemo(() => (formData ? isDone(formData, subAgents.length) : null), [formData, subAgents.length])
 
   if (loadError) {
     return (
@@ -256,6 +304,229 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
 
   const patch = (next: Partial<FormData>) => setFormData({ ...formData, ...next })
   const patchModel = (next: Partial<ModelConfig>) => setFormData({ ...formData, modelConfig: { ...formData.modelConfig, ...next } })
+  const patchShopping = (next: Partial<AiProfileShoppingConfig>) =>
+    setFormData((prev) => (prev ? { ...prev, shoppingConfig: { ...prev.shoppingConfig, ...next } } : prev))
+
+  const [subAgentForm, setSubAgentForm] = useState({
+    name: "",
+    role: "",
+    category: "shopping",
+    speciality: "shopping",
+    triggerKeywordsText: "",
+    priority: 20,
+    systemPrompt: "",
+    isActive: true,
+    capabilities: {
+      productSearch: true,
+      visualSearch: true,
+      orderTracking: false,
+      inventoryCheck: true,
+      cartAssistance: true,
+      humanHandoff: true,
+    } as SubAgentCapabilities,
+  })
+
+  // Routing Simulator Sandbox state
+  const [simulatePrompt, setSimulatePrompt] = useState("")
+  const [simulateHasImages, setSimulateHasImages] = useState(false)
+  const [simulating, setSimulating] = useState(false)
+  const [simulateResult, setSimulateResult] = useState<SimulateRoutingResponse["data"] | null>(null)
+
+  const loadSubAgents = useCallback(async () => {
+    if (!profileId) return
+    setSubAgentsLoading(true)
+    try {
+      const res = await fetch(`/api/v1/ai-profiles/${encodeURIComponent(profileId)}/sub-profiles`)
+      const json = await res.json()
+      if (res.ok && json.data?.subAgents) {
+        setSubAgents(json.data.subAgents)
+      }
+    } catch {
+      // ignore
+    } finally {
+      setSubAgentsLoading(false)
+    }
+  }, [profileId])
+
+  useEffect(() => {
+    if (profileId && tab === "sub-agents") {
+      void loadSubAgents()
+    }
+  }, [profileId, tab, loadSubAgents])
+
+  const ensureParentAssistantCreated = async (): Promise<string | null> => {
+    if (profileId) return profileId
+    const name = formData.name.trim() || "My Store Assistant"
+    const role = formData.role.trim() || "Customer Support Specialist"
+    try {
+      const res = await fetch("/api/v1/ai-profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, name, role }),
+      })
+      const json = await res.json()
+      if (res.ok && json.data?.id) {
+        setSaved(JSON.stringify({ ...formData, name, role }))
+        if (typeof window !== "undefined") {
+          window.history.replaceState(null, "", `/dashboard/ai-profiles/${json.data.id}?tab=sub-agents`)
+        }
+        return json.data.id
+      } else {
+        toast({ variant: "destructive", title: "Assistant creation failed", description: json.message })
+        return null
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Network error" })
+      return null
+    }
+  }
+
+  const handleAutoProvision = async () => {
+    setAutoProvisioning(true)
+    try {
+      const currentId = await ensureParentAssistantCreated()
+      if (!currentId) return
+
+      const res = await fetch(`/api/v1/ai-profiles/${encodeURIComponent(currentId)}/sub-profiles/auto-provision`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ industryPack: "ECOMMERCE_RETAIL" }),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        const listRes = await fetch(`/api/v1/ai-profiles/${encodeURIComponent(currentId)}/sub-profiles`)
+        const listJson = await listRes.json()
+        if (listRes.ok && listJson.data?.subAgents) {
+          setSubAgents(listJson.data.subAgents)
+        }
+        toast({
+          variant: "success",
+          title: "Specialist Team Provisioned",
+          description: `Auto-provisioned standard retail specialists via POST /api/v1/ai-profiles/:id/sub-profiles/auto-provision.`,
+        })
+      } else {
+        toast({ variant: "destructive", title: "Auto-provision failed", description: json.message || "Try again." })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Auto-provision failed", description: "Network error." })
+    } finally {
+      setAutoProvisioning(false)
+    }
+  }
+
+  const handleSaveSubAgent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!subAgentForm.name.trim() || !subAgentForm.role.trim()) {
+      toast({ variant: "destructive", title: "Name and role required" })
+      return
+    }
+
+    const currentId = await ensureParentAssistantCreated()
+    if (!currentId) return
+
+    const triggerKeywords = subAgentForm.triggerKeywordsText
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean)
+
+    const payload = {
+      name: subAgentForm.name,
+      role: subAgentForm.role,
+      category: subAgentForm.category,
+      systemPrompt: subAgentForm.systemPrompt,
+      capabilities: subAgentForm.capabilities,
+      subAgentConfig: {
+        speciality: subAgentForm.speciality,
+        triggerKeywords,
+        priority: Number(subAgentForm.priority) || 10,
+        autoDelegate: true,
+      },
+      isActive: subAgentForm.isActive,
+    }
+
+    try {
+      const url = editingSubAgent
+        ? `/api/v1/ai-profiles/${encodeURIComponent(currentId)}/sub-profiles/${editingSubAgent.id}`
+        : `/api/v1/ai-profiles/${encodeURIComponent(currentId)}/sub-profiles`
+      const method = editingSubAgent ? "PATCH" : "POST"
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        toast({
+          variant: "success",
+          title: editingSubAgent ? "Specialist Updated" : "Specialist Created",
+          description: `${subAgentForm.name} saved via POST /api/v1/ai-profiles/:id/sub-profiles.`,
+        })
+        setSubAgentModalOpen(false)
+        const listRes = await fetch(`/api/v1/ai-profiles/${encodeURIComponent(currentId)}/sub-profiles`)
+        const listJson = await listRes.json()
+        if (listRes.ok && listJson.data?.subAgents) {
+          setSubAgents(listJson.data.subAgents)
+        }
+      } else {
+        toast({ variant: "destructive", title: "Failed to save specialist", description: json.message })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Network error" })
+    }
+  }
+
+  const handleDeleteSubAgent = async (subId: string) => {
+    const currentId = profileId
+    if (!currentId) return
+    try {
+      const res = await fetch(`/api/v1/ai-profiles/${encodeURIComponent(currentId)}/sub-profiles/${subId}`, {
+        method: "DELETE",
+      })
+      if (res.ok) {
+        toast({ variant: "success", title: "Specialist removed" })
+        setSubAgents((prev) => prev.filter((a) => a.id !== subId))
+      } else {
+        const json = await res.json().catch(() => null)
+        toast({ variant: "destructive", title: "Delete failed", description: json?.message })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Delete failed" })
+    }
+  }
+
+  const handleSimulateRouting = async () => {
+    if (!simulatePrompt.trim()) return
+    const currentId = await ensureParentAssistantCreated()
+    if (!currentId) return
+
+    setSimulating(true)
+    try {
+      const res = await fetch(`/api/v1/ai-profiles/${encodeURIComponent(currentId)}/sub-profiles/simulate-routing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userPrompt: simulatePrompt,
+          hasImages: simulateHasImages,
+        }),
+      })
+      const json = await res.json()
+      if (res.ok && json.data) {
+        setSimulateResult(json.data)
+        toast({
+          variant: "success",
+          title: "Simulation Complete",
+          description: `Query routed to "${json.data.selectedProfileName}" (${(json.data.confidenceScore * 100).toFixed(0)}% confidence).`,
+        })
+      } else {
+        toast({ variant: "destructive", title: "Simulation failed", description: json.message })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Simulation error" })
+    } finally {
+      setSimulating(false)
+    }
+  }
   const doneCount = Object.values(done).filter(Boolean).length
   const tabIndex = SECTIONS.findIndex((s) => s.id === tab)
   const go = (step: number) => {
@@ -280,8 +551,31 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
       const json = await res.json()
       if (res.ok && json.data) {
         setSaved(JSON.stringify(formData))
-        toast({ variant: "success", title: creating ? "Assistant created" : "Changes saved", description: `${json.data.name} is ready.` })
-        if (creating) router.push("/dashboard/ai-profiles")
+        const newId = json.data.id
+
+        if (creating && autoProvisionOnCreate) {
+          try {
+            await fetch(`/api/v1/ai-profiles/${encodeURIComponent(newId)}/sub-profiles/auto-provision`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ industryPack: "ECOMMERCE_RETAIL" }),
+            })
+          } catch (err) {
+            console.error("Auto-provision error:", err)
+          }
+        }
+
+        toast({
+          variant: "success",
+          title: creating ? "Assistant created" : "Changes saved",
+          description: creating
+            ? `${json.data.name} is ready.`
+            : `${json.data.name} changes saved.`,
+        })
+
+        if (creating) {
+          router.push(`/dashboard/ai-profiles/${newId}${autoProvisionOnCreate ? "?tab=sub-agents" : ""}`)
+        }
       } else {
         toast({ variant: "destructive", title: "Couldn’t save", description: json.message || "Check the fields and try again." })
       }
@@ -318,7 +612,7 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
               </span>
             </div>
             <p className="hidden truncate text-xs text-muted-foreground sm:block">
-              {creating ? "Starts from a template for Messenger shops. Change what doesn’t fit." : "Changes apply to every channel (Messenger, Facebook Feed, Instagram, WhatsApp) using this assistant."}
+              {creating ? "Configure your store's AI assistant, voice, knowledge, and multi-agent specialist team." : "Changes apply to every channel (Messenger, Facebook Feed, Instagram, WhatsApp) using this assistant."}
             </p>
           </div>
           <Button type="button" variant="ghost" className="hidden sm:inline-flex" onClick={() => router.push("/dashboard/ai-profiles")}>
@@ -532,6 +826,440 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
           </Section>
           )}
 
+          {tab === "shopping" && (
+          <Section id="shopping">
+            <div className="space-y-6">
+              <div className="rounded-xl border divide-y">
+                <ToggleRow
+                  label="E-Commerce Catalog Grounding"
+                  hint="Enables real-time catalog recommendations, variant availability, and price checking in chat."
+                  checked={formData.shoppingConfig.enabled}
+                  onChange={(v) => patchShopping({ enabled: v })}
+                />
+                <ToggleRow
+                  label="Reverse Visual Product Search"
+                  hint="Customer photo attachments sent in Messenger or Instagram are automatically vectorized and matched against your store in Qdrant."
+                  checked={formData.shoppingConfig.visualSearchEnabled}
+                  onChange={(v) => patchShopping({ visualSearchEnabled: v })}
+                />
+                <ToggleRow
+                  label="Send Meta Generic Template Carousel Cards"
+                  hint="When products match, dispatch scrollable horizontal product cards with images, prices, and 'View Product' web buttons."
+                  checked={formData.shoppingConfig.sendSuggestedImages ?? true}
+                  onChange={(v) => patchShopping({ sendSuggestedImages: v })}
+                />
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field
+                  label="Exact Match Threshold"
+                  hint="Score threshold (0.0–1.0) above which a product is treated as an exact match. Default 0.80."
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min={0.5}
+                      max={1.0}
+                      step={0.02}
+                      value={formData.shoppingConfig.exactMatchThreshold ?? 0.8}
+                      onChange={(e) => patchShopping({ exactMatchThreshold: parseFloat(e.target.value) })}
+                      className="flex-1 accent-ink"
+                    />
+                    <span className="w-12 rounded-md bg-secondary py-1 text-center font-mono text-xs font-semibold tabular-nums">
+                      {((formData.shoppingConfig.exactMatchThreshold ?? 0.8) * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                </Field>
+
+                <Field
+                  label="Suggestion Threshold"
+                  hint="Score threshold (0.0–1.0) for alternative style recommendations. Default 0.48."
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min={0.2}
+                      max={0.8}
+                      step={0.02}
+                      value={formData.shoppingConfig.suggestionThreshold ?? 0.48}
+                      onChange={(e) => patchShopping({ suggestionThreshold: parseFloat(e.target.value) })}
+                      className="flex-1 accent-ink"
+                    />
+                    <span className="w-12 rounded-md bg-secondary py-1 text-center font-mono text-xs font-semibold tabular-nums">
+                      {((formData.shoppingConfig.suggestionThreshold ?? 0.48) * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                </Field>
+
+                <Field label="Max Exact Matches" hint="Maximum exact catalog matches presented to the user (1-5).">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={5}
+                    value={formData.shoppingConfig.maxExactMatches ?? 2}
+                    onChange={(e) => patchShopping({ maxExactMatches: parseInt(e.target.value) || 2 })}
+                  />
+                </Field>
+
+                <Field label="Max Suggestions" hint="Maximum alternative recommendations presented (1-5).">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={5}
+                    value={formData.shoppingConfig.maxSuggestions ?? 3}
+                    onChange={(e) => patchShopping({ maxSuggestions: parseInt(e.target.value) || 3 })}
+                  />
+                </Field>
+              </div>
+
+              <Field label="Delivery Format" hint="How products are delivered in the customer chat window.">
+                <NativeSelect
+                  value={formData.shoppingConfig.deliveryFormat || "CAROUSEL"}
+                  onChange={(e) => patchShopping({ deliveryFormat: e.target.value })}
+                >
+                  <option value="CAROUSEL">Meta Generic Template Carousel (Interactive Cards & Buttons)</option>
+                  <option value="IMAGE_ATTACHMENT">Direct Photo Attachments</option>
+                  <option value="TEXT_WITH_LINKS">Text Descriptions with Storefront Links</option>
+                </NativeSelect>
+              </Field>
+
+              <Field
+                label="Custom Shopping & Promotion Guidance"
+                hint="Injected directives for alternative recommendations (e.g., mention free delivery on orders over $50, warranty, etc.)"
+              >
+                <Textarea
+                  rows={3}
+                  placeholder="e.g. When suggesting similar styles, highlight our 7-day hassle-free return policy and free shipping inside Dhaka."
+                  value={formData.shoppingConfig.customSuggestionPrompt || ""}
+                  onChange={(e) => patchShopping({ customSuggestionPrompt: e.target.value })}
+                />
+              </Field>
+            </div>
+          </Section>
+          )}
+
+          {tab === "sub-agents" && (
+          <Section id="sub-agents">
+            <div className="space-y-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-secondary/50 p-4 border">
+                <div>
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Layers className="size-4 text-brand" />
+                    Specialist Multi-Agent Routing
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Customer inquiries are evaluated against trigger keywords and capabilities. The winning specialist generates the grounded reply via live API (<code>/api/v1/ai-profiles/:id/sub-profiles</code>).
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAutoProvision}
+                    disabled={autoProvisioning}
+                    className="gap-1.5 text-xs font-medium"
+                    title="Auto-provision standard E-Commerce team: Shopping Specialist, Live Order Tracker, and Customer Care"
+                  >
+                    {autoProvisioning ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-brand" />}
+                    {autoProvisioning ? "Provisioning..." : "Auto-Provision Retail Team"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      setEditingSubAgent(null)
+                      setSubAgentForm({
+                        name: "",
+                        role: "",
+                        category: "shopping",
+                        speciality: "shopping",
+                        triggerKeywordsText: "",
+                        priority: 20,
+                        systemPrompt: "",
+                        isActive: true,
+                        capabilities: {
+                          productSearch: true,
+                          visualSearch: true,
+                          orderTracking: false,
+                          inventoryCheck: true,
+                          cartAssistance: true,
+                          humanHandoff: true,
+                        },
+                      })
+                      setSubAgentModalOpen(true)
+                    }}
+                    className="gap-1.5 text-xs"
+                  >
+                    <Plus className="size-3.5" />
+                    Add Specialist
+                  </Button>
+                </div>
+              </div>
+
+              {/* Sub-agents live list */}
+              {subAgentsLoading ? (
+                <div className="flex items-center justify-center py-10 gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" /> Loading specialist sub-agents from backend API...
+                </div>
+              ) : subAgents.length === 0 ? (
+                <div className="rounded-xl border border-dashed py-10 text-center space-y-3">
+                  <Users className="mx-auto size-8 text-muted-foreground" />
+                  <p className="text-sm font-semibold">No specialist sub-agents deployed yet</p>
+                  <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                    Click &quot;Add Specialist&quot; to create a custom sub-agent via <code>POST /api/v1/ai-profiles/:id/sub-profiles</code>, or click &quot;Auto-Provision Retail Team&quot; to have the backend generate the 3 retail specialists.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        setEditingSubAgent(null)
+                        setSubAgentForm({
+                          name: "",
+                          role: "",
+                          category: "shopping",
+                          speciality: "shopping",
+                          triggerKeywordsText: "",
+                          priority: 20,
+                          systemPrompt: "",
+                          isActive: true,
+                          capabilities: {
+                            productSearch: true,
+                            visualSearch: true,
+                            orderTracking: false,
+                            inventoryCheck: true,
+                            cartAssistance: true,
+                            humanHandoff: true,
+                          },
+                        })
+                        setSubAgentModalOpen(true)
+                      }}
+                      className="gap-1.5 text-xs font-medium"
+                    >
+                      <Plus className="size-3.5" />
+                      Add Specialist
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAutoProvision}
+                      disabled={autoProvisioning}
+                      className="gap-1.5 text-xs font-medium"
+                    >
+                      {autoProvisioning ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-brand" />}
+                      Auto-Provision Retail Team
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {subAgents.map((agent) => (
+                    <div
+                      key={agent.id}
+                      className="rounded-xl border bg-card p-4 transition-shadow hover:shadow-xs space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-sm truncate">{agent.name}</h4>
+                            <Badge variant="outline" className="text-2xs font-mono">
+                              {agent.subAgentConfig?.speciality || agent.category || "specialist"}
+                            </Badge>
+                            <Badge variant="secondary" className="text-2xs">
+                              Priority: {agent.subAgentConfig?.priority ?? 10}
+                            </Badge>
+                            {agent.isActive ? (
+                              <span className="inline-flex items-center gap-1 text-2xs text-emerald-600 font-medium">
+                                <span className="size-1.5 rounded-full bg-emerald-500" /> Active
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-2xs text-muted-foreground">
+                                <span className="size-1.5 rounded-full bg-muted-foreground" /> Paused
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{agent.role}</p>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingSubAgent(agent)
+                              setSubAgentForm({
+                                name: agent.name,
+                                role: agent.role,
+                                category: agent.category || "shopping",
+                                speciality: agent.subAgentConfig?.speciality || "shopping",
+                                triggerKeywordsText: (agent.subAgentConfig?.triggerKeywords || []).join(", "),
+                                priority: agent.subAgentConfig?.priority ?? 20,
+                                systemPrompt: agent.systemPrompt || "",
+                                isActive: agent.isActive ?? true,
+                                capabilities: {
+                                  productSearch: agent.capabilities?.productSearch ?? false,
+                                  visualSearch: agent.capabilities?.visualSearch ?? false,
+                                  orderTracking: agent.capabilities?.orderTracking ?? false,
+                                  inventoryCheck: agent.capabilities?.inventoryCheck ?? false,
+                                  cartAssistance: agent.capabilities?.cartAssistance ?? false,
+                                  humanHandoff: agent.capabilities?.humanHandoff ?? false,
+                                },
+                              })
+                              setSubAgentModalOpen(true)
+                            }}
+                            className="h-8 px-2 text-xs"
+                          >
+                            <Edit className="size-3.5 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleDeleteSubAgent(agent.id)}
+                            className="hover:text-destructive"
+                            aria-label="Delete specialist"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Capabilities pills */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-2xs text-muted-foreground">Capabilities:</span>
+                        {Object.entries(agent.capabilities || {}).map(([cap, enabled]) =>
+                          enabled ? (
+                            <span key={cap} className="rounded-md bg-secondary px-2 py-0.5 text-2xs font-medium text-foreground">
+                              {cap.replace(/([A-Z])/g, " $1").toLowerCase()}
+                            </span>
+                          ) : null
+                        )}
+                      </div>
+
+                      {/* Trigger keywords */}
+                      {agent.subAgentConfig?.triggerKeywords && agent.subAgentConfig.triggerKeywords.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className="text-2xs text-muted-foreground">Keywords:</span>
+                          {agent.subAgentConfig.triggerKeywords.map((kw) => (
+                            <span key={kw} className="rounded-full bg-brand/10 text-brand px-2 py-0.5 text-2xs font-mono">
+                              {kw}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Query Routing Simulation Sandbox */}
+              <div className="rounded-2xl border bg-muted/30 p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                      <Play className="size-4 text-emerald-600 fill-emerald-600" />
+                      Query Routing Simulation Sandbox
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Test customer queries against your specialist sub-agents via <code>POST /api/v1/ai-profiles/:id/sub-profiles/simulate-routing</code>.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSimulateRouting}
+                    disabled={simulating || !simulatePrompt.trim() || subAgents.length === 0}
+                    className="gap-1.5 text-xs"
+                  >
+                    {simulating ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
+                    {simulating ? "Simulating..." : "Test Routing"}
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  <Input
+                    value={simulatePrompt}
+                    onChange={(e) => setSimulatePrompt(e.target.value)}
+                    placeholder="e.g. What is the price of your sneakers and do you have size 10 in stock?"
+                    className="text-xs bg-card"
+                  />
+                  <label className="inline-flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={simulateHasImages}
+                      onChange={(e) => setSimulateHasImages(e.target.checked)}
+                      className="rounded border-border accent-brand"
+                    />
+                    <span>Inquiry contains photo attachment (`hasImages: true`)</span>
+                  </label>
+                </div>
+
+                  {simulateResult && (
+                    <div className="rounded-xl border bg-card p-4 space-y-3 text-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+                        <div>
+                          <span className="text-2xs text-muted-foreground uppercase tracking-wider font-semibold">Selected Specialist</span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-sm font-bold text-foreground">{simulateResult.selectedProfileName}</span>
+                            <Badge className="bg-emerald-600 text-white border-none text-2xs">
+                              {(simulateResult.confidenceScore * 100).toFixed(0)}% Confidence
+                            </Badge>
+                          </div>
+                          <p className="text-2xs text-muted-foreground">{simulateResult.selectedProfileRole}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-2xs text-muted-foreground">Routing Reason</span>
+                          <p className="font-mono text-2xs font-semibold text-brand">{simulateResult.routingReason}</p>
+                        </div>
+                      </div>
+
+                      {simulateResult.matchedKeywords && simulateResult.matchedKeywords.length > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-muted-foreground">Matched Keywords:</span>
+                          {simulateResult.matchedKeywords.map((k) => (
+                            <span key={k} className="rounded-md bg-brand-soft text-brand-ink px-1.5 py-0.5 font-mono text-2xs font-semibold">
+                              {k}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Evaluated Candidates */}
+                      {simulateResult.evaluatedSubAgents && simulateResult.evaluatedSubAgents.length > 0 && (
+                        <div className="space-y-1.5 pt-2 border-t">
+                          <span className="text-2xs font-semibold text-muted-foreground">Evaluated Sub-Agent Breakdown:</span>
+                          <div className="grid gap-1.5">
+                            {simulateResult.evaluatedSubAgents.map((ev) => (
+                              <div
+                                key={ev.id}
+                                className={cn(
+                                  "flex items-center justify-between rounded-lg px-2.5 py-1.5 text-2xs border",
+                                  ev.id === simulateResult.selectedProfileId
+                                    ? "border-emerald-500/50 bg-emerald-500/10 font-medium"
+                                    : "bg-secondary/40 border-border text-muted-foreground"
+                                )}
+                              >
+                                <span className="truncate">{ev.name} ({ev.speciality})</span>
+                                <div className="flex items-center gap-2">
+                                  <span>Priority: {ev.priority}</span>
+                                  <span className="font-mono font-bold">{(ev.score * 100).toFixed(0)}%</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+            </div>
+          </Section>
+          )}
+
           {tab === "knowledge" && (
           <Section id="knowledge">
             <SubHead
@@ -731,6 +1459,133 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
           <Preview form={formData} />
         </aside>
       </div>
+
+      {/* ── Add / Edit Specialist Sub-Agent Dialog ── */}
+      <Dialog open={subAgentModalOpen} onOpenChange={setSubAgentModalOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="size-5 text-brand" />
+              {editingSubAgent ? "Edit Specialist Sub-Agent" : "Add Specialist Sub-Agent"}
+            </DialogTitle>
+            <DialogDescription>
+              Configure targeted triggers, capabilities, and system prompt for this specialist.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="custom-scrollbar max-h-[70vh] overflow-y-auto space-y-4 py-2 pr-1">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Specialist Name" required>
+                <Input
+                  value={subAgentForm.name}
+                  onChange={(e) => setSubAgentForm((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="e.g. Order Tracker Specialist"
+                />
+              </Field>
+              <Field label="Role Title" required>
+                <Input
+                  value={subAgentForm.role}
+                  onChange={(e) => setSubAgentForm((p) => ({ ...p, role: e.target.value }))}
+                  placeholder="e.g. Order Fulfillment & Tracking"
+                />
+              </Field>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Speciality / Domain">
+                <Input
+                  value={subAgentForm.speciality}
+                  onChange={(e) => setSubAgentForm((p) => ({ ...p, speciality: e.target.value }))}
+                  placeholder="e.g. order-tracking, shopping"
+                />
+              </Field>
+              <Field label="Priority (Higher = Priority)">
+                <Input
+                  type="number"
+                  value={subAgentForm.priority}
+                  onChange={(e) => setSubAgentForm((p) => ({ ...p, priority: parseInt(e.target.value) || 10 }))}
+                />
+              </Field>
+              <Field label="Category">
+                <NativeSelect
+                  value={subAgentForm.category}
+                  onChange={(e) => setSubAgentForm((p) => ({ ...p, category: e.target.value }))}
+                >
+                  <option value="shopping">Shopping</option>
+                  <option value="customer-support">Customer Support</option>
+                  <option value="sales">Sales</option>
+                  <option value="booking">Booking</option>
+                </NativeSelect>
+              </Field>
+            </div>
+
+            <Field
+              label="Trigger Keywords (comma-separated)"
+              hint="When customer queries contain any of these keywords, this specialist is activated."
+            >
+              <Input
+                value={subAgentForm.triggerKeywordsText}
+                onChange={(e) => setSubAgentForm((p) => ({ ...p, triggerKeywordsText: e.target.value }))}
+                placeholder="order, track, tracking, shipped, delivery, ORD-"
+              />
+            </Field>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold">Specialist Capabilities</label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 rounded-xl border p-3 bg-secondary/20">
+                {[
+                  { key: "productSearch", label: "Product Search" },
+                  { key: "visualSearch", label: "Visual Search" },
+                  { key: "orderTracking", label: "Order Tracking" },
+                  { key: "inventoryCheck", label: "Inventory Check" },
+                  { key: "cartAssistance", label: "Cart Assistance" },
+                  { key: "humanHandoff", label: "Human Handoff" },
+                ].map(({ key, label }) => (
+                  <label key={key} className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!subAgentForm.capabilities[key as keyof SubAgentCapabilities]}
+                      onChange={(e) =>
+                        setSubAgentForm((p) => ({
+                          ...p,
+                          capabilities: { ...p.capabilities, [key]: e.target.checked },
+                        }))
+                      }
+                      className="rounded border-border accent-brand"
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <Field label="Specialist System Prompt" hint="Direct instructions followed when this sub-agent replies.">
+              <Textarea
+                rows={4}
+                value={subAgentForm.systemPrompt}
+                onChange={(e) => setSubAgentForm((p) => ({ ...p, systemPrompt: e.target.value }))}
+                placeholder="You are the order fulfillment assistant. Help customers locate their orders and check delivery stages accurately."
+              />
+            </Field>
+
+            <ToggleRow
+              label="Active Status"
+              hint="When paused, this specialist will not be considered during query routing."
+              checked={subAgentForm.isActive}
+              onChange={(v) => setSubAgentForm((p) => ({ ...p, isActive: v }))}
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t">
+            <Button type="button" variant="ghost" onClick={() => setSubAgentModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSaveSubAgent}>
+              {editingSubAgent ? "Update Specialist" : "Create Specialist"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </form>
   )
 }
@@ -759,10 +1614,24 @@ function Preview({ form }: { form: FormData }) {
           </div>
         </div>
         <div className="flex flex-col gap-2 bg-muted px-3 py-4 text-sm">
-          <p className="max-w-[85%] self-start rounded-2xl rounded-bl-md bg-card px-3 py-2 ring-1 ring-border">{ex?.user.trim() || "Hi! Is this still available?"}</p>
-          <p className="max-w-[85%] self-end rounded-2xl rounded-br-md bg-ink px-3 py-2 text-white">
-            {ex?.assistant.trim() || form.mission.trim() || "Your assistant’s reply shows up here."}
-          </p>
+          {ex ? (
+            <>
+              <p className="max-w-[85%] self-start rounded-2xl rounded-bl-md bg-card px-3 py-2 ring-1 ring-border">
+                {ex.user.trim()}
+              </p>
+              <p className="max-w-[85%] self-end rounded-2xl rounded-br-md bg-ink px-3 py-2 text-white">
+                {ex.assistant.trim()}
+              </p>
+            </>
+          ) : (
+            <div className="py-6 text-center text-xs text-muted-foreground space-y-1">
+              <MessageSquare className="mx-auto size-5 opacity-40" />
+              <p className="font-medium text-foreground">Live Messenger Preview</p>
+              <p className="text-2xs text-muted-foreground max-w-[200px] mx-auto">
+                {form.mission.trim() || "Add example replies to preview how your assistant communicates with customers."}
+              </p>
+            </div>
+          )}
         </div>
         <dl className="grid grid-cols-3 divide-x border-t text-center">
           {[

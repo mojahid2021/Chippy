@@ -31,11 +31,14 @@ import {
   ListChecks,
   Loader2,
   MoreHorizontal,
+  Pause,
+  Play,
   Plus,
   RefreshCw,
   Send,
   Sparkles,
   Trash2,
+  UserCheck,
   Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -140,6 +143,10 @@ export default function InstagramWebhooksPage() {
   const [conversationMessages, setConversationMessages] = useState<InstagramConversationMessage[]>([])
   const [conversationLoading, setConversationLoading] = useState(false)
   const [conversationSenderId, setConversationSenderId] = useState("")
+  const [botPausedUntil, setBotPausedUntil] = useState<string | null>(null)
+  const [pauseLoading, setPauseLoading] = useState(false)
+  const [inlineReplyText, setInlineReplyText] = useState("")
+  const [inlineSending, setInlineSending] = useState(false)
 
   // Compile prompt states
   const [compilingEvent, setCompilingEvent] = useState<InstagramEvent | null>(null)
@@ -436,6 +443,8 @@ export default function InstagramWebhooksPage() {
     try {
       setConversationLoading(true)
       setConversationSenderId(senderId)
+      setBotPausedUntil(null)
+      setInlineReplyText("")
       const res = await fetch(`/api/v1/instagram/webhooks/${webhookId}/conversations/${senderId}?limit=50`)
       const json: InstagramConversationsResponse = await res.json()
       if (res.ok && json.data) {
@@ -448,6 +457,86 @@ export default function InstagramWebhooksPage() {
       toast({ variant: "destructive", title: "Error loading chat history" })
     } finally {
       setConversationLoading(false)
+    }
+  }
+
+  const handlePauseBot = async (durationMinutes = 60) => {
+    if (!conversationSenderId) return
+    setPauseLoading(true)
+    try {
+      const res = await fetch(`/api/v1/ai-profiles/conversations/${encodeURIComponent(conversationSenderId)}/pause-bot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ durationMinutes, reason: "Operator takeover from Instagram view" }),
+      })
+      const json = await res.json()
+      if (res.ok && json.data) {
+        setBotPausedUntil(json.data.pausedUntil)
+        toast({ title: "Bot paused", description: `Silenced for ${durationMinutes}m for manual takeover.` })
+      } else {
+        toast({ variant: "destructive", title: "Failed to pause bot", description: json.message || "Error" })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Error pausing bot" })
+    } finally {
+      setPauseLoading(false)
+    }
+  }
+
+  const handleResumeBot = async () => {
+    if (!conversationSenderId) return
+    setPauseLoading(true)
+    try {
+      const res = await fetch(`/api/v1/ai-profiles/conversations/${encodeURIComponent(conversationSenderId)}/resume-bot`, {
+        method: "POST",
+      })
+      const json = await res.json()
+      if (res.ok) {
+        setBotPausedUntil(null)
+        toast({ title: "Bot resumed", description: "Automated AI responses are active." })
+      } else {
+        toast({ variant: "destructive", title: "Failed to resume bot", description: json.message || "Error" })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Error resuming bot" })
+    } finally {
+      setPauseLoading(false)
+    }
+  }
+
+  const handleSendInlineReply = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedWebhook || !conversationSenderId || !inlineReplyText.trim()) return
+    setInlineSending(true)
+    try {
+      const res = await fetch(`/api/v1/instagram/webhooks/${selectedWebhook.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipientId: conversationSenderId, text: inlineReplyText.trim() }),
+      })
+      const json: SendInstagramMessageResponse = await res.json()
+      if (res.ok) {
+        setConversationMessages((prev) => [
+          ...prev,
+          {
+            id: `temp-${Date.now()}`,
+            webhookId: selectedWebhook.id,
+            userId: selectedWebhook.userId || "",
+            senderId: conversationSenderId,
+            role: "assistant",
+            content: inlineReplyText.trim(),
+            createdAt: new Date().toISOString(),
+          },
+        ])
+        setInlineReplyText("")
+        toast({ title: "Message delivered to Instagram customer" })
+      } else {
+        toast({ variant: "destructive", title: "Send failed", description: json.message || "Error" })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Error sending message" })
+    } finally {
+      setInlineSending(false)
     }
   }
 
@@ -1157,10 +1246,49 @@ export default function InstagramWebhooksPage() {
       {/* ── Conversation History Sheet ────────────────────────────── */}
       <Sheet open={conversationModalOpen} onOpenChange={setConversationModalOpen}>
         <SheetContent side="right" title="Instagram Direct History" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
-          <div className="border-b p-4">
-            <h2 className="text-base font-semibold">Instagram Direct History</h2>
-            <p className="text-xs font-mono text-muted-foreground">{conversationSenderId}</p>
+          <div className="border-b p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold">Instagram Direct History</h2>
+                <p className="text-xs font-mono text-muted-foreground">{conversationSenderId}</p>
+              </div>
+              <div>
+                {botPausedUntil ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResumeBot}
+                    disabled={pauseLoading}
+                    className="gap-1 text-xs border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200"
+                  >
+                    {pauseLoading ? <Loader2 className="size-3 animate-spin" /> : <Play className="size-3" />}
+                    Resume Bot
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handlePauseBot(60)}
+                    disabled={pauseLoading}
+                    className="gap-1 text-xs"
+                    title="Pause automated replies for 60m for human operator takeover"
+                  >
+                    {pauseLoading ? <Loader2 className="size-3 animate-spin" /> : <Pause className="size-3" />}
+                    Takeover (Pause Bot)
+                  </Button>
+                )}
+              </div>
+            </div>
+            {botPausedUntil && (
+              <div className="flex items-center gap-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 text-2xs text-amber-800 dark:text-amber-200 border border-amber-200">
+                <UserCheck className="size-3 shrink-0" />
+                <span>Operator Takeover Active (bot silenced until {new Date(botPausedUntil).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })})</span>
+              </div>
+            )}
           </div>
+
           <div className="custom-scrollbar flex-1 overflow-y-auto p-4 space-y-3">
             {conversationLoading ? (
               <div className="flex h-32 items-center justify-center text-xs text-muted-foreground">
@@ -1185,6 +1313,20 @@ export default function InstagramWebhooksPage() {
               ))
             )}
           </div>
+
+          {/* Inline Message Composer */}
+          <form onSubmit={handleSendInlineReply} className="border-t p-3 flex items-center gap-2 bg-background">
+            <Input
+              placeholder="Type reply to customer..."
+              value={inlineReplyText}
+              onChange={(e) => setInlineReplyText(e.target.value)}
+              className="text-xs h-9"
+            />
+            <Button type="submit" size="sm" disabled={inlineSending || !inlineReplyText.trim()} className="gap-1 h-9 px-3">
+              {inlineSending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+              Send
+            </Button>
+          </form>
         </SheetContent>
       </Sheet>
     </div>

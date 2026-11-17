@@ -17,7 +17,9 @@ import {
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import {
   ArrowRight,
+  Camera,
   CheckCircle2,
+  ImageIcon,
   Loader2,
   Minus,
   Package,
@@ -25,9 +27,12 @@ import {
   Search,
   ShoppingBag,
   ShoppingCart,
+  Sparkles,
   Store,
   Trash2,
   Truck,
+  Upload,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -38,6 +43,7 @@ import type {
   ProductVariant,
   CartSession,
   StoreOrder,
+  VisualMatchedProduct,
 } from "@/lib/types/woombat"
 
 export default function PublicStorefrontPage({
@@ -90,6 +96,78 @@ export default function PublicStorefrontPage({
   const [trackOrderEmail, setTrackOrderEmail] = useState("")
   const [trackedOrder, setTrackedOrder] = useState<StoreOrder | null>(null)
   const [trackingLoading, setTrackingLoading] = useState(false)
+
+  // Visual Search State
+  const [visualSearchOpen, setVisualSearchOpen] = useState(false)
+  const [visualSearchImage, setVisualSearchImage] = useState("")
+  const [visualSearchPreview, setVisualSearchPreview] = useState("")
+  const [visualSearching, setVisualSearching] = useState(false)
+  const [visualSearchResults, setVisualSearchResults] = useState<VisualMatchedProduct[] | null>(null)
+  const [activeVisualFilter, setActiveVisualFilter] = useState<{ queryImage: string; matches: VisualMatchedProduct[] } | null>(null)
+
+  const handleVisualSearchFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64 = reader.result as string
+      setVisualSearchImage(base64)
+      setVisualSearchPreview(base64)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRunVisualSearch = async (imageInput?: string) => {
+    const targetImage = imageInput || visualSearchImage
+    if (!targetImage.trim()) {
+      toast({ title: "Image required", description: "Please upload an image or provide an image URL.", variant: "destructive" })
+      return
+    }
+
+    setVisualSearching(true)
+    try {
+      const res = await fetch(`/api/v1/stores/${slug}/visual-search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: targetImage, limit: 12, minScore: 0.45 }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Failed to execute visual search")
+
+      const matches: VisualMatchedProduct[] = data.data?.matchedProducts || []
+      setVisualSearchResults(matches)
+      if (matches.length === 0) {
+        toast({ title: "No visual matches", description: "We couldn't find matching products with high similarity in our catalog." })
+      } else {
+        toast({ title: "Visual Search Complete", description: `Found ${matches.length} matching products in the catalog.` })
+      }
+    } catch (err: unknown) {
+      toast({
+        title: "Visual search failed",
+        description: err instanceof Error ? err.message : "Error executing visual reverse search",
+        variant: "destructive",
+      })
+    } finally {
+      setVisualSearching(false)
+    }
+  }
+
+  const applyVisualFilterToCatalog = () => {
+    if (visualSearchResults) {
+      setActiveVisualFilter({
+        queryImage: visualSearchPreview || visualSearchImage,
+        matches: visualSearchResults,
+      })
+      setVisualSearchOpen(false)
+    }
+  }
+
+  const clearVisualFilter = () => {
+    setActiveVisualFilter(null)
+    setVisualSearchResults(null)
+    setVisualSearchImage("")
+    setVisualSearchPreview("")
+  }
 
   const cartStorageKey = `woombat_cart_id_${slug}`
 
@@ -361,6 +439,9 @@ export default function PublicStorefrontPage({
 
   // Filter products
   const filteredProducts = products.filter((p) => {
+    if (activeVisualFilter) {
+      return activeVisualFilter.matches.some((m) => m.productId === p.id)
+    }
     const matchesSearch =
       !searchQuery ||
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -368,6 +449,14 @@ export default function PublicStorefrontPage({
     const matchesCat = selectedCategory === "ALL" || p.categoryId === selectedCategory
     return matchesSearch && matchesCat && p.isActive
   })
+
+  const displayProducts = activeVisualFilter
+    ? [...filteredProducts].sort((a, b) => {
+        const scoreA = activeVisualFilter.matches.find((m) => m.productId === a.id)?.score ?? 0
+        const scoreB = activeVisualFilter.matches.find((m) => m.productId === b.id)?.score ?? 0
+        return scoreB - scoreA
+      })
+    : filteredProducts
 
   const cartTotalItems = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0
 
@@ -464,22 +553,46 @@ export default function PublicStorefrontPage({
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-8">
         {/* Search & Categories Bar */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
-            <Input
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+          <div className="flex items-center gap-2 flex-1 max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant={activeVisualFilter ? "default" : "outline"}
+              onClick={() => setVisualSearchOpen(true)}
+              className="gap-1.5 shrink-0"
+              title="Reverse visual product search with photo upload"
+            >
+              <Camera className="size-4" />
+              <span className="hidden sm:inline">Visual Search</span>
+            </Button>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
             <Button
-              variant={selectedCategory === "ALL" ? "default" : "outline"}
+              variant={selectedCategory === "ALL" && !activeVisualFilter ? "default" : "outline"}
               size="sm"
               className="rounded-full"
-              onClick={() => setSelectedCategory("ALL")}
+              onClick={() => {
+                setSelectedCategory("ALL")
+                if (activeVisualFilter) clearVisualFilter()
+              }}
             >
               All Products
             </Button>
@@ -497,18 +610,53 @@ export default function PublicStorefrontPage({
           </div>
         </div>
 
+        {/* Active Visual Search Filter Banner */}
+        {activeVisualFilter && (
+          <div className="flex flex-col gap-3 rounded-2xl border border-brand/30 bg-brand/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={activeVisualFilter.queryImage}
+                alt="Visual query"
+                className="size-12 rounded-xl object-cover border bg-card"
+              />
+              <div>
+                <p className="text-sm font-semibold flex items-center gap-1.5">
+                  <Sparkles className="size-4 text-brand" />
+                  Visual Search Results
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Showing {displayProducts.length} matching products ranked by Qdrant visual vector similarity
+                </p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={clearVisualFilter} className="gap-1 text-xs self-start sm:self-center">
+              <X className="size-3.5" />
+              Clear Visual Search
+            </Button>
+          </div>
+        )}
+
         {/* Product Catalog Grid */}
-        {filteredProducts.length === 0 ? (
+        {displayProducts.length === 0 ? (
           <div className="rounded-2xl border border-dashed py-16 text-center">
             <Package className="mx-auto size-10 text-muted-foreground" />
             <h3 className="mt-3 font-display text-lg font-bold">No Products Available</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              No products found in this category or matching your search.
+              {activeVisualFilter
+                ? "No products matched this image. Try uploading a different photo."
+                : "No products found in this category or matching your search."}
             </p>
+            {activeVisualFilter && (
+              <Button variant="outline" size="sm" onClick={clearVisualFilter} className="mt-4">
+                View Full Catalog
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {filteredProducts.map((p) => {
+            {displayProducts.map((p) => {
+              const visualMatch = activeVisualFilter?.matches.find((m) => m.productId === p.id)
               const hasVariants = p.variants && p.variants.length > 0
               const outOfStock = p.inventoryQuantity <= 0
               return (
@@ -530,7 +678,13 @@ export default function PublicStorefrontPage({
                           <Package className="size-12" />
                         </div>
                       )}
-                      {p.compareAtPrice && p.compareAtPrice > p.price && (
+                      {visualMatch && (
+                        <Badge className="absolute top-2.5 left-2.5 bg-brand text-white border-none shadow-xs font-bold text-2xs">
+                          <Sparkles className="size-3 mr-1" />
+                          {(visualMatch.score * 100).toFixed(0)}% Match
+                        </Badge>
+                      )}
+                      {p.compareAtPrice && p.compareAtPrice > p.price && !visualMatch && (
                         <span className="absolute top-2.5 right-2.5 rounded-full bg-rose-500 px-2 py-0.5 text-2xs font-bold text-white shadow-xs">
                           SALE
                         </span>
@@ -992,6 +1146,173 @@ export default function PublicStorefrontPage({
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Reverse Visual Search Dialog ────────────────────────── */}
+      <Dialog open={visualSearchOpen} onOpenChange={setVisualSearchOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="size-5 text-brand" />
+              Reverse Visual Product Search
+            </DialogTitle>
+            <DialogDescription>
+              Upload a photo or paste an image link to search our catalog using AI vector embeddings.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Image Upload Area */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border p-6 text-center cursor-pointer hover:border-brand hover:bg-brand/5 transition-colors">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleVisualSearchFile}
+                />
+                {visualSearchPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={visualSearchPreview}
+                    alt="Query preview"
+                    className="max-h-36 rounded-xl object-contain shadow-xs border"
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    <div className="mx-auto grid size-12 place-items-center rounded-full bg-secondary">
+                      <Upload className="size-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-xs font-semibold">Click or drag image here</p>
+                    <p className="text-2xs text-muted-foreground">PNG, JPG, WEBP up to 5MB</p>
+                  </div>
+                )}
+              </label>
+
+              <div className="flex flex-col justify-between space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="vis-url">Or paste public image URL</Label>
+                  <Input
+                    id="vis-url"
+                    placeholder="https://example.com/item.jpg"
+                    value={visualSearchImage.startsWith("data:") ? "" : visualSearchImage}
+                    onChange={(e) => {
+                      setVisualSearchImage(e.target.value)
+                      setVisualSearchPreview(e.target.value)
+                    }}
+                    className="text-xs"
+                  />
+                  <p className="text-2xs text-muted-foreground">
+                    Direct web image link from Pinterest, Instagram, or Google.
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={() => handleRunVisualSearch()}
+                  disabled={visualSearching || (!visualSearchImage && !visualSearchPreview)}
+                  className="w-full gap-2"
+                >
+                  {visualSearching ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                  {visualSearching ? "Matching in Qdrant..." : "Search Similar Products"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Results Grid inside Dialog */}
+            {visualSearchResults && (
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-foreground">
+                    Matches ({visualSearchResults.length})
+                  </p>
+                  {visualSearchResults.length > 0 && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={applyVisualFilterToCatalog}
+                      className="text-xs gap-1.5"
+                    >
+                      Filter Full Catalog View
+                      <ArrowRight className="size-3.5" />
+                    </Button>
+                  )}
+                </div>
+
+                {visualSearchResults.length === 0 ? (
+                  <p className="py-6 text-center text-xs text-muted-foreground">
+                    No matching products found above the similarity threshold. Try another photo with clearer lighting.
+                  </p>
+                ) : (
+                  <div className="custom-scrollbar max-h-64 overflow-y-auto space-y-2 pr-1">
+                    {visualSearchResults.map((m) => {
+                      const fullProduct = products.find((p) => p.id === m.productId)
+                      return (
+                        <div
+                          key={m.productId}
+                          className="flex items-center justify-between gap-3 rounded-xl border p-2.5 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={m.imageUrl || fullProduct?.images?.[0] || "/placeholder.png"}
+                              alt={m.title}
+                              className="size-12 rounded-lg object-cover border bg-secondary shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold truncate">{m.title}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-xs font-bold text-foreground">
+                                  {formatMoney(m.price, m.currency)}
+                                </span>
+                                <Badge className="bg-brand/10 text-brand border border-brand/20 text-2xs py-0">
+                                  {(m.score * 100).toFixed(0)}% Match
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {fullProduct && (
+                              <>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setSelectedProduct(fullProduct)
+                                    setSelectedVariant(fullProduct.variants?.[0] || null)
+                                    setVisualSearchOpen(false)
+                                    setProductDetailModalOpen(true)
+                                  }}
+                                  className="h-7 text-xs px-2.5"
+                                >
+                                  View
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => {
+                                    void handleAddToCart(fullProduct)
+                                    setVisualSearchOpen(false)
+                                  }}
+                                  className="h-7 text-xs px-2.5"
+                                >
+                                  Add to Cart
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

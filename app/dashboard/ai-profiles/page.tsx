@@ -32,17 +32,22 @@ import {
   ChevronRight,
   Copy,
   Edit,
+  Layers,
+  Loader2,
   MessageSquare,
   MessageSquareQuote,
   MoreHorizontal,
   Phone,
+  Play,
   Plug,
   Plus,
   RefreshCw,
   Search,
   Send,
+  Sparkles,
   Star,
   Trash2,
+  Users,
   X,
   Zap,
 } from "lucide-react"
@@ -54,6 +59,9 @@ import type {
   AiProfilesResponse,
   CompilePromptResponse,
   MessengerWebhook,
+  SubAgentProfile,
+  SubAgentCapabilities,
+  SimulateRoutingResponse,
 } from "@/lib/types/woombat"
 
 import { CATEGORIES, Field, ToggleRow, Hint } from "./assistant-editor"
@@ -94,6 +102,39 @@ export default function AiProfilesPage() {
   const [compilerLoading, setCompilerLoading] = useState(false)
   const [compiledResult, setCompiledResult] = useState<CompilePromptResponse["data"] | null>(null)
   const [compilerActiveResultTab, setCompilerActiveResultTab] = useState<"messages" | "systemPrompt" | "variables">("messages")
+
+  // Sub-Agents / Specialist Team State (Live Woombat API)
+  const [subAgentsSheetOpen, setSubAgentsSheetOpen] = useState(false)
+  const [selectedProfileForSubAgents, setSelectedProfileForSubAgents] = useState<AiProfile | null>(null)
+  const [subAgentsList, setSubAgentsList] = useState<SubAgentProfile[]>([])
+  const [subAgentsLoading, setSubAgentsLoading] = useState(false)
+  const [autoProvisioning, setAutoProvisioning] = useState(false)
+  const [subAgentModalOpen, setSubAgentModalOpen] = useState(false)
+  const [editingSubAgent, setEditingSubAgent] = useState<SubAgentProfile | null>(null)
+  const [subAgentForm, setSubAgentForm] = useState({
+    name: "",
+    role: "",
+    category: "shopping",
+    speciality: "shopping",
+    triggerKeywordsText: "",
+    priority: 20,
+    systemPrompt: "",
+    isActive: true,
+    capabilities: {
+      productSearch: true,
+      visualSearch: true,
+      orderTracking: false,
+      inventoryCheck: true,
+      cartAssistance: true,
+      humanHandoff: true,
+    } as SubAgentCapabilities,
+  })
+
+  // Routing Simulator Sandbox State (POST /api/v1/ai-profiles/:id/sub-profiles/simulate-routing)
+  const [routingPrompt, setRoutingPrompt] = useState("")
+  const [routingHasImages, setRoutingHasImages] = useState(false)
+  const [routingSimulating, setRoutingSimulating] = useState(false)
+  const [routingResult, setRoutingResult] = useState<SimulateRoutingResponse["data"] | null>(null)
 
   // Copy helper
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
@@ -291,7 +332,7 @@ export default function AiProfilesPage() {
   // Open Prompt Compiler Playground
   const handleOpenCompiler = (profile: AiProfile) => {
     setCompilerProfile(profile)
-    setCompilerUserPrompt("XL ache? Dhaka-r baire delivery charge koto?")
+    setCompilerUserPrompt("")
     setCompilerAdditionalContext("")
     setCompilerIncludeFewShot(true)
     setCompilerHumanize(true)
@@ -349,6 +390,163 @@ export default function AiProfilesPage() {
       })
     } finally {
       setCompilerLoading(false)
+    }
+  }
+
+  // ── Specialist Sub-Agents Handlers (GET/POST/PATCH/DELETE) ────────────────
+  const loadSubAgentsForProfile = useCallback(async (profileId: string) => {
+    setSubAgentsLoading(true)
+    try {
+      const res = await fetch(`/api/v1/ai-profiles/${encodeURIComponent(profileId)}/sub-profiles`)
+      const json = await res.json()
+      if (res.ok && json.data?.subAgents) {
+        setSubAgentsList(json.data.subAgents)
+      } else {
+        setSubAgentsList([])
+      }
+    } catch {
+      setSubAgentsList([])
+    } finally {
+      setSubAgentsLoading(false)
+    }
+  }, [])
+
+  const handleOpenSubAgents = (profile: AiProfile) => {
+    setSelectedProfileForSubAgents(profile)
+    setRoutingResult(null)
+    setRoutingPrompt("")
+    setSubAgentsSheetOpen(true)
+    void loadSubAgentsForProfile(profile.id)
+  }
+
+  const handleAutoProvisionSubAgents = async () => {
+    if (!selectedProfileForSubAgents) return
+    setAutoProvisioning(true)
+    try {
+      const res = await fetch(`/api/v1/ai-profiles/${encodeURIComponent(selectedProfileForSubAgents.id)}/sub-profiles/auto-provision`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ industryPack: "ECOMMERCE_RETAIL" }),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        toast({
+          variant: "success",
+          title: "Specialist Team Provisioned",
+          description: `Auto-provisioned standard retail specialists via API.`,
+        })
+        await loadSubAgentsForProfile(selectedProfileForSubAgents.id)
+      } else {
+        toast({ variant: "destructive", title: "Provision failed", description: json.message })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Network error" })
+    } finally {
+      setAutoProvisioning(false)
+    }
+  }
+
+  const handleSaveSubAgentModal = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedProfileForSubAgents) return
+    if (!subAgentForm.name.trim() || !subAgentForm.role.trim()) {
+      toast({ variant: "destructive", title: "Name and role required" })
+      return
+    }
+
+    const triggerKeywords = subAgentForm.triggerKeywordsText
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean)
+
+    const payload = {
+      name: subAgentForm.name,
+      role: subAgentForm.role,
+      category: subAgentForm.category,
+      systemPrompt: subAgentForm.systemPrompt,
+      capabilities: subAgentForm.capabilities,
+      subAgentConfig: {
+        speciality: subAgentForm.speciality,
+        triggerKeywords,
+        priority: Number(subAgentForm.priority) || 10,
+        autoDelegate: true,
+      },
+      isActive: subAgentForm.isActive,
+    }
+
+    try {
+      const url = editingSubAgent
+        ? `/api/v1/ai-profiles/${encodeURIComponent(selectedProfileForSubAgents.id)}/sub-profiles/${editingSubAgent.id}`
+        : `/api/v1/ai-profiles/${encodeURIComponent(selectedProfileForSubAgents.id)}/sub-profiles`
+      const method = editingSubAgent ? "PATCH" : "POST"
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        toast({
+          variant: "success",
+          title: editingSubAgent ? "Specialist Updated" : "Specialist Created",
+          description: `${subAgentForm.name} saved successfully via API.`,
+        })
+        setSubAgentModalOpen(false)
+        await loadSubAgentsForProfile(selectedProfileForSubAgents.id)
+      } else {
+        toast({ variant: "destructive", title: "Failed to save specialist", description: json.message })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Network error" })
+    }
+  }
+
+  const handleDeleteSubAgentModal = async (subId: string) => {
+    if (!selectedProfileForSubAgents) return
+    try {
+      const res = await fetch(`/api/v1/ai-profiles/${encodeURIComponent(selectedProfileForSubAgents.id)}/sub-profiles/${subId}`, {
+        method: "DELETE",
+      })
+      if (res.ok) {
+        toast({ variant: "success", title: "Specialist removed" })
+        setSubAgentsList((prev) => prev.filter((a) => a.id !== subId))
+      } else {
+        const json = await res.json().catch(() => null)
+        toast({ variant: "destructive", title: "Delete failed", description: json?.message })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Delete failed" })
+    }
+  }
+
+  const handleSimulateRoutingModal = async () => {
+    if (!selectedProfileForSubAgents || !routingPrompt.trim()) return
+    setRoutingSimulating(true)
+    try {
+      const res = await fetch(`/api/v1/ai-profiles/${encodeURIComponent(selectedProfileForSubAgents.id)}/sub-profiles/simulate-routing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userPrompt: routingPrompt,
+          hasImages: routingHasImages,
+        }),
+      })
+      const json = await res.json()
+      if (res.ok && json.data) {
+        setRoutingResult(json.data)
+        toast({
+          variant: "success",
+          title: "Simulation evaluated",
+          description: `Assigned to ${json.data.selectedProfileName} (${(json.data.confidenceScore * 100).toFixed(0)}% confidence).`,
+        })
+      } else {
+        toast({ variant: "destructive", title: "Simulation failed", description: json.message })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Simulation error" })
+    } finally {
+      setRoutingSimulating(false)
     }
   }
 
@@ -482,6 +680,7 @@ export default function AiProfilesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-52">
                         <DropdownMenuItem asChild><Link href={`/dashboard/ai-profiles/${profile.id}`}><Edit className="mr-2 size-4" />Edit</Link></DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenSubAgents(profile)}><Users className="mr-2 size-4" />Specialist team</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleOpenCompiler(profile)}><Zap className="mr-2 size-4" />Test a message</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleOpenBoundWebhooks(profile)}><MessageSquare className="mr-2 size-4" />Connected channels</DropdownMenuItem>
                         {!profile.isDefault && (
@@ -544,15 +743,26 @@ export default function AiProfilesPage() {
                   ))}
                 </dl>
 
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="relative z-10 mt-3 w-full"
-                  onClick={() => handleOpenCompiler(profile)}
-                >
-                  <Zap className="size-3.5" />
-                  Test a message
-                </Button>
+                <div className="relative z-10 mt-3 flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1 text-xs font-medium"
+                    onClick={() => handleOpenSubAgents(profile)}
+                  >
+                    <Users className="mr-1.5 size-3.5 text-brand" />
+                    Specialists
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs font-medium"
+                    onClick={() => handleOpenCompiler(profile)}
+                  >
+                    <Zap className="mr-1.5 size-3.5" />
+                    Test message
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
@@ -583,7 +793,7 @@ export default function AiProfilesPage() {
           <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[1fr_1.2fr] lg:overflow-hidden">
             <form onSubmit={handleRunCompiler} className="custom-scrollbar space-y-4 border-b p-6 lg:overflow-y-auto lg:border-b-0 lg:border-r">
               <Field label="Customer message" required>
-                <Textarea rows={3} value={compilerUserPrompt} onChange={(e) => setCompilerUserPrompt(e.target.value)} required />
+                <Textarea rows={3} placeholder="Type a customer message to preview prompt compilation..." value={compilerUserPrompt} onChange={(e) => setCompilerUserPrompt(e.target.value)} required />
               </Field>
               <Field label="Extra context" hint="Anything the bot would know about this chat, like the product they tapped.">
                 <Input value={compilerAdditionalContext} onChange={(e) => setCompilerAdditionalContext(e.target.value)} />
@@ -816,6 +1026,435 @@ export default function AiProfilesPage() {
               Delete assistant
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Specialist Sub-Agents Modal (GET/POST/PATCH/DELETE /api/v1/ai-profiles/:id/sub-profiles) ── */}
+      <Dialog open={subAgentsSheetOpen} onOpenChange={setSubAgentsSheetOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Users className="size-5 text-brand" />
+              Specialist Sub-Agents · {selectedProfileForSubAgents?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Multi-agent routing powered by live Woombat API (<code>/api/v1/ai-profiles/:id/sub-profiles</code>).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 pt-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-secondary/50 p-4 border">
+              <div>
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <Layers className="size-4 text-brand" />
+                  Specialist Multi-Agent Routing
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Queries are evaluated against keywords and capabilities. The winning specialist generates grounded replies.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAutoProvisionSubAgents}
+                  disabled={autoProvisioning}
+                  className="gap-1.5 text-xs font-medium"
+                >
+                  {autoProvisioning ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-brand" />}
+                  {autoProvisioning ? "Provisioning..." : "Auto-Provision Retail Team"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setEditingSubAgent(null)
+                    setSubAgentForm({
+                      name: "",
+                      role: "",
+                      category: "shopping",
+                      speciality: "shopping",
+                      triggerKeywordsText: "",
+                      priority: 20,
+                      systemPrompt: "",
+                      isActive: true,
+                      capabilities: {
+                        productSearch: true,
+                        visualSearch: true,
+                        orderTracking: false,
+                        inventoryCheck: true,
+                        cartAssistance: true,
+                        humanHandoff: true,
+                      },
+                    })
+                    setSubAgentModalOpen(true)
+                  }}
+                  className="gap-1.5 text-xs"
+                >
+                  <Plus className="size-3.5" />
+                  Add Specialist
+                </Button>
+              </div>
+            </div>
+
+            {/* Live Sub-Agents List */}
+            {subAgentsLoading ? (
+              <div className="flex items-center justify-center py-10 gap-2 text-xs text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" /> Loading specialist sub-agents from API...
+              </div>
+            ) : subAgentsList.length === 0 ? (
+              <div className="rounded-xl border border-dashed py-10 text-center space-y-3">
+                <Users className="mx-auto size-8 text-muted-foreground" />
+                <p className="text-sm font-semibold">No specialist sub-agents deployed yet</p>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  Click &quot;Auto-Provision Retail Team&quot; above to have the Woombat engine generate standard retail specialists (Shopping Concierge, Order Tracker, Customer Care), or click &quot;Add Specialist&quot; to configure one manually.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAutoProvisionSubAgents}
+                  disabled={autoProvisioning}
+                  className="gap-1.5 text-xs font-medium"
+                >
+                  {autoProvisioning ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-brand" />}
+                  Auto-Provision Retail Team
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {subAgentsList.map((agent) => (
+                  <div
+                    key={agent.id}
+                    className="rounded-xl border bg-card p-4 transition-shadow hover:shadow-xs space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-sm truncate">{agent.name}</h4>
+                          <Badge variant="outline" className="text-2xs font-mono">
+                            {agent.subAgentConfig?.speciality || agent.category || "specialist"}
+                          </Badge>
+                          <Badge variant="secondary" className="text-2xs">
+                            Priority: {agent.subAgentConfig?.priority ?? 10}
+                          </Badge>
+                          {agent.isActive ? (
+                            <span className="inline-flex items-center gap-1 text-2xs text-emerald-600 font-medium">
+                              <span className="size-1.5 rounded-full bg-emerald-500" /> Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-2xs text-muted-foreground">
+                              <span className="size-1.5 rounded-full bg-muted-foreground" /> Paused
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{agent.role}</p>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditingSubAgent(agent)
+                            setSubAgentForm({
+                              name: agent.name,
+                              role: agent.role,
+                              category: agent.category || "shopping",
+                              speciality: agent.subAgentConfig?.speciality || "shopping",
+                              triggerKeywordsText: (agent.subAgentConfig?.triggerKeywords || []).join(", "),
+                              priority: agent.subAgentConfig?.priority ?? 20,
+                              systemPrompt: agent.systemPrompt || "",
+                              isActive: agent.isActive ?? true,
+                              capabilities: {
+                                productSearch: agent.capabilities?.productSearch ?? false,
+                                visualSearch: agent.capabilities?.visualSearch ?? false,
+                                orderTracking: agent.capabilities?.orderTracking ?? false,
+                                inventoryCheck: agent.capabilities?.inventoryCheck ?? false,
+                                cartAssistance: agent.capabilities?.cartAssistance ?? false,
+                                humanHandoff: agent.capabilities?.humanHandoff ?? false,
+                              },
+                            })
+                            setSubAgentModalOpen(true)
+                          }}
+                          className="h-8 px-2 text-xs"
+                        >
+                          <Edit className="size-3.5 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => handleDeleteSubAgentModal(agent.id)}
+                          className="hover:text-destructive"
+                          aria-label="Delete specialist"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Capabilities pills */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-2xs text-muted-foreground">Capabilities:</span>
+                      {Object.entries(agent.capabilities || {}).map(([cap, enabled]) =>
+                        enabled ? (
+                          <span key={cap} className="rounded-md bg-secondary px-2 py-0.5 text-2xs font-medium text-foreground">
+                            {cap.replace(/([A-Z])/g, " $1").toLowerCase()}
+                          </span>
+                        ) : null
+                      )}
+                    </div>
+
+                    {/* Trigger keywords */}
+                    {agent.subAgentConfig?.triggerKeywords && agent.subAgentConfig.triggerKeywords.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-2xs text-muted-foreground">Keywords:</span>
+                        {agent.subAgentConfig.triggerKeywords.map((kw) => (
+                          <span key={kw} className="rounded-full bg-brand/10 text-brand px-2 py-0.5 text-2xs font-mono">
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Query Routing Simulation Sandbox */}
+            <div className="rounded-2xl border bg-muted/30 p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                    <Play className="size-4 text-emerald-600 fill-emerald-600" />
+                    Query Routing Simulation Sandbox
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    Tests customer queries via <code>POST /api/v1/ai-profiles/:id/sub-profiles/simulate-routing</code>.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSimulateRoutingModal}
+                  disabled={routingSimulating || !routingPrompt.trim() || subAgentsList.length === 0}
+                  className="gap-1.5 text-xs"
+                >
+                  {routingSimulating ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
+                  {routingSimulating ? "Simulating..." : "Test Routing"}
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <Input
+                  value={routingPrompt}
+                  onChange={(e) => setRoutingPrompt(e.target.value)}
+                  placeholder="e.g. What is the price of your sneakers and do you have size 10 in stock?"
+                  className="text-xs bg-card"
+                />
+                <label className="inline-flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={routingHasImages}
+                    onChange={(e) => setRoutingHasImages(e.target.checked)}
+                    className="rounded border-border accent-brand"
+                  />
+                  <span>Simulate with attached photo (tests Visual Search capability matching)</span>
+                </label>
+              </div>
+
+              {routingResult && (
+                <div className="rounded-xl border bg-card p-4 space-y-3 text-xs">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <div className="space-y-0.5">
+                      <span className="text-2xs text-muted-foreground uppercase tracking-wide">Winning Specialist</span>
+                      <p className="font-semibold text-sm text-foreground flex items-center gap-2">
+                        {routingResult.selectedProfileName}
+                        {routingResult.selectedProfileSpeciality && (
+                          <Badge variant="outline" className="text-2xs">{routingResult.selectedProfileSpeciality}</Badge>
+                        )}
+                      </p>
+                      <p className="text-2xs text-muted-foreground">{routingResult.selectedProfileRole}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-2xs text-muted-foreground">Confidence</span>
+                      <p className="font-mono font-bold text-sm text-emerald-600">
+                        {(routingResult.confidenceScore * 100).toFixed(0)}%
+                      </p>
+                      <Badge variant="secondary" className="text-2xs">{routingResult.routingReason}</Badge>
+                    </div>
+                  </div>
+
+                  {routingResult.matchedKeywords && routingResult.matchedKeywords.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-2xs font-medium text-muted-foreground">Matched Keywords:</span>
+                      {routingResult.matchedKeywords.map((kw) => (
+                        <span key={kw} className="rounded-full bg-emerald-500/10 text-emerald-600 px-2 py-0.5 text-2xs font-mono font-medium">
+                          {kw}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {routingResult.evaluatedSubAgents && routingResult.evaluatedSubAgents.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <p className="text-2xs font-semibold text-muted-foreground uppercase tracking-wider">Candidate Specialists Evaluated</p>
+                      <div className="divide-y rounded-lg border text-2xs">
+                        {routingResult.evaluatedSubAgents.map((candidate) => (
+                          <div key={candidate.id} className="flex items-center justify-between p-2">
+                            <div>
+                              <span className="font-medium text-foreground">{candidate.name}</span>
+                              <span className="text-muted-foreground ml-2">({candidate.speciality})</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-mono text-muted-foreground">Score: {candidate.score}</span>
+                              {candidate.id === routingResult.selectedProfileId ? (
+                                <Badge variant="brand" className="text-2xs">Selected</Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-2xs">Passed</Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Sub-Agent Create / Edit Modal ────────────────────── */}
+      <Dialog open={subAgentModalOpen} onOpenChange={setSubAgentModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editingSubAgent ? `Edit ${editingSubAgent.name}` : "Create Specialist Sub-Agent"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingSubAgent
+                ? `Update capabilities, trigger keywords, and instructions via PATCH /api/v1/ai-profiles/:id/sub-profiles/:subProfileId.`
+                : `Add a dedicated specialist via POST /api/v1/ai-profiles/:id/sub-profiles.`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveSubAgentModal} className="space-y-4 pt-2">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Specialist Name">
+                <Input
+                  value={subAgentForm.name}
+                  onChange={(e) => setSubAgentForm((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="e.g. Order Tracking Specialist"
+                />
+              </Field>
+              <Field label="Specialist Role">
+                <Input
+                  value={subAgentForm.role}
+                  onChange={(e) => setSubAgentForm((p) => ({ ...p, role: e.target.value }))}
+                  placeholder="e.g. Order Fulfillment & Tracking"
+                />
+              </Field>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Domain / Speciality">
+                <Input
+                  value={subAgentForm.speciality}
+                  onChange={(e) => setSubAgentForm((p) => ({ ...p, speciality: e.target.value }))}
+                  placeholder="e.g. order-tracking"
+                />
+              </Field>
+              <Field label="Priority (Higher = Priority)">
+                <Input
+                  type="number"
+                  value={subAgentForm.priority}
+                  onChange={(e) => setSubAgentForm((p) => ({ ...p, priority: parseInt(e.target.value) || 10 }))}
+                />
+              </Field>
+              <Field label="Category">
+                <NativeSelect
+                  value={subAgentForm.category}
+                  onChange={(e) => setSubAgentForm((p) => ({ ...p, category: e.target.value }))}
+                >
+                  <option value="shopping">Shopping</option>
+                  <option value="customer-support">Customer Support</option>
+                  <option value="sales">Sales</option>
+                  <option value="booking">Booking</option>
+                </NativeSelect>
+              </Field>
+            </div>
+
+            <Field
+              label="Trigger Keywords (comma-separated)"
+              hint="When customer queries contain any of these keywords, this specialist is activated."
+            >
+              <Input
+                value={subAgentForm.triggerKeywordsText}
+                onChange={(e) => setSubAgentForm((p) => ({ ...p, triggerKeywordsText: e.target.value }))}
+                placeholder="order, track, tracking, shipped, delivery, ORD-"
+              />
+            </Field>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold">Specialist Capabilities</label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 rounded-xl border p-3 bg-secondary/20">
+                {[
+                  { key: "productSearch", label: "Product Search" },
+                  { key: "visualSearch", label: "Visual Search" },
+                  { key: "orderTracking", label: "Order Tracking" },
+                  { key: "inventoryCheck", label: "Inventory Check" },
+                  { key: "cartAssistance", label: "Cart Assistance" },
+                  { key: "humanHandoff", label: "Human Handoff" },
+                ].map(({ key, label }) => (
+                  <label key={key} className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!subAgentForm.capabilities[key as keyof SubAgentCapabilities]}
+                      onChange={(e) =>
+                        setSubAgentForm((p) => ({
+                          ...p,
+                          capabilities: { ...p.capabilities, [key]: e.target.checked },
+                        }))
+                      }
+                      className="rounded border-border accent-brand"
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <Field label="Specialist System Prompt" hint="Direct instructions followed when this sub-agent replies.">
+              <Textarea
+                rows={4}
+                value={subAgentForm.systemPrompt}
+                onChange={(e) => setSubAgentForm((p) => ({ ...p, systemPrompt: e.target.value }))}
+                placeholder="You are the order fulfillment assistant. Help customers locate their orders and check delivery stages accurately."
+              />
+            </Field>
+
+            <ToggleRow
+              label="Active Status"
+              hint="When paused, this specialist will not be considered during query routing."
+              checked={subAgentForm.isActive}
+              onChange={(v) => setSubAgentForm((p) => ({ ...p, isActive: v }))}
+            />
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t">
+              <Button type="button" variant="ghost" onClick={() => setSubAgentModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingSubAgent ? "Update Specialist" : "Create Specialist"}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

@@ -27,6 +27,9 @@ import {
   MousePointerClick,
   PanelRight,
   Paperclip,
+  Pause,
+  PauseCircle,
+  Play,
   RefreshCw,
   Search,
   Send,
@@ -177,6 +180,12 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
   const [now, setNow] = useState(() => Date.now())
   const threadRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<HTMLTextAreaElement>(null)
+
+  const [botPausedUntil, setBotPausedUntil] = useState<string | null>(null)
+  const [pauseDialogOpen, setPauseDialogOpen] = useState(false)
+  const [pauseDuration, setPauseDuration] = useState(60)
+  const [pauseReason, setPauseReason] = useState("Human operator takeover")
+  const [pauseActionLoading, setPauseActionLoading] = useState(false)
 
   const psidOf = useCallback(
     (thread: LiveConversation | null) =>
@@ -552,6 +561,59 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
     else setProfileSheetOpen(true)
   }
 
+  const handlePauseBot = async () => {
+    if (!activePsid) return
+    try {
+      setPauseActionLoading(true)
+      const res = await fetch(`/api/v1/ai-profiles/conversations/${encodeURIComponent(activePsid)}/pause-bot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ durationMinutes: pauseDuration, reason: pauseReason }),
+      })
+      const json = await res.json()
+      if (res.ok && json.data) {
+        setBotPausedUntil(json.data.pausedUntil || new Date(Date.now() + pauseDuration * 60000).toISOString())
+        setPauseDialogOpen(false)
+        toast({
+          variant: "success",
+          title: "Bot replies paused",
+          description: `Chippy won't reply to ${activeName} for ${pauseDuration} minutes so you can handle this thread.`,
+        })
+      } else {
+        toast({ variant: "destructive", title: "Couldn't pause bot", description: apiMessage(json) || "Try again." })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Couldn't pause bot", description: "Check connection." })
+    } finally {
+      setPauseActionLoading(false)
+    }
+  }
+
+  const handleResumeBot = async () => {
+    if (!activePsid) return
+    try {
+      setPauseActionLoading(true)
+      const res = await fetch(`/api/v1/ai-profiles/conversations/${encodeURIComponent(activePsid)}/resume-bot`, {
+        method: "POST",
+      })
+      const json = await res.json()
+      if (res.ok) {
+        setBotPausedUntil(null)
+        toast({
+          variant: "success",
+          title: "Bot replies resumed",
+          description: `Chippy is active again and will handle automated replies for ${activeName}.`,
+        })
+      } else {
+        toast({ variant: "destructive", title: "Couldn't resume bot", description: apiMessage(json) || "Try again." })
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Couldn't resume bot", description: "Check connection." })
+    } finally {
+      setPauseActionLoading(false)
+    }
+  }
+
   const q = searchQuery.trim().toLowerCase()
   const filtered = conversations.filter(
     (c) =>
@@ -757,6 +819,39 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
                 <p className="truncate text-sm font-semibold">{activeName}</p>
                 <ReplyWindow left={windowLeft} />
               </div>
+              {botPausedUntil && new Date(botPausedUntil).getTime() > now ? (
+                <div className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-2xs font-medium text-amber-700 dark:text-amber-300">
+                  <Pause className="size-3 shrink-0" />
+                  <span className="hidden sm:inline">Bot paused:</span>
+                  <span className="tabular-nums font-semibold">
+                    {Math.max(1, Math.ceil((new Date(botPausedUntil).getTime() - now) / 60000))}m left
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResumeBot}
+                    disabled={pauseActionLoading}
+                    className="ml-1 h-5 rounded-full px-2 text-2xs font-semibold hover:bg-amber-500/20"
+                    title="Resume AI bot automated replies"
+                  >
+                    {pauseActionLoading ? <Loader2 className="size-2.5 animate-spin" /> : <Play className="size-2.5 mr-0.5" />}
+                    Resume
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPauseDialogOpen(true)}
+                  className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/10"
+                  title="Pause automated AI bot replies for this conversation to take over manually"
+                >
+                  <PauseCircle className="size-3.5" />
+                  <span className="hidden sm:inline">Pause Bot</span>
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -1147,6 +1242,69 @@ export function MessengerInbox({ webhook }: { webhook: MessengerWebhook }) {
           ) : (
             <p className="py-8 text-center text-sm text-muted-foreground">No message details found.</p>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Bot Pause / Takeover Dialog ────────────────────────── */}
+      <Dialog open={pauseDialogOpen} onOpenChange={setPauseDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PauseCircle className="size-5 text-amber-600" />
+              Pause Automated Bot Replies
+            </DialogTitle>
+            <DialogDescription>
+              Temporarily silence automated Chippy replies for this customer thread so you can handle the chat manually without AI interruption.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold">Pause Duration</label>
+              <div className="grid grid-cols-4 gap-2">
+                {[15, 30, 60, 120].map((mins) => (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => setPauseDuration(mins)}
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-xs font-medium transition-colors",
+                      pauseDuration === mins
+                        ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold"
+                        : "border-border text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    {mins < 60 ? `${mins}m` : `${mins / 60}h`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold">Reason for takeover</label>
+              <Input
+                value={pauseReason}
+                onChange={(e) => setPauseReason(e.target.value)}
+                placeholder="e.g. Customer requested human operator takeover"
+                className="text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" onClick={() => setPauseDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handlePauseBot}
+              disabled={pauseActionLoading}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-medium"
+            >
+              {pauseActionLoading ? <Loader2 className="size-3.5 animate-spin mr-1.5" /> : <Pause className="size-3.5 mr-1.5" />}
+              Pause Bot for {pauseDuration}m
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

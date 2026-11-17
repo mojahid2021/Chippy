@@ -34,6 +34,7 @@ import {
   Search,
   Settings,
   ShoppingBag,
+  Sparkles,
   Store as StoreIcon,
   Tag,
   Trash2,
@@ -444,6 +445,31 @@ export default function MerchantStorePage() {
     } finally {
       setUploadingProductImage(false)
       e.target.value = ""
+    }
+  }
+
+  const [syncingVectors, setSyncingVectors] = useState(false)
+
+  const handleSyncVisualSearch = async () => {
+    setSyncingVectors(true)
+    try {
+      const res = await fetch("/api/v1/stores/me/visual-search/sync", {
+        method: "POST",
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Failed to sync visual search vectors")
+      toast({
+        title: "Visual Search Synced",
+        description: `Successfully synchronized ${data.data?.indexedCount ?? 0} products into the Qdrant vector database.`,
+      })
+    } catch (err: unknown) {
+      toast({
+        title: "Sync failed",
+        description: err instanceof Error ? err.message : "Error syncing visual search vectors",
+        variant: "destructive",
+      })
+    } finally {
+      setSyncingVectors(false)
     }
   }
 
@@ -991,10 +1017,22 @@ export default function MerchantStorePage() {
                     ))}
                   </NativeSelect>
                 </div>
-                <Button size="sm" onClick={openCreateProduct}>
-                  <Plus className="size-3.5 mr-1" />
-                  Add Product
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSyncVisualSearch}
+                    disabled={syncingVectors || loading}
+                    title="Sync visual vector embeddings into Qdrant for image search"
+                  >
+                    <Sparkles className={cn("size-3.5 mr-1 text-brand", syncingVectors && "animate-spin")} />
+                    {syncingVectors ? "Syncing..." : "Sync Visual Search"}
+                  </Button>
+                  <Button size="sm" onClick={openCreateProduct}>
+                    <Plus className="size-3.5 mr-1" />
+                    Add Product
+                  </Button>
+                </div>
               </div>
 
               {filteredProducts.length === 0 ? (

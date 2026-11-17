@@ -27,6 +27,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Sparkles,
   Trash2,
   Upload,
 } from "lucide-react"
@@ -203,6 +204,31 @@ export default function ProductsPage() {
     }
   }
 
+  const [syncingVectors, setSyncingVectors] = useState(false)
+
+  const handleSyncVisualSearch = async () => {
+    setSyncingVectors(true)
+    try {
+      const res = await fetch("/api/v1/stores/me/visual-search/sync", {
+        method: "POST",
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Failed to sync visual search vectors")
+      toast({
+        title: "Visual Search Synced",
+        description: `Successfully synchronized ${data.data?.indexedCount ?? 0} products into the Qdrant vector database.`,
+      })
+    } catch (err: unknown) {
+      toast({
+        title: "Sync failed",
+        description: err instanceof Error ? err.message : "Error syncing visual search vectors",
+        variant: "destructive",
+      })
+    } finally {
+      setSyncingVectors(false)
+    }
+  }
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!productForm.title.trim() || !productForm.slug.trim()) {
@@ -336,6 +362,16 @@ export default function ProductsPage() {
             <Button variant="outline" size="sm" onClick={() => void loadData()} disabled={loading}>
               <RefreshCw className={cn("size-3.5 mr-1.5", loading && "animate-spin")} />
               Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncVisualSearch}
+              disabled={syncingVectors || loading}
+              title="Synchronize product visual vector embeddings into Qdrant for Messenger and Storefront reverse image search"
+            >
+              <Sparkles className={cn("size-3.5 mr-1.5 text-brand", syncingVectors && "animate-spin")} />
+              {syncingVectors ? "Syncing Qdrant..." : "Sync Visual Search"}
             </Button>
             {store && (
               <Button asChild size="sm" variant="outline">

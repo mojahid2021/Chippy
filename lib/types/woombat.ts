@@ -559,6 +559,138 @@ export interface SendManualMessageResponse {
 }
 
 /**
+ * Coordinator AI Profile Sub-Agents & Specialist Delegation Types
+ */
+
+export interface SubAgentProfile {
+  id: string
+  userId: string
+  parentId: string
+  name: string
+  role: string
+  category?: string
+  capabilities?: SubAgentCapabilities
+  subAgentConfig?: SubAgentConfig
+  systemPrompt?: string
+  isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CoordinatorSubAgentsResponse {
+  message: string
+  data: {
+    parentId: string
+    parentName: string
+    routingMode?: 'KEYWORD_FIRST' | 'SEMANTIC_SIMILARITY' | 'HYBRID' | string
+    subAgents: SubAgentProfile[]
+  }
+}
+
+export interface SubAgentResponse {
+  message: string
+  data: SubAgentProfile
+}
+
+export interface CreateSubAgentRequest {
+  name: string
+  role: string
+  category?: string
+  capabilities?: SubAgentCapabilities
+  subAgentConfig?: SubAgentConfig
+  systemPrompt?: string
+  isActive?: boolean
+}
+
+export interface UpdateSubAgentRequest {
+  name?: string
+  role?: string
+  category?: string
+  capabilities?: SubAgentCapabilities
+  subAgentConfig?: SubAgentConfig
+  systemPrompt?: string
+  isActive?: boolean
+}
+
+export interface SimulateRoutingRequest {
+  userPrompt: string
+  hasImages?: boolean
+}
+
+export interface EvaluatedSubAgent {
+  id: string
+  name: string
+  speciality: string
+  priority: number
+  score: number
+  matchedKeywords: string[]
+  negativeTriggered: boolean
+  isEligible: boolean
+}
+
+export interface SimulateRoutingResponse {
+  message: string
+  data: {
+    parentProfileId: string
+    parentProfileName: string
+    selectedProfileId: string
+    selectedProfileName: string
+    selectedProfileRole: string
+    selectedProfileSpeciality?: string
+    isSubAgent: boolean
+    routingReason: string
+    confidenceScore: number
+    matchedKeywords: string[]
+    evaluatedSubAgents: EvaluatedSubAgent[]
+  }
+}
+
+export interface AutoProvisionSubAgentsRequest {
+  industryPack: 'ECOMMERCE_RETAIL' | string
+}
+
+export interface AutoProvisionSubAgentsResponse {
+  message: string
+  data: {
+    parentId: string
+    industryPack: string
+    createdSubAgents: Array<{
+      id: string
+      name: string
+      role: string
+    }>
+  }
+}
+
+/**
+ * Conversation Bot Pause & Takeover Types
+ */
+
+export interface PauseBotRequest {
+  durationMinutes?: number
+  reason?: string
+}
+
+export interface PauseBotResponse {
+  message: string
+  data: {
+    senderId: string
+    isPaused: boolean
+    pausedUntil?: string | null
+    reason?: string
+  }
+}
+
+export interface ResumeBotResponse {
+  message: string
+  data: {
+    senderId: string
+    isPaused: boolean
+    resumedAt: string
+  }
+}
+
+/**
  * ─────────────────────────────────────────────────────────────────────────────
  * Section 6: Live Meta Facebook Messenger Graph API Client (Custom Messenger Suite)
  * ─────────────────────────────────────────────────────────────────────────────
@@ -1868,6 +2000,43 @@ export interface CheckoutResponse {
   message: string
   data: StoreOrder
 }
+
+/**
+ * Visual Search & Vector Embedding Types (Qdrant)
+ */
+
+export interface VisualSearchSyncResponse {
+  message: string
+  data: {
+    indexedCount: number
+  }
+}
+
+export interface VisualSearchRequest {
+  image: string // image URL or base64 data URI
+  limit?: number // default 5
+  minScore?: number // default 0.65
+}
+
+export interface VisualMatchedProduct {
+  productId: string
+  productSlug: string
+  title: string
+  price: number
+  currency: string
+  imageUrl?: string
+  score: number
+}
+
+export interface VisualSearchResponse {
+  message: string
+  data: {
+    matchedProducts: VisualMatchedProduct[]
+    count: number
+    queryImage: string
+  }
+}
+
 
 
 
