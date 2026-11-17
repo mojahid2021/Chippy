@@ -28,6 +28,7 @@ import {
   RefreshCw,
   Search,
   Trash2,
+  Upload,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PageHeader, EmptyState } from "@/components/page-header"
@@ -161,6 +162,45 @@ export default function ProductsPage() {
       variants: p.variants || [],
     })
     setProductModalOpen(true)
+  }
+
+  const [uploadingProductImage, setUploadingProductImage] = useState(false)
+
+  const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingProductImage(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("assetType", "product_image")
+
+      const res = await fetch("/api/v1/stores/me/media/upload", {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Failed to upload image")
+
+      const newUrl = data.data?.url
+      if (newUrl) {
+        setProductForm((prev) => ({
+          ...prev,
+          imagesText: prev.imagesText.trim() ? `${prev.imagesText.trim()}\n${newUrl}` : newUrl,
+        }))
+        toast({ title: "Image uploaded", description: "Image added to product gallery." })
+      }
+    } catch (err: unknown) {
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Error uploading product image",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingProductImage(false)
+      e.target.value = ""
+    }
   }
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -602,9 +642,23 @@ export default function ProductsPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="p-images">Image URLs (one per line)</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="p-images">Product Images</Label>
+                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-brand hover:underline">
+                  <Upload className="size-3.5" />
+                  {uploadingProductImage ? "Uploading..." : "Upload Image"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadingProductImage}
+                    onChange={handleProductImageUpload}
+                  />
+                </label>
+              </div>
               <Textarea
                 id="p-images"
+                placeholder="https://... (one per line, or click Upload Image above)"
                 rows={2}
                 value={productForm.imagesText}
                 onChange={(e) => setProductForm((prev) => ({ ...prev, imagesText: e.target.value }))}

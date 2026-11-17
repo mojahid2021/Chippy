@@ -332,9 +332,41 @@ export interface ModelConfig {
   responseFormat?: 'text' | 'json_object' | string
 }
 
+export interface SubAgentCapabilities {
+  productSearch?: boolean
+  visualSearch?: boolean
+  orderTracking?: boolean
+  inventoryCheck?: boolean
+  cartAssistance?: boolean
+  humanHandoff?: boolean
+  [key: string]: boolean | undefined
+}
+
+export interface SubAgentConfig {
+  speciality: string
+  triggerKeywords: string[]
+  triggerIntents?: string[]
+  priority?: number
+  autoDelegate?: boolean
+  negativeKeywords?: string[]
+}
+
+export interface AiProfileShoppingConfig {
+  enabled: boolean
+  visualSearchEnabled: boolean
+  exactMatchThreshold?: number
+  suggestionThreshold?: number
+  maxExactMatches?: number
+  maxSuggestions?: number
+  sendSuggestedImages?: boolean
+  deliveryFormat?: 'CAROUSEL' | 'IMAGE_ATTACHMENT' | 'TEXT_WITH_LINKS' | string
+  customSuggestionPrompt?: string
+}
+
 export interface AiProfile {
   id: string
   userId: string
+  parentId?: string | null
   name: string
   role: string
   description?: string
@@ -354,6 +386,10 @@ export interface AiProfile {
   customVariables?: CustomVariable[]
   fewShotExamples?: FewShotExample[]
   modelConfig?: ModelConfig
+  capabilities?: SubAgentCapabilities
+  subAgentConfig?: SubAgentConfig
+  shoppingConfig?: AiProfileShoppingConfig
+  routingMode?: 'KEYWORD_FIRST' | 'SEMANTIC_SIMILARITY' | 'HYBRID' | string
   isDefault: boolean
   isActive: boolean
   tags?: string[]
@@ -1432,7 +1468,7 @@ export interface StoreAnalyticsResponse {
 export interface PresignedUploadUrlRequest {
   fileName: string
   contentType: string
-  assetType: 'logo' | 'banner' | 'product_image' | string
+  assetType: 'logo' | 'banner' | 'product_image' | 'store_logo' | 'store_banner' | 'category_image' | string
 }
 
 export interface PresignedUploadUrlResponse {
@@ -1441,6 +1477,26 @@ export interface PresignedUploadUrlResponse {
     uploadUrl: string
     fileUrl: string
     key?: string
+  }
+}
+
+export type MediaAssetType = 'product_image' | 'store_logo' | 'store_banner' | 'category_image' | string
+
+export interface DirectMediaUploadRequest {
+  fileName: string
+  contentType: string
+  assetType?: MediaAssetType
+  data: string // Base64 data URL
+}
+
+export interface DirectMediaUploadResponse {
+  message: string
+  data: {
+    key: string
+    url: string
+    fileName: string
+    contentType: string
+    size?: number
   }
 }
 

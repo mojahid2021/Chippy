@@ -341,28 +341,53 @@ export default function MerchantStorePage() {
 
     setUploadingMedia(type)
     try {
-      // 1. Request presigned upload URL
-      const presignRes = await fetch("/api/v1/stores/me/media/upload-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileName: file.name,
-          contentType: file.type || "image/png",
-          assetType: type,
-        }),
-      })
-      const presignData = await presignRes.json()
-      if (!presignRes.ok) throw new Error(presignData.message || "Failed to get upload URL")
+      let fileUrl = ""
 
-      const { uploadUrl, fileUrl } = presignData.data
+      // 1. Try Direct binary streaming upload first (POST /api/v1/stores/me/media/upload)
+      try {
+        const formData = new FormData()
+        formData.append("file", file)
+        formData.append("assetType", type === "logo" ? "store_logo" : "store_banner")
 
-      // 2. Direct PUT to S3/MinIO
-      const uploadRes = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type || "image/png" },
-        body: file,
-      })
-      if (!uploadRes.ok) throw new Error("Failed to upload image asset")
+        const directRes = await fetch("/api/v1/stores/me/media/upload", {
+          method: "POST",
+          body: formData,
+        })
+
+        if (directRes.ok) {
+          const directJson = await directRes.json()
+          fileUrl = directJson.data?.url || ""
+        }
+      } catch {
+        // Fall back to presigned URL if direct upload fails
+      }
+
+      // 2. Fallback to presigned upload URL if needed
+      if (!fileUrl) {
+        const presignRes = await fetch("/api/v1/stores/me/media/upload-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType: file.type || "image/png",
+            assetType: type,
+          }),
+        })
+        const presignData = await presignRes.json()
+        if (!presignRes.ok) throw new Error(presignData.message || "Failed to get upload URL")
+
+        const { uploadUrl, fileUrl: s3Url } = presignData.data
+
+        const uploadRes = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type || "image/png" },
+          body: file,
+        })
+        if (!uploadRes.ok) throw new Error("Failed to upload image asset")
+        fileUrl = s3Url
+      }
+
+      if (!fileUrl) throw new Error("Could not obtain uploaded media URL")
 
       // 3. Patch store profile
       const patchPayload = type === "logo" ? { logoUrl: fileUrl } : { bannerUrl: fileUrl }
@@ -380,6 +405,45 @@ export default function MerchantStorePage() {
       toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Media upload error", variant: "destructive" })
     } finally {
       setUploadingMedia(null)
+    }
+  }
+
+  const [uploadingProductImage, setUploadingProductImage] = useState(false)
+
+  const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingProductImage(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("assetType", "product_image")
+
+      const res = await fetch("/api/v1/stores/me/media/upload", {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Failed to upload image")
+
+      const newUrl = data.data?.url
+      if (newUrl) {
+        setProductForm((prev) => ({
+          ...prev,
+          imagesText: prev.imagesText.trim() ? `${prev.imagesText.trim()}\n${newUrl}` : newUrl,
+        }))
+        toast({ title: "Image uploaded", description: "Image added to product gallery." })
+      }
+    } catch (err: unknown) {
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Error uploading product image",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingProductImage(false)
+      e.target.value = ""
     }
   }
 
@@ -1919,11 +1983,24 @@ export default function MerchantStorePage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="prod-images">Image URLs (one per line)</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="prod-images">Product Images</Label>
+                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-brand hover:underline">
+                  <Upload className="size-3.5" />
+                  {uploadingProductImage ? "Uploading..." : "Upload Image"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadingProductImage}
+                    onChange={handleProductImageUpload}
+                  />
+                </label>
+              </div>
               <Textarea
                 id="prod-images"
                 rows={2}
-                placeholder="https://example.com/image1.jpg"
+                placeholder="https://... (one per line, or click Upload Image above)"
                 value={productForm.imagesText}
                 onChange={(e) => setProductForm((prev) => ({ ...prev, imagesText: e.target.value }))}
               />
