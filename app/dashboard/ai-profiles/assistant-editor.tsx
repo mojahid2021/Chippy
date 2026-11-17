@@ -402,7 +402,7 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
         toast({
           variant: "success",
           title: "Specialist Team Provisioned",
-          description: `Auto-provisioned standard retail specialists via POST /api/v1/ai-profiles/:id/sub-profiles/auto-provision.`,
+          description: "Standard retail specialists have been provisioned successfully.",
         })
       } else {
         toast({ variant: "destructive", title: "Auto-provision failed", description: json.message || "Try again." })
@@ -460,7 +460,7 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
         toast({
           variant: "success",
           title: editingSubAgent ? "Specialist Updated" : "Specialist Created",
-          description: `${subAgentForm.name} saved via POST /api/v1/ai-profiles/:id/sub-profiles.`,
+          description: `${subAgentForm.name} saved successfully.`,
         })
         setSubAgentModalOpen(false)
         const listRes = await fetch(`/api/v1/ai-profiles/${encodeURIComponent(currentId)}/sub-profiles`)
@@ -948,7 +948,7 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
                     Specialist Multi-Agent Routing
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Customer inquiries are evaluated against trigger keywords and capabilities. The winning specialist generates the grounded reply via live API (<code>/api/v1/ai-profiles/:id/sub-profiles</code>).
+                    Customer inquiries are evaluated against trigger keywords and capabilities. The winning specialist generates grounded replies.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1000,14 +1000,14 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
               {/* Sub-agents live list */}
               {subAgentsLoading ? (
                 <div className="flex items-center justify-center py-10 gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="size-4 animate-spin" /> Loading specialist sub-agents from backend API...
+                  <Loader2 className="size-4 animate-spin" /> Loading specialist sub-agents...
                 </div>
               ) : subAgents.length === 0 ? (
                 <div className="rounded-xl border border-dashed py-10 text-center space-y-3">
                   <Users className="mx-auto size-8 text-muted-foreground" />
                   <p className="text-sm font-semibold">No specialist sub-agents deployed yet</p>
                   <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                    Click &quot;Add Specialist&quot; to create a custom sub-agent via <code>POST /api/v1/ai-profiles/:id/sub-profiles</code>, or click &quot;Auto-Provision Retail Team&quot; to have the backend generate the 3 retail specialists.
+                    Click &quot;Add Specialist&quot; to configure a custom sub-agent, or click &quot;Auto-Provision Retail Team&quot; to generate standard retail specialists.
                   </p>
                   <div className="flex items-center justify-center gap-2 pt-1">
                     <Button
@@ -1165,7 +1165,7 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
                       Query Routing Simulation Sandbox
                     </h4>
                     <p className="text-xs text-muted-foreground">
-                      Test customer queries against your specialist sub-agents via <code>POST /api/v1/ai-profiles/:id/sub-profiles/simulate-routing</code>.
+                      Test customer queries and verify how incoming inquiries route to your specialist sub-agents.
                     </p>
                   </div>
                   <Button
@@ -1194,7 +1194,7 @@ export function AssistantEditor({ profileId }: { profileId?: string }) {
                       onChange={(e) => setSimulateHasImages(e.target.checked)}
                       className="rounded border-border accent-brand"
                     />
-                    <span>Inquiry contains photo attachment (`hasImages: true`)</span>
+                    <span>Inquiry includes customer photo attachment</span>
                   </label>
                 </div>
 

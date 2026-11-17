@@ -433,7 +433,7 @@ export default function AiProfilesPage() {
         toast({
           variant: "success",
           title: "Specialist Team Provisioned",
-          description: `Auto-provisioned standard retail specialists via API.`,
+          description: "Standard retail specialists have been provisioned successfully.",
         })
         await loadSubAgentsForProfile(selectedProfileForSubAgents.id)
       } else {
@@ -490,7 +490,7 @@ export default function AiProfilesPage() {
         toast({
           variant: "success",
           title: editingSubAgent ? "Specialist Updated" : "Specialist Created",
-          description: `${subAgentForm.name} saved successfully via API.`,
+          description: `${subAgentForm.name} saved successfully.`,
         })
         setSubAgentModalOpen(false)
         await loadSubAgentsForProfile(selectedProfileForSubAgents.id)
@@ -1038,7 +1038,7 @@ export default function AiProfilesPage() {
               Specialist Sub-Agents · {selectedProfileForSubAgents?.name}
             </DialogTitle>
             <DialogDescription>
-              Multi-agent routing powered by live Woombat API (<code>/api/v1/ai-profiles/:id/sub-profiles</code>).
+              Configure specialized sub-agents and smart query routing for this assistant.
             </DialogDescription>
           </DialogHeader>
 
@@ -1101,14 +1101,14 @@ export default function AiProfilesPage() {
             {/* Live Sub-Agents List */}
             {subAgentsLoading ? (
               <div className="flex items-center justify-center py-10 gap-2 text-xs text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" /> Loading specialist sub-agents from API...
+                <Loader2 className="size-4 animate-spin" /> Loading specialist sub-agents...
               </div>
             ) : subAgentsList.length === 0 ? (
               <div className="rounded-xl border border-dashed py-10 text-center space-y-3">
                 <Users className="mx-auto size-8 text-muted-foreground" />
                 <p className="text-sm font-semibold">No specialist sub-agents deployed yet</p>
                 <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                  Click &quot;Auto-Provision Retail Team&quot; above to have the Woombat engine generate standard retail specialists (Shopping Concierge, Order Tracker, Customer Care), or click &quot;Add Specialist&quot; to configure one manually.
+                  Click &quot;Auto-Provision Retail Team&quot; above to generate standard retail specialists (Shopping Concierge, Order Tracker, Customer Care), or click &quot;Add Specialist&quot; to configure one manually.
                 </p>
                 <Button
                   type="button"
@@ -1234,7 +1234,7 @@ export default function AiProfilesPage() {
                     Query Routing Simulation Sandbox
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    Tests customer queries via <code>POST /api/v1/ai-profiles/:id/sub-profiles/simulate-routing</code>.
+                    Test customer queries to verify how incoming messages route between your specialists.
                   </p>
                 </div>
                 <Button
@@ -1339,8 +1339,8 @@ export default function AiProfilesPage() {
             </DialogTitle>
             <DialogDescription>
               {editingSubAgent
-                ? `Update capabilities, trigger keywords, and instructions via PATCH /api/v1/ai-profiles/:id/sub-profiles/:subProfileId.`
-                : `Add a dedicated specialist via POST /api/v1/ai-profiles/:id/sub-profiles.`}
+                ? "Update capabilities, trigger keywords, and instructions for this specialist."
+                : "Add a dedicated specialist sub-agent to handle specific customer intents."}
             </DialogDescription>
           </DialogHeader>
 
